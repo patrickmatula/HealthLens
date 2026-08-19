@@ -6,6 +6,7 @@ import { Icon } from '../components/Icon'
 import { SegmentedButton } from '../components/SegmentedButton'
 import { Surface } from '../components/Surface'
 import { TopAppBar } from '../components/TopAppBar'
+import { useLanguage, type Language } from '../i18n/LanguageContext'
 import { useTheme } from '../theme/ThemeContext'
 import { COLOR_THEMES } from '../theme/themes.generated'
 import { useUnits } from '../units/UnitsContext'
@@ -14,16 +15,21 @@ import { formatDateTime } from '../utils/format'
 import './DashboardPage.css'
 import './MorePage.css'
 
-const UNIT_OPTIONS = [
-  { value: 'metric' as const, label: 'Metrisch (km)' },
-  { value: 'imperial' as const, label: 'Imperial (mi)' },
-]
-
 export function MorePage() {
   const [status, setStatus] = useState<ImportCurrentDto | null>(null)
   const [showImport, setShowImport] = useState(false)
   const { unit, setUnit } = useUnits()
   const { colorTheme, setColorTheme } = useTheme()
+  const { language, setLanguage, t } = useLanguage()
+
+  const unitOptions = [
+    { value: 'metric' as const, label: t('more.unitMetric') },
+    { value: 'imperial' as const, label: t('more.unitImperial') },
+  ]
+  const languageOptions: { value: Language; label: string }[] = [
+    { value: 'de', label: 'Deutsch' },
+    { value: 'en', label: 'English' },
+  ]
 
   useEffect(() => {
     api.importCurrent().then(setStatus)
@@ -35,29 +41,33 @@ export function MorePage() {
 
   return (
     <div>
-      <TopAppBar title="Mehr" />
+      <TopAppBar title={t('nav.more')} />
 
       <div className="ghl-page-content">
         <Surface tone="low" className="ghl-more-card">
-          <h2 className="ghl-section-title">Einstellungen</h2>
+          <h2 className="ghl-section-title">{t('more.settingsTitle')}</h2>
           <div className="ghl-more-setting">
-            <div className="ghl-upload-option__title">Einheiten</div>
-            <SegmentedButton options={UNIT_OPTIONS} value={unit} onChange={setUnit} />
+            <div className="ghl-upload-option__title">{t('more.unitsLabel')}</div>
+            <SegmentedButton options={unitOptions} value={unit} onChange={setUnit} />
           </div>
           <div className="ghl-more-setting">
-            <div className="ghl-upload-option__title">Farbthema</div>
+            <div className="ghl-upload-option__title">{t('more.languageLabel')}</div>
+            <SegmentedButton options={languageOptions} value={language} onChange={setLanguage} />
+          </div>
+          <div className="ghl-more-setting">
+            <div className="ghl-upload-option__title">{t('more.colorThemeLabel')}</div>
             <div className="ghl-theme-swatches">
-              {COLOR_THEMES.map((t) => (
+              {COLOR_THEMES.map((ct) => (
                 <button
-                  key={t.key}
+                  key={ct.key}
                   type="button"
-                  className={`ghl-theme-swatch ${colorTheme === t.key ? 'ghl-theme-swatch--selected' : ''}`}
-                  style={{ background: t.seed }}
-                  onClick={() => setColorTheme(t.key)}
-                  aria-label={t.label}
-                  title={t.label}
+                  className={`ghl-theme-swatch ${colorTheme === ct.key ? 'ghl-theme-swatch--selected' : ''}`}
+                  style={{ background: ct.seed }}
+                  onClick={() => setColorTheme(ct.key)}
+                  aria-label={ct.label}
+                  title={ct.label}
                 >
-                  {colorTheme === t.key && <Icon name="check" size={16} />}
+                  {colorTheme === ct.key && <Icon name="check" size={16} />}
                 </button>
               ))}
             </div>
@@ -65,52 +75,49 @@ export function MorePage() {
         </Surface>
 
         <Surface tone="low" className="ghl-more-card">
-          <h2 className="ghl-section-title">Datenquelle</h2>
+          <h2 className="ghl-section-title">{t('more.dataSourceTitle')}</h2>
           {status && (
             <dl className="ghl-more-list">
-              <dt>Speicherung</dt>
-              <dd>{status.mode === 'Persistent' ? 'Dauerhaft (übersteht einen Neustart)' : 'Nur für diese Sitzung'}</dd>
+              <dt>{t('more.storageLabel')}</dt>
+              <dd>{status.mode === 'Persistent' ? t('more.storagePersistent') : t('more.storageEphemeral')}</dd>
               {status.lastImportAtUtc && (
                 <>
-                  <dt>Letzter Import</dt>
+                  <dt>{t('more.lastImportLabel')}</dt>
                   <dd>{formatDateTime(status.lastImportAtUtc)}</dd>
                 </>
               )}
               {status.lastScope && (
                 <>
-                  <dt>Umfang</dt>
-                  <dd>{status.lastScope === 'Curated' ? 'Kuratiert' : 'Vollständig'}</dd>
+                  <dt>{t('more.scopeLabel')}</dt>
+                  <dd>{status.lastScope === 'Curated' ? t('more.scopeCurated') : t('more.scopeFull')}</dd>
                 </>
               )}
               {status.rowsImported != null && (
                 <>
-                  <dt>Importierte Zeilen</dt>
-                  <dd>{status.rowsImported.toLocaleString('de-AT')}</dd>
+                  <dt>{t('more.rowsImportedLabel')}</dt>
+                  <dd>{status.rowsImported.toLocaleString(language === 'de' ? 'de-AT' : 'en-US')}</dd>
                 </>
               )}
             </dl>
           )}
-          <md-outlined-button onClick={() => setShowImport(true)}>Neuen Export importieren</md-outlined-button>
+          <md-outlined-button onClick={() => setShowImport(true)}>{t('more.reimportButton')}</md-outlined-button>
         </Surface>
 
         <Surface tone="low" className="ghl-more-card">
-          <h2 className="ghl-section-title">Über HealthLens</h2>
-          <p className="ghl-more-text">
-            Eine lokale Auswertungs-App für deinen Google-Takeout-Export (Google Health/Fitbit). Alle Daten bleiben auf diesem
-            Rechner — es wird nichts an einen Server außerhalb deines eigenen Backends gesendet.
-          </p>
+          <h2 className="ghl-section-title">{t('more.aboutTitle')}</h2>
+          <p className="ghl-more-text">{t('more.aboutText')}</p>
           <div className="ghl-more-nav-links">
             <Link className="ghl-more-nav-link" to="/workouts">
-              <Icon name="workouts" size={18} /> Workouts
+              <Icon name="workouts" size={18} /> {t('nav.workouts')}
             </Link>
             <Link className="ghl-more-nav-link" to="/sleep">
-              <Icon name="sleep" size={18} /> Schlaf
+              <Icon name="sleep" size={18} /> {t('nav.sleep')}
             </Link>
             <Link className="ghl-more-nav-link" to="/heart">
-              <Icon name="heart" size={18} /> Herz
+              <Icon name="heart" size={18} /> {t('nav.heart')}
             </Link>
             <Link className="ghl-more-nav-link" to="/recovery">
-              <Icon name="recovery" size={18} /> Erholung
+              <Icon name="recovery" size={18} /> {t('nav.recovery')}
             </Link>
           </div>
         </Surface>
