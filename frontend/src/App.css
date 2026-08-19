@@ -1,0 +1,22 @@
+.ghl-shell {
+  display: flex;
+  min-height: 100vh;
+  background: var(--md-sys-color-surface);
+}
+
+.ghl-shell__content {
+  flex: 1;
+  min-width: 0;
+}
+
+.ghl-boot-loading {
+  min-height: 100vh;
+  background: var(--md-sys-color-surface);
+}
+
+@media (max-width: 768px) {
+  .ghl-shell {
+    flex-direction: column;
+    padding-bottom: 72px;
+  }
+}

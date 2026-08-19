@@ -1,0 +1,15 @@
+.ghl-surface {
+  border-radius: var(--md-sys-shape-corner-medium);
+  background: var(--md-sys-color-surface-container);
+  color: var(--md-sys-color-on-surface);
+}
+
+.ghl-surface--padded {
+  padding: var(--md-space-5);
+}
+
+.ghl-surface--lowest { background: var(--md-sys-color-surface-container-lowest); }
+.ghl-surface--low { background: var(--md-sys-color-surface-container-low); }
+.ghl-surface--base { background: var(--md-sys-color-surface-container); }
+.ghl-surface--high { background: var(--md-sys-color-surface-container-high); }
+.ghl-surface--highest { background: var(--md-sys-color-surface-container-highest); }

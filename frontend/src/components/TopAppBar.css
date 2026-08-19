@@ -1,0 +1,26 @@
+.ghl-top-app-bar {
+  padding: var(--md-space-5) var(--md-space-6) var(--md-space-4);
+  position: sticky;
+  top: 0;
+  background: var(--md-sys-color-surface);
+  z-index: 5;
+}
+
+.ghl-top-app-bar__row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--md-space-4);
+}
+
+.ghl-top-app-bar__title {
+  font: var(--md-sys-typescale-headline-small-weight) var(--md-sys-typescale-headline-small-size)/var(--md-sys-typescale-headline-small-line-height) var(--md-sys-typescale-headline-small-font);
+  color: var(--md-sys-color-on-surface);
+  margin: 0;
+}
+
+.ghl-top-app-bar__actions {
+  display: flex;
+  align-items: center;
+  gap: var(--md-space-3);
+}

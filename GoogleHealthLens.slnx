@@ -1,0 +1,6 @@
+<Solution>
+  <Folder Name="/backend/">
+    <Project Path="backend/GoogleHealthLens.Api/GoogleHealthLens.Api.csproj" />
+    <Project Path="backend/GoogleHealthLens.Tests/GoogleHealthLens.Tests.csproj" />
+  </Folder>
+</Solution>

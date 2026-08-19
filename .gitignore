@@ -1,0 +1,18 @@
+# .NET
+bin/
+obj/
+*.user
+
+# Node / frontend
+frontend/node_modules/
+frontend/dist/
+
+# Vite build output emitted into the API project
+backend/GoogleHealthLens.Api/wwwroot/
+
+# Runtime data — never commit the user's imported health data
+backend/GoogleHealthLens.Api/App_Data/
+
+# IDE
+.vs/
+.vscode/

@@ -1,0 +1,32 @@
+.ghl-kpi {
+  display: flex;
+  flex-direction: column;
+  gap: var(--md-space-2);
+  min-width: 160px;
+}
+
+.ghl-kpi__header {
+  display: flex;
+  align-items: center;
+  gap: var(--md-space-2);
+  color: var(--md-sys-color-on-surface-variant);
+}
+
+.ghl-kpi__icon {
+  color: var(--md-sys-color-primary);
+  display: inline-flex;
+}
+
+.ghl-kpi__label {
+  font: var(--md-sys-typescale-label-large-weight) var(--md-sys-typescale-label-large-size)/var(--md-sys-typescale-label-large-line-height) var(--md-sys-typescale-label-large-font);
+}
+
+.ghl-kpi__value {
+  font: var(--md-sys-typescale-headline-medium-weight) var(--md-sys-typescale-headline-medium-size)/var(--md-sys-typescale-headline-medium-line-height) var(--md-sys-typescale-headline-medium-font);
+  color: var(--md-sys-color-on-surface);
+}
+
+.ghl-kpi__unit {
+  font: var(--md-sys-typescale-title-medium-weight) var(--md-sys-typescale-title-medium-size)/var(--md-sys-typescale-title-medium-line-height) var(--md-sys-typescale-title-medium-font);
+  color: var(--md-sys-color-on-surface-variant);
+}

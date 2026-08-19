@@ -1,0 +1,31 @@
+.ghl-segmented {
+  display: inline-flex;
+  border: 1px solid var(--md-sys-color-outline);
+  border-radius: var(--md-sys-shape-corner-full);
+  overflow: hidden;
+}
+
+.ghl-segmented__item {
+  appearance: none;
+  border: none;
+  border-right: 1px solid var(--md-sys-color-outline);
+  background: transparent;
+  color: var(--md-sys-color-on-surface);
+  padding: var(--md-space-2) var(--md-space-4);
+  font: var(--md-sys-typescale-label-large-weight) var(--md-sys-typescale-label-large-size)/var(--md-sys-typescale-label-large-line-height) var(--md-sys-typescale-label-large-font);
+  cursor: pointer;
+  transition: background-color 150ms ease, color 150ms ease;
+}
+
+.ghl-segmented__item:last-child {
+  border-right: none;
+}
+
+.ghl-segmented__item:hover {
+  background: color-mix(in srgb, var(--md-sys-color-on-surface) 8%, transparent);
+}
+
+.ghl-segmented__item--selected {
+  background: var(--md-sys-color-secondary-container);
+  color: var(--md-sys-color-on-secondary-container);
+}

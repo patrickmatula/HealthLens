@@ -1,0 +1,25 @@
+.ghl-page-content {
+  padding: 0 var(--md-space-6) var(--md-space-6);
+  max-width: var(--ghl-content-max-width);
+  display: flex;
+  flex-direction: column;
+  gap: var(--md-space-5);
+}
+
+.ghl-kpi-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--md-space-4);
+}
+
+.ghl-chart-card {
+  display: flex;
+  flex-direction: column;
+  gap: var(--md-space-4);
+}
+
+.ghl-chart-card__title {
+  margin: 0;
+  font: var(--md-sys-typescale-title-medium-weight) var(--md-sys-typescale-title-medium-size)/var(--md-sys-typescale-title-medium-line-height) var(--md-sys-typescale-title-medium-font);
+  color: var(--md-sys-color-on-surface);
+}

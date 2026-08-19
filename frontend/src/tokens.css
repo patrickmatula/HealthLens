@@ -1,0 +1,93 @@
+@import './theme/colors.generated.css';
+
+:root {
+  /* Type scale — Roboto Flex, self-hosted, per M3 spec (font/weight/size/line-height/tracking per style). */
+  --md-sys-typescale-display-large-font: 'Roboto Flex', sans-serif;
+  --md-sys-typescale-display-large-weight: 400;
+  --md-sys-typescale-display-large-size: 57px;
+  --md-sys-typescale-display-large-line-height: 64px;
+
+  --md-sys-typescale-headline-large-font: 'Roboto Flex', sans-serif;
+  --md-sys-typescale-headline-large-weight: 400;
+  --md-sys-typescale-headline-large-size: 32px;
+  --md-sys-typescale-headline-large-line-height: 40px;
+
+  --md-sys-typescale-headline-medium-font: 'Roboto Flex', sans-serif;
+  --md-sys-typescale-headline-medium-weight: 400;
+  --md-sys-typescale-headline-medium-size: 28px;
+  --md-sys-typescale-headline-medium-line-height: 36px;
+
+  --md-sys-typescale-headline-small-font: 'Roboto Flex', sans-serif;
+  --md-sys-typescale-headline-small-weight: 400;
+  --md-sys-typescale-headline-small-size: 24px;
+  --md-sys-typescale-headline-small-line-height: 32px;
+
+  --md-sys-typescale-title-large-font: 'Roboto Flex', sans-serif;
+  --md-sys-typescale-title-large-weight: 500;
+  --md-sys-typescale-title-large-size: 22px;
+  --md-sys-typescale-title-large-line-height: 28px;
+
+  --md-sys-typescale-title-medium-font: 'Roboto Flex', sans-serif;
+  --md-sys-typescale-title-medium-weight: 600;
+  --md-sys-typescale-title-medium-size: 16px;
+  --md-sys-typescale-title-medium-line-height: 24px;
+
+  --md-sys-typescale-title-small-font: 'Roboto Flex', sans-serif;
+  --md-sys-typescale-title-small-weight: 600;
+  --md-sys-typescale-title-small-size: 14px;
+  --md-sys-typescale-title-small-line-height: 20px;
+
+  --md-sys-typescale-body-large-font: 'Roboto Flex', sans-serif;
+  --md-sys-typescale-body-large-weight: 400;
+  --md-sys-typescale-body-large-size: 16px;
+  --md-sys-typescale-body-large-line-height: 24px;
+
+  --md-sys-typescale-body-medium-font: 'Roboto Flex', sans-serif;
+  --md-sys-typescale-body-medium-weight: 400;
+  --md-sys-typescale-body-medium-size: 14px;
+  --md-sys-typescale-body-medium-line-height: 20px;
+
+  --md-sys-typescale-body-small-font: 'Roboto Flex', sans-serif;
+  --md-sys-typescale-body-small-weight: 400;
+  --md-sys-typescale-body-small-size: 12px;
+  --md-sys-typescale-body-small-line-height: 16px;
+
+  --md-sys-typescale-label-large-font: 'Roboto Flex', sans-serif;
+  --md-sys-typescale-label-large-weight: 600;
+  --md-sys-typescale-label-large-size: 14px;
+  --md-sys-typescale-label-large-line-height: 20px;
+
+  --md-sys-typescale-label-medium-font: 'Roboto Flex', sans-serif;
+  --md-sys-typescale-label-medium-weight: 600;
+  --md-sys-typescale-label-medium-size: 12px;
+  --md-sys-typescale-label-medium-line-height: 16px;
+
+  --md-sys-typescale-label-small-font: 'Roboto Flex', sans-serif;
+  --md-sys-typescale-label-small-weight: 600;
+  --md-sys-typescale-label-small-size: 11px;
+  --md-sys-typescale-label-small-line-height: 16px;
+
+  /* 8dp spacing scale */
+  --md-space-1: 4px;
+  --md-space-2: 8px;
+  --md-space-3: 12px;
+  --md-space-4: 16px;
+  --md-space-5: 24px;
+  --md-space-6: 32px;
+  --md-space-7: 40px;
+  --md-space-8: 48px;
+
+  /* Shape tokens */
+  --md-sys-shape-corner-none: 0px;
+  --md-sys-shape-corner-extra-small: 4px;
+  --md-sys-shape-corner-small: 8px;
+  --md-sys-shape-corner-medium: 12px;
+  --md-sys-shape-corner-large: 16px;
+  --md-sys-shape-corner-extra-large: 28px;
+  --md-sys-shape-corner-full: 9999px;
+
+  /* App shell metrics */
+  --ghl-nav-rail-width: 88px;
+  --ghl-top-app-bar-height: 64px;
+  --ghl-content-max-width: 1040px;
+}
