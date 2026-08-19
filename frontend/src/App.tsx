@@ -5,6 +5,7 @@ import { NavigationRail } from './components/NavigationRail'
 import { DashboardPage } from './pages/DashboardPage'
 import { HeartPage } from './pages/HeartPage'
 import { PlaceholderPage } from './pages/PlaceholderPage'
+import { RecoveryPage } from './pages/RecoveryPage'
 import { SleepDetailPage } from './pages/SleepDetailPage'
 import { SleepPage } from './pages/SleepPage'
 import { UploadPage } from './pages/UploadPage'
@@ -48,7 +49,7 @@ export function App() {
           <Route path="/sleep" element={<SleepPage />} />
           <Route path="/sleep/:id" element={<SleepDetailPage />} />
           <Route path="/heart" element={<HeartPage />} />
-          <Route path="/recovery" element={<PlaceholderPage title="Erholung" />} />
+          <Route path="/recovery" element={<RecoveryPage />} />
           <Route path="/more" element={<PlaceholderPage title="Mehr" />} />
         </Routes>
       </main>

@@ -1,4 +1,5 @@
 import type {
+  CorrelationPointDto,
   DashboardOverviewDto,
   ImportCurrentDto,
   ImportScope,
@@ -6,6 +7,7 @@ import type {
   ImportStatusDto,
   HeartOverviewDto,
   PersonalRecordDto,
+  RecoveryOverviewDto,
   SleepSessionDetailDto,
   SleepSummaryDto,
   WorkoutDetailDto,
@@ -75,4 +77,14 @@ export const api = {
     if (params.to) qs.set('to', params.to)
     return get<HeartOverviewDto>(`/api/heart/overview?${qs.toString()}`)
   },
+
+  recoveryOverview: (params: { preset?: string; from?: string; to?: string }) => {
+    const qs = new URLSearchParams()
+    if (params.preset) qs.set('preset', params.preset)
+    if (params.from) qs.set('from', params.from)
+    if (params.to) qs.set('to', params.to)
+    return get<RecoveryOverviewDto>(`/api/recovery/overview?${qs.toString()}`)
+  },
+
+  correlation: () => get<CorrelationPointDto[]>('/api/recovery/correlation'),
 }

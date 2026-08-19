@@ -11,4 +11,8 @@ public record DashboardOverviewDto(
     double TotalCalories,
     double AvgStepsPerDay,
     double AvgActiveMinutesPerDay,
-    IReadOnlyList<DailyActivityPointDto> Days);
+    IReadOnlyList<DailyActivityPointDto> Days,
+    int WorkoutsInRange,
+    double? AvgSleepScore,
+    double? AvgRestingHeartRate,
+    IReadOnlyList<string> Insights);

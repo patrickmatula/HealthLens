@@ -50,6 +50,17 @@ export function DashboardPage() {
 
         {hasData && data && (
           <>
+            {data.insights.length > 0 && (
+              <div className="ghl-insights">
+                {data.insights.map((insight, i) => (
+                  <Surface key={i} className="ghl-insight-card">
+                    <Icon name="trophy" size={18} />
+                    <span>{insight}</span>
+                  </Surface>
+                ))}
+              </div>
+            )}
+
             <div className="ghl-kpi-row">
               <KpiTile label="Schritte gesamt" value={numberFmt.format(data.totalSteps)} icon={<Icon name="workouts" size={20} />} />
               <KpiTile label="Ø Schritte/Tag" value={numberFmt.format(data.avgStepsPerDay)} icon={<Icon name="dashboard" size={20} />} />
@@ -66,6 +77,13 @@ export function DashboardPage() {
                 unit="min"
                 icon={<Icon name="recovery" size={20} />}
               />
+              <KpiTile label="Workouts" value={data.workoutsInRange.toString()} icon={<Icon name="workouts" size={20} />} />
+              {data.avgSleepScore != null && (
+                <KpiTile label="Ø Schlaf-Score" value={Math.round(data.avgSleepScore).toString()} icon={<Icon name="sleep" size={20} />} />
+              )}
+              {data.avgRestingHeartRate != null && (
+                <KpiTile label="Ø Ruhepuls" value={Math.round(data.avgRestingHeartRate).toString()} unit="bpm" icon={<Icon name="heart" size={20} />} />
+              )}
             </div>
 
             <Surface tone="low" className="ghl-chart-card">

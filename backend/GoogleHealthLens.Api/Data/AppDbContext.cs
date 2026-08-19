@@ -20,6 +20,10 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
     public DbSet<HrvDetail> HrvDetails => Set<HrvDetail>();
     public DbSet<RespiratoryRateDaily> RespiratoryRateDailies => Set<RespiratoryRateDaily>();
     public DbSet<HeartRateMinutely> HeartRateMinutelies => Set<HeartRateMinutely>();
+    public DbSet<StressScoreDaily> StressScoreDailies => Set<StressScoreDaily>();
+    public DbSet<DailyReadiness> DailyReadinesses => Set<DailyReadiness>();
+    public DbSet<SpO2Daily> SpO2Dailies => Set<SpO2Daily>();
+    public DbSet<TemperatureNightly> TemperatureNightlies => Set<TemperatureNightly>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -72,5 +76,10 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
         modelBuilder.Entity<HrvDetail>(e => e.HasKey(x => x.TimestampUtc));
         modelBuilder.Entity<RespiratoryRateDaily>(e => e.HasKey(x => x.Date));
         modelBuilder.Entity<HeartRateMinutely>(e => e.HasKey(x => x.MinuteUtc));
+
+        modelBuilder.Entity<StressScoreDaily>(e => e.HasKey(x => x.Date));
+        modelBuilder.Entity<DailyReadiness>(e => e.HasKey(x => x.Date));
+        modelBuilder.Entity<SpO2Daily>(e => e.HasKey(x => x.Date));
+        modelBuilder.Entity<TemperatureNightly>(e => e.HasKey(x => x.Date));
     }
 }

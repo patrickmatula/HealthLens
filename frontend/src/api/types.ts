@@ -40,6 +40,10 @@ export interface DashboardOverviewDto {
   avgStepsPerDay: number
   avgActiveMinutesPerDay: number
   days: DailyActivityPointDto[]
+  workoutsInRange: number
+  avgSleepScore: number | null
+  avgRestingHeartRate: number | null
+  insights: string[]
 }
 
 export type TimeframePreset = '1d' | '7d' | '30d' | '1y' | 'all' | 'custom'
@@ -188,6 +192,48 @@ export interface HeartOverviewDto {
   activeZoneMinutes: AzmDayDto[]
   hrv: HrvDayDto[]
   respiratoryRate: RespiratoryRatePointDto[]
+}
+
+export interface StressScorePointDto {
+  date: string
+  score: number
+}
+
+export interface ReadinessPointDto {
+  date: string
+  score: number
+  level: string
+}
+
+export interface SpO2PointDto {
+  date: string
+  averagePercent: number
+  lowerBoundPercent: number
+  upperBoundPercent: number
+}
+
+export interface TemperaturePointDto {
+  date: string
+  nightlyCelsius: number
+  baselineCelsius: number | null
+  deltaFromBaseline: number | null
+}
+
+export interface RecoveryOverviewDto {
+  from: string
+  to: string
+  stressScore: StressScorePointDto[]
+  readiness: ReadinessPointDto[]
+  spO2: SpO2PointDto[]
+  temperature: TemperaturePointDto[]
+}
+
+export interface CorrelationPointDto {
+  date: string
+  sleepScore: number
+  restingHeartRate: number | null
+  stressScore: number | null
+  readinessScore: number | null
 }
 
 export interface WorkoutDetailDto extends WorkoutListItemDto {
