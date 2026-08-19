@@ -5,6 +5,8 @@ import type {
   ImportStartedDto,
   ImportStatusDto,
   PersonalRecordDto,
+  SleepSessionDetailDto,
+  SleepSummaryDto,
   WorkoutDetailDto,
   WorkoutListItemDto,
 } from './types'
@@ -54,4 +56,14 @@ export const api = {
   workoutDetail: (id: string) => get<WorkoutDetailDto>(`/api/workouts/${id}`),
 
   personalRecords: () => get<PersonalRecordDto[]>('/api/workouts/personal-records'),
+
+  sleepSummary: (params: { preset?: string; from?: string; to?: string }) => {
+    const qs = new URLSearchParams()
+    if (params.preset) qs.set('preset', params.preset)
+    if (params.from) qs.set('from', params.from)
+    if (params.to) qs.set('to', params.to)
+    return get<SleepSummaryDto>(`/api/sleep?${qs.toString()}`)
+  },
+
+  sleepDetail: (id: string) => get<SleepSessionDetailDto>(`/api/sleep/${id}`),
 }

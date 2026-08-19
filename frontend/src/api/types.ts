@@ -98,6 +98,63 @@ export interface PersonalRecordDto {
   workoutActivityName: string | null
 }
 
+export interface SleepStageDto {
+  stageType: string
+  startUtc: string
+  endUtc: string
+}
+
+export interface SleepScoreDto {
+  overallScore: number
+  durationScore: number | null
+  compositionScore: number | null
+  revitalizationScore: number | null
+  deepSleepMinutes: number
+  remSleepPercent: number
+  restingHeartRate: number | null
+  restlessnessNormalized: number | null
+}
+
+export interface SleepSessionListItemDto {
+  id: string
+  startUtc: string
+  endUtc: string
+  sleepType: string
+  minutesAsleep: number
+  minutesAwake: number
+  timeInBedMinutes: number
+  overallScore: number | null
+  isLegacy: boolean
+}
+
+export interface SleepSessionDetailDto {
+  id: string
+  startUtc: string
+  endUtc: string
+  sleepType: string
+  dataSource: string | null
+  minutesAsleep: number
+  minutesAwake: number
+  minutesToFallAsleep: number
+  minutesAfterWakeup: number
+  timeInBedMinutes: number
+  efficiencyPercent: number | null
+  isLegacy: boolean
+  stages: SleepStageDto[]
+  score: SleepScoreDto | null
+}
+
+export interface SleepSummaryDto {
+  from: string
+  to: string
+  nights: number
+  avgMinutesAsleep: number
+  avgTimeInBedMinutes: number
+  avgEfficiencyPercent: number
+  avgOverallScore: number | null
+  sessions: SleepSessionListItemDto[]
+}
+
 export interface WorkoutDetailDto extends WorkoutListItemDto {
   logType: string
   source: string | null

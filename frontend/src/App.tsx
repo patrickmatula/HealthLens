@@ -4,6 +4,8 @@ import { api } from './api/client'
 import { NavigationRail } from './components/NavigationRail'
 import { DashboardPage } from './pages/DashboardPage'
 import { PlaceholderPage } from './pages/PlaceholderPage'
+import { SleepDetailPage } from './pages/SleepDetailPage'
+import { SleepPage } from './pages/SleepPage'
 import { UploadPage } from './pages/UploadPage'
 import { WorkoutDetailPage } from './pages/WorkoutDetailPage'
 import { WorkoutsPage } from './pages/WorkoutsPage'
@@ -42,7 +44,8 @@ export function App() {
           <Route path="/" element={<DashboardPage />} />
           <Route path="/workouts" element={<WorkoutsPage />} />
           <Route path="/workouts/:id" element={<WorkoutDetailPage />} />
-          <Route path="/sleep" element={<PlaceholderPage title="Schlaf" />} />
+          <Route path="/sleep" element={<SleepPage />} />
+          <Route path="/sleep/:id" element={<SleepDetailPage />} />
           <Route path="/heart" element={<PlaceholderPage title="Herz" />} />
           <Route path="/recovery" element={<PlaceholderPage title="Erholung" />} />
           <Route path="/more" element={<PlaceholderPage title="Mehr" />} />

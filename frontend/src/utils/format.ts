@@ -5,6 +5,14 @@ export function formatPace(secPerKm: number | null | undefined): string {
   return `${min}:${sec.toString().padStart(2, '0')}/km`
 }
 
+export function formatMinutes(minutes: number | null | undefined): string {
+  if (minutes == null || !Number.isFinite(minutes)) return '–'
+  const h = Math.floor(minutes / 60)
+  const m = Math.round(minutes % 60)
+  if (h > 0) return `${h}h ${m}min`
+  return `${m}min`
+}
+
 export function formatDuration(totalSeconds: number | null | undefined): string {
   if (totalSeconds == null || !Number.isFinite(totalSeconds) || totalSeconds <= 0) return '–'
   const h = Math.floor(totalSeconds / 3600)
