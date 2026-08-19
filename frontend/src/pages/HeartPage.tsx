@@ -7,19 +7,21 @@ import { ReferenceRangeGauge } from '../components/ReferenceRangeGauge'
 import { SegmentedButton } from '../components/SegmentedButton'
 import { Surface } from '../components/Surface'
 import { TopAppBar } from '../components/TopAppBar'
+import { useLanguage } from '../i18n/LanguageContext'
 import { RESTING_HR_DOMAIN, RESTING_HR_SOURCE, RESTING_HR_SOURCE_URL, RESTING_HR_ZONES, restingHrAssessment } from '../utils/references'
 import './DashboardPage.css'
-
-const PRESETS: { value: TimeframePreset; label: string }[] = [
-  { value: '30d', label: '30 Tage' },
-  { value: '1y', label: '1 Jahr' },
-  { value: 'all', label: 'Alle' },
-]
 
 const tooltipStyle = { background: 'var(--md-sys-color-surface-container-high)', border: 'none', borderRadius: 8 }
 
 export function HeartPage() {
+  const { t } = useLanguage()
   const [preset, setPreset] = useState<TimeframePreset>('1y')
+
+  const PRESETS: { value: TimeframePreset; label: string }[] = [
+    { value: '30d', label: t('preset.30d') },
+    { value: '1y', label: t('preset.1y') },
+    { value: 'all', label: t('preset.all') },
+  ]
   const [data, setData] = useState<HeartOverviewDto | null>(null)
   const [loading, setLoading] = useState(true)
 
@@ -35,14 +37,14 @@ export function HeartPage() {
 
   return (
     <div>
-      <TopAppBar title="Herz">
+      <TopAppBar title={t('nav.heart')}>
         <SegmentedButton options={PRESETS} value={preset} onChange={setPreset} />
       </TopAppBar>
 
       <div className="ghl-page-content">
         {!loading && !hasData && (
           <Surface tone="low">
-            <p>Für diesen Zeitraum sind noch keine Herzdaten vorhanden.</p>
+            <p>{t('heart.empty')}</p>
           </Surface>
         )}
 
@@ -50,28 +52,28 @@ export function HeartPage() {
           <>
             <div className="ghl-kpi-row">
               {data.avgRestingHeartRate != null && (
-                <KpiTile label="Ø Ruhepuls" value={Math.round(data.avgRestingHeartRate).toString()} unit="bpm" />
+                <KpiTile label={t('heart.avgRestingHr')} value={Math.round(data.avgRestingHeartRate).toString()} unit="bpm" />
               )}
-              {data.avgHrv != null && <KpiTile label="Ø HRV (RMSSD)" value={data.avgHrv.toFixed(1)} unit="ms" />}
+              {data.avgHrv != null && <KpiTile label={t('heart.avgHrv')} value={data.avgHrv.toFixed(1)} unit="ms" />}
             </div>
 
             {data.avgRestingHeartRate != null && (
               <Surface tone="low" className="ghl-chart-card">
-                <h2 className="ghl-chart-card__title">Wie gut ist mein Ruhepuls?</h2>
+                <h2 className="ghl-chart-card__title">{t('heart.restingHrAssessmentTitle')}</h2>
                 <ReferenceRangeGauge value={data.avgRestingHeartRate} domain={RESTING_HR_DOMAIN} zones={RESTING_HR_ZONES} unit="bpm" />
                 <p className="ghl-chart-card__hint">
-                  {restingHrAssessment(data.avgRestingHeartRate)} Quelle:{' '}
+                  {restingHrAssessment(data.avgRestingHeartRate)} {t('heart.sourcePrefix')}{' '}
                   <a href={RESTING_HR_SOURCE_URL} target="_blank" rel="noreferrer">
                     {RESTING_HR_SOURCE}
                   </a>
-                  . Keine medizinische Diagnose — bei Beschwerden ärztlichen Rat einholen.
+                  {t('heart.medicalDisclaimer')}
                 </p>
               </Surface>
             )}
 
             {data.restingHeartRate.length > 0 && (
               <Surface tone="low" className="ghl-chart-card">
-                <h2 className="ghl-chart-card__title">Ruhepuls im Zeitverlauf</h2>
+                <h2 className="ghl-chart-card__title">{t('heart.restingHrOverTime')}</h2>
                 <ResponsiveContainer width="100%" height={240}>
                   <LineChart data={data.restingHeartRate}>
                     <XAxis dataKey="date" tick={{ fontSize: 11 }} tickFormatter={(d: string) => d.slice(5)} stroke="var(--md-sys-color-outline)" />
@@ -85,7 +87,7 @@ export function HeartPage() {
 
             {data.hrv.length > 0 && (
               <Surface tone="low" className="ghl-chart-card">
-                <h2 className="ghl-chart-card__title">Herzfrequenzvariabilität (RMSSD)</h2>
+                <h2 className="ghl-chart-card__title">{t('heart.hrvTitle')}</h2>
                 <ResponsiveContainer width="100%" height={220}>
                   <LineChart data={data.hrv}>
                     <XAxis dataKey="date" tick={{ fontSize: 11 }} tickFormatter={(d: string) => d.slice(5)} stroke="var(--md-sys-color-outline)" />
@@ -99,15 +101,15 @@ export function HeartPage() {
 
             {data.activeZoneMinutes.length > 0 && (
               <Surface tone="low" className="ghl-chart-card">
-                <h2 className="ghl-chart-card__title">Active Zone Minutes</h2>
+                <h2 className="ghl-chart-card__title">{t('heart.azmTitle')}</h2>
                 <ResponsiveContainer width="100%" height={220}>
                   <BarChart data={data.activeZoneMinutes}>
                     <XAxis dataKey="date" tick={{ fontSize: 11 }} tickFormatter={(d: string) => d.slice(5)} stroke="var(--md-sys-color-outline)" />
                     <YAxis tick={{ fontSize: 11 }} stroke="var(--md-sys-color-outline)" width={30} />
                     <Tooltip contentStyle={tooltipStyle} />
-                    <Bar dataKey="fatBurnMinutes" stackId="azm" fill="#ffb300" name="Fettverbrennung" />
-                    <Bar dataKey="cardioMinutes" stackId="azm" fill="#fb8c00" name="Cardio" />
-                    <Bar dataKey="peakMinutes" stackId="azm" fill="#e53935" name="Peak" />
+                    <Bar dataKey="fatBurnMinutes" stackId="azm" fill="#ffb300" name={t('heart.fatBurn')} />
+                    <Bar dataKey="cardioMinutes" stackId="azm" fill="#fb8c00" name={t('heart.cardio')} />
+                    <Bar dataKey="peakMinutes" stackId="azm" fill="#e53935" name={t('heart.peak')} />
                   </BarChart>
                 </ResponsiveContainer>
               </Surface>
@@ -115,7 +117,7 @@ export function HeartPage() {
 
             {data.respiratoryRate.length > 0 && (
               <Surface tone="low" className="ghl-chart-card">
-                <h2 className="ghl-chart-card__title">Atemfrequenz im Schlaf</h2>
+                <h2 className="ghl-chart-card__title">{t('heart.respiratoryRate')}</h2>
                 <ResponsiveContainer width="100%" height={180}>
                   <LineChart data={data.respiratoryRate}>
                     <XAxis dataKey="date" tick={{ fontSize: 11 }} tickFormatter={(d: string) => d.slice(5)} stroke="var(--md-sys-color-outline)" />

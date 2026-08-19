@@ -141,6 +141,20 @@ const en: Record<TranslationKey, string> = {
   'sleep.deepSleep': 'Deep sleep',
   'sleep.remPercent': 'REM share',
   'sleep.restlessness': 'Restlessness',
+
+  'heart.empty': 'No heart data for this time range yet.',
+  'heart.avgRestingHr': 'Avg resting HR',
+  'heart.avgHrv': 'Avg HRV (RMSSD)',
+  'heart.restingHrAssessmentTitle': 'How good is my resting heart rate?',
+  'heart.sourcePrefix': 'Source:',
+  'heart.medicalDisclaimer': '. Not a medical diagnosis — consult a doctor if you have concerns.',
+  'heart.restingHrOverTime': 'Resting heart rate over time',
+  'heart.hrvTitle': 'Heart rate variability (RMSSD)',
+  'heart.azmTitle': 'Active Zone Minutes',
+  'heart.fatBurn': 'Fat burn',
+  'heart.cardio': 'Cardio',
+  'heart.peak': 'Peak',
+  'heart.respiratoryRate': 'Respiratory rate during sleep',
 }
 
 export default en

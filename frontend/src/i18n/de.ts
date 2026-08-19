@@ -143,6 +143,20 @@ const de = {
   'sleep.deepSleep': 'Tiefschlaf',
   'sleep.remPercent': 'REM-Anteil',
   'sleep.restlessness': 'Unruhe',
+
+  'heart.empty': 'Für diesen Zeitraum sind noch keine Herzdaten vorhanden.',
+  'heart.avgRestingHr': 'Ø Ruhepuls',
+  'heart.avgHrv': 'Ø HRV (RMSSD)',
+  'heart.restingHrAssessmentTitle': 'Wie gut ist mein Ruhepuls?',
+  'heart.sourcePrefix': 'Quelle:',
+  'heart.medicalDisclaimer': '. Keine medizinische Diagnose — bei Beschwerden ärztlichen Rat einholen.',
+  'heart.restingHrOverTime': 'Ruhepuls im Zeitverlauf',
+  'heart.hrvTitle': 'Herzfrequenzvariabilität (RMSSD)',
+  'heart.azmTitle': 'Active Zone Minutes',
+  'heart.fatBurn': 'Fettverbrennung',
+  'heart.cardio': 'Cardio',
+  'heart.peak': 'Peak',
+  'heart.respiratoryRate': 'Atemfrequenz im Schlaf',
 } as const
 
 export default de
