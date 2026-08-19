@@ -52,6 +52,24 @@ const en: Record<TranslationKey, string> = {
   'more.aboutTitle': 'About HealthLens',
   'more.aboutText':
     'A local analytics app for your Google Takeout export (Google Health/Fitbit). All data stays on this machine — nothing is sent to any server outside your own backend.',
+
+  'preset.7d': '7 days',
+  'preset.30d': '30 days',
+  'preset.1y': '1 year',
+  'preset.all': 'All',
+
+  'dashboard.noData': 'No activity data for this time range yet.',
+  'dashboard.totalSteps': 'Total steps',
+  'dashboard.avgStepsPerDay': 'Avg steps/day',
+  'dashboard.totalDistance': 'Total distance',
+  'dashboard.totalCalories': 'Total calories',
+  'dashboard.avgActiveMinutes': 'Avg active min/day',
+  'dashboard.workouts': 'Workouts',
+  'dashboard.avgSleepScore': 'Avg sleep score',
+  'dashboard.avgRestingHr': 'Avg resting HR',
+  'dashboard.stepsOverTime': 'Steps over time',
+  'dashboard.perWeek': 'per week',
+  'dashboard.perMonth': 'per month',
 }
 
 export default en

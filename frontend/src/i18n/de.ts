@@ -54,6 +54,24 @@ const de = {
   'more.aboutTitle': 'Über HealthLens',
   'more.aboutText':
     'Eine lokale Auswertungs-App für deinen Google-Takeout-Export (Google Health/Fitbit). Alle Daten bleiben auf diesem Rechner — es wird nichts an einen Server außerhalb deines eigenen Backends gesendet.',
+
+  'preset.7d': '7 Tage',
+  'preset.30d': '30 Tage',
+  'preset.1y': '1 Jahr',
+  'preset.all': 'Alle',
+
+  'dashboard.noData': 'Für diesen Zeitraum sind noch keine Aktivitätsdaten vorhanden.',
+  'dashboard.totalSteps': 'Schritte gesamt',
+  'dashboard.avgStepsPerDay': 'Ø Schritte/Tag',
+  'dashboard.totalDistance': 'Distanz gesamt',
+  'dashboard.totalCalories': 'Kalorien gesamt',
+  'dashboard.avgActiveMinutes': 'Ø aktive Minuten/Tag',
+  'dashboard.workouts': 'Workouts',
+  'dashboard.avgSleepScore': 'Ø Schlaf-Score',
+  'dashboard.avgRestingHr': 'Ø Ruhepuls',
+  'dashboard.stepsOverTime': 'Schritte im Zeitverlauf',
+  'dashboard.perWeek': 'pro Woche',
+  'dashboard.perMonth': 'pro Monat',
 } as const
 
 export default de

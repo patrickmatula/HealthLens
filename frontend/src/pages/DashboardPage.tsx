@@ -7,17 +7,9 @@ import { SegmentedButton } from '../components/SegmentedButton'
 import { Surface } from '../components/Surface'
 import { TopAppBar } from '../components/TopAppBar'
 import { Icon } from '../components/Icon'
+import { useLanguage } from '../i18n/LanguageContext'
 import { formatDistanceKm } from '../utils/format'
 import './DashboardPage.css'
-
-const PRESETS: { value: TimeframePreset; label: string }[] = [
-  { value: '7d', label: '7 Tage' },
-  { value: '30d', label: '30 Tage' },
-  { value: '1y', label: '1 Jahr' },
-  { value: 'all', label: 'Alle' },
-]
-
-const numberFmt = new Intl.NumberFormat('de-AT', { maximumFractionDigits: 0 })
 
 type ChartGranularity = 'daily' | 'week' | 'month'
 
@@ -49,9 +41,19 @@ function formatBucketLabel(date: string, mode: ChartGranularity): string {
 }
 
 export function DashboardPage() {
+  const { language, t } = useLanguage()
   const [preset, setPreset] = useState<TimeframePreset>('30d')
   const [data, setData] = useState<DashboardOverviewDto | null>(null)
   const [loading, setLoading] = useState(true)
+
+  const numberFmt = useMemo(() => new Intl.NumberFormat(language === 'de' ? 'de-AT' : 'en-US', { maximumFractionDigits: 0 }), [language])
+
+  const PRESETS: { value: TimeframePreset; label: string }[] = [
+    { value: '7d', label: t('preset.7d') },
+    { value: '30d', label: t('preset.30d') },
+    { value: '1y', label: t('preset.1y') },
+    { value: 'all', label: t('preset.all') },
+  ]
 
   useEffect(() => {
     setLoading(true)
@@ -71,7 +73,7 @@ export function DashboardPage() {
 
   return (
     <div>
-      <TopAppBar title="Übersicht">
+      <TopAppBar title={t('nav.dashboard')}>
         <div className="ghl-dashboard__timeframe">
           <SegmentedButton options={PRESETS} value={preset} onChange={setPreset} />
         </div>
@@ -80,7 +82,7 @@ export function DashboardPage() {
       <div className="ghl-page-content">
         {!loading && !hasData && (
           <Surface tone="low">
-            <p>Für diesen Zeitraum sind noch keine Aktivitätsdaten vorhanden.</p>
+            <p>{t('dashboard.noData')}</p>
           </Surface>
         )}
 
@@ -98,30 +100,30 @@ export function DashboardPage() {
             )}
 
             <div className="ghl-kpi-row">
-              <KpiTile label="Schritte gesamt" value={numberFmt.format(data.totalSteps)} icon={<Icon name="workouts" size={20} />} />
-              <KpiTile label="Ø Schritte/Tag" value={numberFmt.format(data.avgStepsPerDay)} icon={<Icon name="dashboard" size={20} />} />
-              <KpiTile label="Distanz gesamt" value={formatDistanceKm(data.totalDistanceMeters)} icon={<Icon name="route" size={20} />} />
-              <KpiTile label="Kalorien gesamt" value={numberFmt.format(data.totalCalories)} unit="kcal" icon={<Icon name="heart" size={20} />} />
+              <KpiTile label={t('dashboard.totalSteps')} value={numberFmt.format(data.totalSteps)} icon={<Icon name="workouts" size={20} />} />
+              <KpiTile label={t('dashboard.avgStepsPerDay')} value={numberFmt.format(data.avgStepsPerDay)} icon={<Icon name="dashboard" size={20} />} />
+              <KpiTile label={t('dashboard.totalDistance')} value={formatDistanceKm(data.totalDistanceMeters)} icon={<Icon name="route" size={20} />} />
+              <KpiTile label={t('dashboard.totalCalories')} value={numberFmt.format(data.totalCalories)} unit="kcal" icon={<Icon name="heart" size={20} />} />
               <KpiTile
-                label="Ø aktive Minuten/Tag"
+                label={t('dashboard.avgActiveMinutes')}
                 value={numberFmt.format(data.avgActiveMinutesPerDay)}
                 unit="min"
                 icon={<Icon name="recovery" size={20} />}
               />
-              <KpiTile label="Workouts" value={data.workoutsInRange.toString()} icon={<Icon name="workouts" size={20} />} />
+              <KpiTile label={t('dashboard.workouts')} value={data.workoutsInRange.toString()} icon={<Icon name="workouts" size={20} />} />
               {data.avgSleepScore != null && (
-                <KpiTile label="Ø Schlaf-Score" value={Math.round(data.avgSleepScore).toString()} icon={<Icon name="sleep" size={20} />} />
+                <KpiTile label={t('dashboard.avgSleepScore')} value={Math.round(data.avgSleepScore).toString()} icon={<Icon name="sleep" size={20} />} />
               )}
               {data.avgRestingHeartRate != null && (
-                <KpiTile label="Ø Ruhepuls" value={Math.round(data.avgRestingHeartRate).toString()} unit="bpm" icon={<Icon name="heart" size={20} />} />
+                <KpiTile label={t('dashboard.avgRestingHr')} value={Math.round(data.avgRestingHeartRate).toString()} unit="bpm" icon={<Icon name="heart" size={20} />} />
               )}
             </div>
 
             <Surface tone="low" className="ghl-chart-card">
               <h2 className="ghl-chart-card__title">
-                Schritte im Zeitverlauf
+                {t('dashboard.stepsOverTime')}
                 {chartGranularity !== 'daily' && (
-                  <span className="ghl-chart-card__subtitle"> — {chartGranularity === 'week' ? 'pro Woche' : 'pro Monat'}</span>
+                  <span className="ghl-chart-card__subtitle"> — {chartGranularity === 'week' ? t('dashboard.perWeek') : t('dashboard.perMonth')}</span>
                 )}
               </h2>
               <ResponsiveContainer width="100%" height={280}>
