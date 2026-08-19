@@ -14,6 +14,12 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
     public DbSet<SleepSession> SleepSessions => Set<SleepSession>();
     public DbSet<SleepStage> SleepStages => Set<SleepStage>();
     public DbSet<SleepScore> SleepScores => Set<SleepScore>();
+    public DbSet<RestingHeartRateDaily> RestingHeartRateDailies => Set<RestingHeartRateDaily>();
+    public DbSet<HeartRateZoneMinutesDaily> HeartRateZoneMinutesDailies => Set<HeartRateZoneMinutesDaily>();
+    public DbSet<HrvDailySummary> HrvDailySummaries => Set<HrvDailySummary>();
+    public DbSet<HrvDetail> HrvDetails => Set<HrvDetail>();
+    public DbSet<RespiratoryRateDaily> RespiratoryRateDailies => Set<RespiratoryRateDaily>();
+    public DbSet<HeartRateMinutely> HeartRateMinutelies => Set<HeartRateMinutely>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -59,5 +65,12 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
         {
             e.HasKey(x => x.SleepSessionId);
         });
+
+        modelBuilder.Entity<RestingHeartRateDaily>(e => e.HasKey(x => x.Date));
+        modelBuilder.Entity<HeartRateZoneMinutesDaily>(e => e.HasKey(x => new { x.Date, x.Zone }));
+        modelBuilder.Entity<HrvDailySummary>(e => e.HasKey(x => x.Date));
+        modelBuilder.Entity<HrvDetail>(e => e.HasKey(x => x.TimestampUtc));
+        modelBuilder.Entity<RespiratoryRateDaily>(e => e.HasKey(x => x.Date));
+        modelBuilder.Entity<HeartRateMinutely>(e => e.HasKey(x => x.MinuteUtc));
     }
 }

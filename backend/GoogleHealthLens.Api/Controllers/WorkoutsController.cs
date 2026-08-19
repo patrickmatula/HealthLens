@@ -23,10 +23,8 @@ public class WorkoutsController(DataSessionService session) : ControllerBase
         var earliest = DateOnly.FromDateTime(await db.Workouts.MinAsync(w => w.StartUtc, ct));
         var latest = DateOnly.FromDateTime(await db.Workouts.MaxAsync(w => w.StartUtc, ct));
         var range = TimeRange.Resolve(preset, from, to, earliest, latest);
-        var rangeStart = range.From.ToDateTime(TimeOnly.MinValue);
-        var rangeEnd = range.To.ToDateTime(TimeOnly.MaxValue);
 
-        var query = db.Workouts.Where(w => w.StartUtc >= rangeStart && w.StartUtc <= rangeEnd);
+        var query = db.Workouts.Where(w => w.StartUtc >= range.StartUtc && w.StartUtc <= range.EndUtc);
         if (!string.IsNullOrWhiteSpace(activity))
         {
             query = query.Where(w => w.ActivityName == activity);

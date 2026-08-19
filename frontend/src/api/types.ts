@@ -155,6 +155,41 @@ export interface SleepSummaryDto {
   sessions: SleepSessionListItemDto[]
 }
 
+export interface RestingHeartRatePointDto {
+  date: string
+  bpm: number
+}
+
+export interface AzmDayDto {
+  date: string
+  fatBurnMinutes: number
+  cardioMinutes: number
+  peakMinutes: number
+}
+
+export interface HrvDayDto {
+  date: string
+  rmssdMs: number
+  nonRemHrBpm: number
+  entropy: number
+}
+
+export interface RespiratoryRatePointDto {
+  date: string
+  breathsPerMinute: number
+}
+
+export interface HeartOverviewDto {
+  from: string
+  to: string
+  avgRestingHeartRate: number | null
+  avgHrv: number | null
+  restingHeartRate: RestingHeartRatePointDto[]
+  activeZoneMinutes: AzmDayDto[]
+  hrv: HrvDayDto[]
+  respiratoryRate: RespiratoryRatePointDto[]
+}
+
 export interface WorkoutDetailDto extends WorkoutListItemDto {
   logType: string
   source: string | null

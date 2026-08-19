@@ -24,7 +24,7 @@ public class ImportJobStatus
 /// </summary>
 public class ImportJobRunner(DataSessionService session, ILogger<ImportJobRunner> logger)
 {
-    private static readonly IDomainImporter[] Importers = [new DailyActivityImporter(), new WorkoutsImporter(), new SleepImporter()];
+    private static readonly IDomainImporter[] Importers = [new DailyActivityImporter(), new WorkoutsImporter(), new SleepImporter(), new HeartHealthImporter()];
 
     private readonly ConcurrentDictionary<int, ImportJobStatus> _jobs = new();
     private int _nextId;

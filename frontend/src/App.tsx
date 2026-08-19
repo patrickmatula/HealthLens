@@ -3,6 +3,7 @@ import { Route, Routes } from 'react-router-dom'
 import { api } from './api/client'
 import { NavigationRail } from './components/NavigationRail'
 import { DashboardPage } from './pages/DashboardPage'
+import { HeartPage } from './pages/HeartPage'
 import { PlaceholderPage } from './pages/PlaceholderPage'
 import { SleepDetailPage } from './pages/SleepDetailPage'
 import { SleepPage } from './pages/SleepPage'
@@ -46,7 +47,7 @@ export function App() {
           <Route path="/workouts/:id" element={<WorkoutDetailPage />} />
           <Route path="/sleep" element={<SleepPage />} />
           <Route path="/sleep/:id" element={<SleepDetailPage />} />
-          <Route path="/heart" element={<PlaceholderPage title="Herz" />} />
+          <Route path="/heart" element={<HeartPage />} />
           <Route path="/recovery" element={<PlaceholderPage title="Erholung" />} />
           <Route path="/more" element={<PlaceholderPage title="Mehr" />} />
         </Routes>

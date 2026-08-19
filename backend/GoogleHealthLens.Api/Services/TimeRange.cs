@@ -23,4 +23,14 @@ public record TimeRange(DateOnly From, DateOnly To)
             _ => new TimeRange(earliest, latest),
         };
     }
+
+    /// <summary>
+    /// Inclusive UTC bounds for querying DateTime columns (StartUtc etc.). Every DateTime this app
+    /// stores is parsed with DateTimeKind.Utc, and SQLite's TEXT-based DateTime comparison is a plain
+    /// string compare — an Unspecified-kind DateTime serializes without the "Z" suffix and silently
+    /// fails to match, so callers must go through these rather than DateOnly.ToDateTime() directly.
+    /// </summary>
+    public DateTime StartUtc => DateTime.SpecifyKind(From.ToDateTime(TimeOnly.MinValue), DateTimeKind.Utc);
+
+    public DateTime EndUtc => DateTime.SpecifyKind(To.ToDateTime(TimeOnly.MaxValue), DateTimeKind.Utc);
 }

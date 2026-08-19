@@ -24,11 +24,9 @@ public class SleepController(DataSessionService session) : ControllerBase
         var earliest = DateOnly.FromDateTime(await db.SleepSessions.MinAsync(s => s.StartUtc, ct));
         var latest = DateOnly.FromDateTime(await db.SleepSessions.MaxAsync(s => s.StartUtc, ct));
         var range = TimeRange.Resolve(preset, from, to, earliest, latest);
-        var rangeStart = range.From.ToDateTime(TimeOnly.MinValue);
-        var rangeEnd = range.To.ToDateTime(TimeOnly.MaxValue);
 
         var sessions = await db.SleepSessions
-            .Where(s => s.StartUtc >= rangeStart && s.StartUtc <= rangeEnd)
+            .Where(s => s.StartUtc >= range.StartUtc && s.StartUtc <= range.EndUtc)
             .Include(s => s.Score)
             .OrderByDescending(s => s.StartUtc)
             .ToListAsync(ct);

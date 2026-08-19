@@ -4,6 +4,7 @@ import type {
   ImportScope,
   ImportStartedDto,
   ImportStatusDto,
+  HeartOverviewDto,
   PersonalRecordDto,
   SleepSessionDetailDto,
   SleepSummaryDto,
@@ -66,4 +67,12 @@ export const api = {
   },
 
   sleepDetail: (id: string) => get<SleepSessionDetailDto>(`/api/sleep/${id}`),
+
+  heartOverview: (params: { preset?: string; from?: string; to?: string }) => {
+    const qs = new URLSearchParams()
+    if (params.preset) qs.set('preset', params.preset)
+    if (params.from) qs.set('from', params.from)
+    if (params.to) qs.set('to', params.to)
+    return get<HeartOverviewDto>(`/api/heart/overview?${qs.toString()}`)
+  },
 }
