@@ -1,4 +1,13 @@
-import type { DashboardOverviewDto, ImportCurrentDto, ImportScope, ImportStartedDto, ImportStatusDto } from './types'
+import type {
+  DashboardOverviewDto,
+  ImportCurrentDto,
+  ImportScope,
+  ImportStartedDto,
+  ImportStatusDto,
+  PersonalRecordDto,
+  WorkoutDetailDto,
+  WorkoutListItemDto,
+} from './types'
 
 async function get<T>(path: string): Promise<T> {
   const res = await fetch(path)
@@ -32,4 +41,17 @@ export const api = {
     if (params.to) qs.set('to', params.to)
     return get<DashboardOverviewDto>(`/api/dashboard/overview?${qs.toString()}`)
   },
+
+  workouts: (params: { preset?: string; from?: string; to?: string; activity?: string }) => {
+    const qs = new URLSearchParams()
+    if (params.preset) qs.set('preset', params.preset)
+    if (params.from) qs.set('from', params.from)
+    if (params.to) qs.set('to', params.to)
+    if (params.activity) qs.set('activity', params.activity)
+    return get<WorkoutListItemDto[]>(`/api/workouts?${qs.toString()}`)
+  },
+
+  workoutDetail: (id: string) => get<WorkoutDetailDto>(`/api/workouts/${id}`),
+
+  personalRecords: () => get<PersonalRecordDto[]>('/api/workouts/personal-records'),
 }

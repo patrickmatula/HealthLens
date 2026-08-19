@@ -43,3 +43,76 @@ export interface DashboardOverviewDto {
 }
 
 export type TimeframePreset = '1d' | '7d' | '30d' | '1y' | 'all' | 'custom'
+
+export interface WorkoutListItemDto {
+  id: string
+  startUtc: string
+  endUtc: string
+  durationSeconds: number
+  activityName: string
+  distanceMeters: number | null
+  calories: number | null
+  avgHeartRate: number | null
+  avgPaceSecPerKm: number | null
+  hasGps: boolean
+  isLegacy: boolean
+}
+
+export interface WorkoutSplitDto {
+  splitIndex: number
+  type: string
+  timestamp: string
+  elapsedMs: number
+  distanceMeters: number
+  calories: number
+  steps: number
+  avgHeartRate: number | null
+  elevationGainMeters: number
+  avgSpeedKmh: number | null
+}
+
+export interface WorkoutSampleDto {
+  timestamp: string
+  latitude: number | null
+  longitude: number | null
+  altitudeMeters: number | null
+  heartRateBpm: number | null
+  paceSecPerKm: number | null
+  cadenceSpm: number | null
+  speedKmh: number | null
+  strideLengthCm: number | null
+  verticalOscillationCm: number | null
+  verticalRatioPercent: number | null
+  groundContactTimeMs: number | null
+}
+
+export interface PersonalRecordDto {
+  id: number
+  workoutId: string | null
+  nameLocalizationId: string
+  state: string
+  achieveTimeUtc: string
+  recordValue: number
+  recordType: string
+  extentValueMeters: number | null
+  workoutActivityName: string | null
+}
+
+export interface WorkoutDetailDto extends WorkoutListItemDto {
+  logType: string
+  source: string | null
+  steps: number | null
+  peakHeartRate: number | null
+  avgSpeedKmh: number | null
+  peakSpeedKmh: number | null
+  elevationGainMeters: number | null
+  cardioLoad: number | null
+  cadenceAvgSpm: number | null
+  groundContactTimeMs: number | null
+  verticalOscillationMm: number | null
+  verticalRatioPercent: number | null
+  ratePerceivedExertion: number | null
+  splits: WorkoutSplitDto[]
+  samples: WorkoutSampleDto[]
+  personalRecords: PersonalRecordDto[]
+}

@@ -5,6 +5,8 @@ import { NavigationRail } from './components/NavigationRail'
 import { DashboardPage } from './pages/DashboardPage'
 import { PlaceholderPage } from './pages/PlaceholderPage'
 import { UploadPage } from './pages/UploadPage'
+import { WorkoutDetailPage } from './pages/WorkoutDetailPage'
+import { WorkoutsPage } from './pages/WorkoutsPage'
 import { ThemeToggle } from './theme/ThemeToggle'
 import './App.css'
 
@@ -38,7 +40,8 @@ export function App() {
       <main className="ghl-shell__content">
         <Routes>
           <Route path="/" element={<DashboardPage />} />
-          <Route path="/workouts" element={<PlaceholderPage title="Workouts" />} />
+          <Route path="/workouts" element={<WorkoutsPage />} />
+          <Route path="/workouts/:id" element={<WorkoutDetailPage />} />
           <Route path="/sleep" element={<PlaceholderPage title="Schlaf" />} />
           <Route path="/heart" element={<PlaceholderPage title="Herz" />} />
           <Route path="/recovery" element={<PlaceholderPage title="Erholung" />} />

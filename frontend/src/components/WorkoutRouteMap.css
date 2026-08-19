@@ -1,0 +1,5 @@
+.ghl-route-map {
+  height: 360px;
+  border-radius: var(--md-sys-shape-corner-large);
+  overflow: hidden;
+}
