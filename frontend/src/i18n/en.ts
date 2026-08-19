@@ -155,6 +155,17 @@ const en: Record<TranslationKey, string> = {
   'heart.cardio': 'Cardio',
   'heart.peak': 'Peak',
   'heart.respiratoryRate': 'Respiratory rate during sleep',
+
+  'recovery.empty': 'No recovery data for this time range yet.',
+  'recovery.correlationTitle': 'Sleep score vs. resting heart rate, same day',
+  'recovery.correlationHint':
+    'Each point is a night: a worse sleep score often correlates with a higher resting heart rate the next day — something the official app doesn\'t plot directly.',
+  'recovery.sleepScore': 'Sleep score',
+  'recovery.restingHr': 'Resting HR',
+  'recovery.stressScore': 'Stress score',
+  'recovery.readiness': 'Readiness',
+  'recovery.spo2': 'Oxygen saturation (SpO2)',
+  'recovery.temperature': 'Skin temperature (deviation from baseline)',
 }
 
 export default en

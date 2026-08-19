@@ -157,6 +157,17 @@ const de = {
   'heart.cardio': 'Cardio',
   'heart.peak': 'Peak',
   'heart.respiratoryRate': 'Atemfrequenz im Schlaf',
+
+  'recovery.empty': 'Für diesen Zeitraum sind noch keine Erholungsdaten vorhanden.',
+  'recovery.correlationTitle': 'Schlaf-Score vs. Ruhepuls am selben Tag',
+  'recovery.correlationHint':
+    'Jeder Punkt ist eine Nacht: schlechter Schlaf-Score korreliert oft mit höherem Ruhepuls am Folgetag — etwas, das die offizielle App nicht direkt gegenüberstellt.',
+  'recovery.sleepScore': 'Schlaf-Score',
+  'recovery.restingHr': 'Ruhepuls',
+  'recovery.stressScore': 'Stress-Score',
+  'recovery.readiness': 'Readiness',
+  'recovery.spo2': 'Sauerstoffsättigung (SpO2)',
+  'recovery.temperature': 'Hauttemperatur (Abweichung zur Baseline)',
 } as const
 
 export default de
