@@ -25,10 +25,18 @@
   display: flex;
   align-items: center;
   gap: var(--md-space-3);
-  padding: var(--md-space-2) 0;
+  margin: 0 calc(var(--md-space-5) * -1);
+  padding: var(--md-space-2) var(--md-space-5);
   text-decoration: none;
   color: var(--md-sys-color-on-surface);
   border-bottom: 1px solid var(--md-sys-color-outline-variant);
+  outline: none;
+  transition: background-color 150ms ease;
+}
+
+.ghl-leaderboard__row:hover,
+.ghl-leaderboard__row:focus-visible {
+  background: var(--md-sys-color-surface-container-highest);
 }
 
 .ghl-leaderboard__list li:last-child .ghl-leaderboard__row {

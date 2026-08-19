@@ -179,30 +179,33 @@ export function WorkoutDetailPage() {
         {workout.kmSplits.length > 0 && (
           <Surface tone="low">
             <h2 className="ghl-section-title">Kilometer-Splits</h2>
-            <table className="ghl-splits-table">
-              <thead>
-                <tr>
-                  <th>km</th>
-                  <th>Pace</th>
-                  <th>Ø HF</th>
-                </tr>
-              </thead>
-              <tbody>
-                {workout.kmSplits.map((s) => (
-                  <tr key={s.km}>
-                    <td>{s.km}</td>
-                    <td>{formatPace(s.durationSeconds)}</td>
-                    <td>{s.avgHeartRate ? `${Math.round(s.avgHeartRate)} bpm` : '–'}</td>
+            <div className="ghl-table-scroll">
+              <table className="ghl-splits-table">
+                <thead>
+                  <tr>
+                    <th>km</th>
+                    <th>Pace</th>
+                    <th>Ø HF</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody>
+                  {workout.kmSplits.map((s) => (
+                    <tr key={s.km}>
+                      <td>{s.km}</td>
+                      <td>{formatPace(s.durationSeconds)}</td>
+                      <td>{s.avgHeartRate ? `${Math.round(s.avgHeartRate)} bpm` : '–'}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           </Surface>
         )}
 
         {workout.splits.length > 0 && (
           <Surface tone="low">
             <h2 className="ghl-section-title">Splits</h2>
+            <div className="ghl-table-scroll">
             <table className="ghl-splits-table">
               <thead>
                 <tr>
@@ -227,6 +230,7 @@ export function WorkoutDetailPage() {
                 ))}
               </tbody>
             </table>
+            </div>
           </Surface>
         )}
       </div>

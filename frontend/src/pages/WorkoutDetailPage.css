@@ -38,6 +38,10 @@
   gap: var(--md-space-2);
 }
 
+.ghl-table-scroll {
+  overflow-x: auto;
+}
+
 .ghl-splits-table {
   width: 100%;
   border-collapse: collapse;

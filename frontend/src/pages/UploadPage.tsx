@@ -2,6 +2,7 @@ import { useRef, useState } from 'react'
 import { api } from '../api/client'
 import type { ImportScope, ImportStatusDto } from '../api/types'
 import { Icon } from '../components/Icon'
+import { Logo } from '../components/Logo'
 import { Surface } from '../components/Surface'
 import { useLanguage } from '../i18n/LanguageContext'
 import './UploadPage.css'
@@ -83,7 +84,10 @@ export function UploadPage({
             {t('upload.backButton')}
           </md-text-button>
         )}
-        <h1 className="ghl-upload-title">{t('upload.title')}</h1>
+        <div className="ghl-upload-heading">
+          <Logo size={36} className="ghl-upload-logo" />
+          <h1 className="ghl-upload-title">{t('upload.title')}</h1>
+        </div>
         <p className="ghl-upload-subtitle">{t('upload.subtitle')}</p>
 
         {onGoToDashboard && !importing && (

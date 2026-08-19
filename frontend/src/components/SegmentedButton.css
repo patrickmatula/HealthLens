@@ -1,8 +1,15 @@
 .ghl-segmented {
   display: inline-flex;
+  max-width: 100%;
+  overflow-x: auto;
+  overflow-y: hidden;
+  scrollbar-width: none;
   border: 1px solid var(--md-sys-color-outline);
   border-radius: var(--md-sys-shape-corner-full);
-  overflow: hidden;
+}
+
+.ghl-segmented::-webkit-scrollbar {
+  display: none;
 }
 
 .ghl-segmented__item {
@@ -14,6 +21,8 @@
   padding: var(--md-space-2) var(--md-space-4);
   font: var(--md-sys-typescale-label-large-weight) var(--md-sys-typescale-label-large-size)/var(--md-sys-typescale-label-large-line-height) var(--md-sys-typescale-label-large-font);
   cursor: pointer;
+  flex-shrink: 0;
+  white-space: nowrap;
   transition: background-color 150ms ease, color 150ms ease;
 }
 

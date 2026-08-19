@@ -1,6 +1,7 @@
 import { NavLink } from 'react-router-dom'
 import { useLanguage, type TranslationKey } from '../i18n/LanguageContext'
 import { Icon, type IconName } from './Icon'
+import { Logo } from './Logo'
 import './NavigationRail.css'
 
 const ITEMS: { to: string; icon: IconName; labelKey: TranslationKey }[] = [
@@ -16,6 +17,7 @@ export function NavigationRail() {
   const { t } = useLanguage()
   return (
     <nav className="ghl-nav-rail" aria-label={t('nav.mainLabel')}>
+      <Logo size={28} className="ghl-nav-rail__logo" />
       {ITEMS.map((item) => (
         <NavLink
           key={item.to}

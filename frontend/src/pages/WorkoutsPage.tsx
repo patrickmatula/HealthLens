@@ -40,6 +40,8 @@ const PR_ORDER = [
   'FARTHEST_RUN_NAME',
 ]
 
+const INSIGHTS_STORAGE_KEY = 'ghl-workouts-show-insights'
+
 export function WorkoutsPage() {
   const [preset, setPreset] = useState<TimeframePreset>('all')
   const [workouts, setWorkouts] = useState<WorkoutListItemDto[]>([])
@@ -47,6 +49,11 @@ export function WorkoutsPage() {
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
   const [category, setCategory] = useState<WorkoutCategory | 'Alle'>('Alle')
+  const [showInsights, setShowInsights] = useState(() => localStorage.getItem(INSIGHTS_STORAGE_KEY) === '1')
+
+  useEffect(() => {
+    localStorage.setItem(INSIGHTS_STORAGE_KEY, showInsights ? '1' : '0')
+  }, [showInsights])
 
   useEffect(() => {
     setLoading(true)
@@ -120,39 +127,54 @@ export function WorkoutsPage() {
           </section>
         )}
 
-        {(leaderboards.fastest5k.length > 0 || leaderboards.longest.length > 0 || leaderboards.mostCalories.length > 0) && (
+        {(leaderboards.fastest5k.length > 0 || leaderboards.longest.length > 0 || leaderboards.mostCalories.length > 0 || paceTrend.length >= 5) && (
           <section>
-            <h2 className="ghl-section-title">Bestenlisten</h2>
-            <div className="ghl-leaderboard-grid">
-              <Leaderboard title="Top 5 schnellste 5-km-Läufe" icon="route" entries={leaderboards.fastest5k} />
-              <Leaderboard title="Top 5 längste Workouts" icon="workouts" entries={leaderboards.longest} />
-              <Leaderboard title="Top 5 meiste Kalorien" icon="heart" entries={leaderboards.mostCalories} />
-            </div>
-          </section>
-        )}
+            <button
+              type="button"
+              className="ghl-insights-toggle"
+              onClick={() => setShowInsights((v) => !v)}
+              aria-expanded={showInsights}
+            >
+              <span>Bestenlisten &amp; Trends</span>
+              <Icon name="chevronRight" size={18} />
+            </button>
 
-        {paceTrend.length >= 5 && (
-          <Surface tone="low" className="ghl-chart-card">
-            <h2 className="ghl-chart-card__title">Pace-Entwicklung deiner Läufe</h2>
-            <p className="ghl-chart-card__hint">Jeder Punkt ist ein Lauf ab 1,5 km — zeigt, ob du über die Zeit schneller wirst.</p>
-            <ResponsiveContainer width="100%" height={240}>
-              <ScatterChart>
-                <CartesianGrid stroke="var(--md-sys-color-outline-variant)" />
-                <XAxis
-                  dataKey="dateMs"
-                  type="number"
-                  domain={['dataMin', 'dataMax']}
-                  tickFormatter={(v: number) => new Date(v).toLocaleDateString('de-AT', { month: '2-digit', year: '2-digit' })}
-                  tick={{ fontSize: 11 }}
-                  stroke="var(--md-sys-color-outline)"
-                />
-                <YAxis dataKey="pace" reversed tickFormatter={(v: number) => formatPace(v)} tick={{ fontSize: 11 }} stroke="var(--md-sys-color-outline)" width={56} />
-                <ZAxis range={[50, 50]} />
-                <Tooltip contentStyle={tooltipStyle} formatter={(v) => formatPace(Number(v))} labelFormatter={() => ''} />
-                <Scatter data={paceTrend} fill="#1e88e5" />
-              </ScatterChart>
-            </ResponsiveContainer>
-          </Surface>
+            {showInsights && (
+              <div className="ghl-insights-body">
+                {(leaderboards.fastest5k.length > 0 || leaderboards.longest.length > 0 || leaderboards.mostCalories.length > 0) && (
+                  <div className="ghl-leaderboard-grid">
+                    <Leaderboard title="Top 5 schnellste 5-km-Läufe" icon="route" entries={leaderboards.fastest5k} />
+                    <Leaderboard title="Top 5 längste Workouts" icon="workouts" entries={leaderboards.longest} />
+                    <Leaderboard title="Top 5 meiste Kalorien" icon="heart" entries={leaderboards.mostCalories} />
+                  </div>
+                )}
+
+                {paceTrend.length >= 5 && (
+                  <Surface tone="low" className="ghl-chart-card">
+                    <h2 className="ghl-chart-card__title">Pace-Entwicklung deiner Läufe</h2>
+                    <p className="ghl-chart-card__hint">Jeder Punkt ist ein Lauf ab 1,5 km — zeigt, ob du über die Zeit schneller wirst.</p>
+                    <ResponsiveContainer width="100%" height={240}>
+                      <ScatterChart>
+                        <CartesianGrid stroke="var(--md-sys-color-outline-variant)" />
+                        <XAxis
+                          dataKey="dateMs"
+                          type="number"
+                          domain={['dataMin', 'dataMax']}
+                          tickFormatter={(v: number) => new Date(v).toLocaleDateString('de-AT', { month: '2-digit', year: '2-digit' })}
+                          tick={{ fontSize: 11 }}
+                          stroke="var(--md-sys-color-outline)"
+                        />
+                        <YAxis dataKey="pace" reversed tickFormatter={(v: number) => formatPace(v)} tick={{ fontSize: 11 }} stroke="var(--md-sys-color-outline)" width={56} />
+                        <ZAxis range={[50, 50]} />
+                        <Tooltip contentStyle={tooltipStyle} formatter={(v) => formatPace(Number(v))} labelFormatter={() => ''} />
+                        <Scatter data={paceTrend} fill="#1e88e5" />
+                      </ScatterChart>
+                    </ResponsiveContainer>
+                  </Surface>
+                )}
+              </div>
+            )}
+          </section>
         )}
 
         <section>

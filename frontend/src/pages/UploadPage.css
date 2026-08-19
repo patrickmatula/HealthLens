@@ -24,6 +24,17 @@
   margin-top: calc(var(--md-space-5) * -1);
 }
 
+.ghl-upload-heading {
+  display: flex;
+  align-items: center;
+  gap: var(--md-space-3);
+}
+
+.ghl-upload-logo {
+  color: var(--md-sys-color-primary);
+  flex-shrink: 0;
+}
+
 .ghl-upload-title {
   font: var(--md-sys-typescale-headline-large-weight) var(--md-sys-typescale-headline-large-size)/var(--md-sys-typescale-headline-large-line-height) var(--md-sys-typescale-headline-large-font);
   color: var(--md-sys-color-primary);

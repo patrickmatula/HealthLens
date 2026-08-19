@@ -4,6 +4,35 @@
   margin: 0 0 var(--md-space-4);
 }
 
+.ghl-insights-toggle {
+  display: flex;
+  align-items: center;
+  gap: var(--md-space-2);
+  width: 100%;
+  border: none;
+  background: none;
+  padding: var(--md-space-2) 0;
+  margin: 0 0 var(--md-space-2);
+  color: var(--md-sys-color-on-surface);
+  font: var(--md-sys-typescale-title-medium-weight) var(--md-sys-typescale-title-medium-size)/var(--md-sys-typescale-title-medium-line-height) var(--md-sys-typescale-title-medium-font);
+  cursor: pointer;
+}
+
+.ghl-insights-toggle svg {
+  transition: transform 150ms ease;
+  color: var(--md-sys-color-on-surface-variant);
+}
+
+.ghl-insights-toggle[aria-expanded='true'] svg {
+  transform: rotate(90deg);
+}
+
+.ghl-insights-body {
+  display: flex;
+  flex-direction: column;
+  gap: var(--md-space-4);
+}
+
 .ghl-workout-filters {
   display: flex;
   flex-direction: column;
