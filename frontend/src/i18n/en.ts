@@ -119,6 +119,28 @@ const en: Record<TranslationKey, string> = {
   'detail.tableType': 'Type',
   'detail.tableDistance': 'Distance',
   'detail.tableCalories': 'Calories',
+
+  'sleep.empty': 'No sleep data in this time range.',
+  'sleep.nights': 'Nights',
+  'sleep.avgDuration': 'Avg duration',
+  'sleep.avgTimeInBed': 'Avg time in bed',
+  'sleep.avgEfficiency': 'Avg efficiency',
+  'sleep.avgScore': 'Avg sleep score',
+  'sleep.durationOverTime': 'Sleep duration over time',
+  'sleep.sleepSuffix': 'sleep',
+  'sleep.duration': 'Sleep duration',
+  'sleep.notFound': 'Night not found.',
+  'sleep.backToNights': 'All nights',
+  'sleep.timeInBed': 'Time in bed',
+  'sleep.minutesAwake': 'Time awake',
+  'sleep.efficiency': 'Efficiency',
+  'sleep.score': 'Sleep score',
+  'sleep.restingHr': 'Resting heart rate',
+  'sleep.stages': 'Sleep stages',
+  'sleep.scoreDetails': 'Score details',
+  'sleep.deepSleep': 'Deep sleep',
+  'sleep.remPercent': 'REM share',
+  'sleep.restlessness': 'Restlessness',
 }
 
 export default en

@@ -8,18 +8,20 @@ import { KpiTile } from '../components/KpiTile'
 import { SegmentedButton } from '../components/SegmentedButton'
 import { Surface } from '../components/Surface'
 import { TopAppBar } from '../components/TopAppBar'
+import { useLanguage } from '../i18n/LanguageContext'
 import { formatDate, formatMinutes } from '../utils/format'
 import './DashboardPage.css'
 import './SleepPage.css'
 
-const PRESETS: { value: TimeframePreset; label: string }[] = [
-  { value: '30d', label: '30 Tage' },
-  { value: '1y', label: '1 Jahr' },
-  { value: 'all', label: 'Alle' },
-]
-
 export function SleepPage() {
+  const { t } = useLanguage()
   const [preset, setPreset] = useState<TimeframePreset>('all')
+
+  const PRESETS: { value: TimeframePreset; label: string }[] = [
+    { value: '30d', label: t('preset.30d') },
+    { value: '1y', label: t('preset.1y') },
+    { value: 'all', label: t('preset.all') },
+  ]
   const [data, setData] = useState<SleepSummaryDto | null>(null)
   const [loading, setLoading] = useState(true)
 
@@ -38,29 +40,29 @@ export function SleepPage() {
 
   return (
     <div>
-      <TopAppBar title="Schlaf">
+      <TopAppBar title={t('nav.sleep')}>
         <SegmentedButton options={PRESETS} value={preset} onChange={setPreset} />
       </TopAppBar>
 
       <div className="ghl-page-content">
         {!loading && data && data.nights === 0 && (
           <Surface tone="low">
-            <p>Keine Schlafdaten in diesem Zeitraum.</p>
+            <p>{t('sleep.empty')}</p>
           </Surface>
         )}
 
         {data && data.nights > 0 && (
           <>
             <div className="ghl-kpi-row">
-              <KpiTile label="Nächte" value={data.nights.toString()} />
-              <KpiTile label="Ø Schlafdauer" value={formatMinutes(data.avgMinutesAsleep)} />
-              <KpiTile label="Ø Zeit im Bett" value={formatMinutes(data.avgTimeInBedMinutes)} />
-              <KpiTile label="Ø Effizienz" value={Math.round(data.avgEfficiencyPercent).toString()} unit="%" />
-              {data.avgOverallScore != null && <KpiTile label="Ø Schlaf-Score" value={Math.round(data.avgOverallScore).toString()} />}
+              <KpiTile label={t('sleep.nights')} value={data.nights.toString()} />
+              <KpiTile label={t('sleep.avgDuration')} value={formatMinutes(data.avgMinutesAsleep)} />
+              <KpiTile label={t('sleep.avgTimeInBed')} value={formatMinutes(data.avgTimeInBedMinutes)} />
+              <KpiTile label={t('sleep.avgEfficiency')} value={Math.round(data.avgEfficiencyPercent).toString()} unit="%" />
+              {data.avgOverallScore != null && <KpiTile label={t('sleep.avgScore')} value={Math.round(data.avgOverallScore).toString()} />}
             </div>
 
             <Surface tone="low" className="ghl-chart-card">
-              <h2 className="ghl-chart-card__title">Schlafdauer im Zeitverlauf</h2>
+              <h2 className="ghl-chart-card__title">{t('sleep.durationOverTime')}</h2>
               <ResponsiveContainer width="100%" height={240}>
                 <AreaChart data={chartData}>
                   <defs>
@@ -81,7 +83,7 @@ export function SleepPage() {
             </Surface>
 
             <section>
-              <h2 className="ghl-section-title">Nächte</h2>
+              <h2 className="ghl-section-title">{t('sleep.nights')}</h2>
               <div className="ghl-sleep-list">
                 {data.sessions.map((s) => (
                   <Link key={s.id} to={`/sleep/${s.id}`} className="ghl-sleep-row">
@@ -89,7 +91,9 @@ export function SleepPage() {
                       <Icon name="sleep" />
                       <div className="ghl-sleep-row__main">
                         <div className="ghl-sleep-row__title">{formatDate(s.startUtc)}</div>
-                        <div className="ghl-sleep-row__sub">{formatMinutes(s.minutesAsleep)} Schlaf</div>
+                        <div className="ghl-sleep-row__sub">
+                          {formatMinutes(s.minutesAsleep)} {t('sleep.sleepSuffix')}
+                        </div>
                       </div>
                       {s.overallScore != null && <div className="ghl-sleep-row__score">{Math.round(s.overallScore)}</div>}
                     </Surface>

@@ -121,6 +121,28 @@ const de = {
   'detail.tableType': 'Typ',
   'detail.tableDistance': 'Distanz',
   'detail.tableCalories': 'Kalorien',
+
+  'sleep.empty': 'Keine Schlafdaten in diesem Zeitraum.',
+  'sleep.nights': 'Nächte',
+  'sleep.avgDuration': 'Ø Schlafdauer',
+  'sleep.avgTimeInBed': 'Ø Zeit im Bett',
+  'sleep.avgEfficiency': 'Ø Effizienz',
+  'sleep.avgScore': 'Ø Schlaf-Score',
+  'sleep.durationOverTime': 'Schlafdauer im Zeitverlauf',
+  'sleep.sleepSuffix': 'Schlaf',
+  'sleep.duration': 'Schlafdauer',
+  'sleep.notFound': 'Nacht nicht gefunden.',
+  'sleep.backToNights': 'Alle Nächte',
+  'sleep.timeInBed': 'Zeit im Bett',
+  'sleep.minutesAwake': 'Wachphasen',
+  'sleep.efficiency': 'Effizienz',
+  'sleep.score': 'Schlaf-Score',
+  'sleep.restingHr': 'Ruhepuls',
+  'sleep.stages': 'Schlafphasen',
+  'sleep.scoreDetails': 'Score-Details',
+  'sleep.deepSleep': 'Tiefschlaf',
+  'sleep.remPercent': 'REM-Anteil',
+  'sleep.restlessness': 'Unruhe',
 } as const
 
 export default de
