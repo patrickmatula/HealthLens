@@ -7,6 +7,7 @@ import { SegmentedButton } from '../components/SegmentedButton'
 import { Surface } from '../components/Surface'
 import { TopAppBar } from '../components/TopAppBar'
 import { Icon } from '../components/Icon'
+import { formatDistanceKm } from '../utils/format'
 import './DashboardPage.css'
 
 const PRESETS: { value: TimeframePreset; label: string }[] = [
@@ -99,12 +100,7 @@ export function DashboardPage() {
             <div className="ghl-kpi-row">
               <KpiTile label="Schritte gesamt" value={numberFmt.format(data.totalSteps)} icon={<Icon name="workouts" size={20} />} />
               <KpiTile label="Ø Schritte/Tag" value={numberFmt.format(data.avgStepsPerDay)} icon={<Icon name="dashboard" size={20} />} />
-              <KpiTile
-                label="Distanz gesamt"
-                value={numberFmt.format(data.totalDistanceMeters / 1000)}
-                unit="km"
-                icon={<Icon name="route" size={20} />}
-              />
+              <KpiTile label="Distanz gesamt" value={formatDistanceKm(data.totalDistanceMeters)} icon={<Icon name="route" size={20} />} />
               <KpiTile label="Kalorien gesamt" value={numberFmt.format(data.totalCalories)} unit="kcal" icon={<Icon name="heart" size={20} />} />
               <KpiTile
                 label="Ø aktive Minuten/Tag"

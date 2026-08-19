@@ -3,16 +3,24 @@ import { Link } from 'react-router-dom'
 import { api } from '../api/client'
 import type { ImportCurrentDto } from '../api/types'
 import { Icon } from '../components/Icon'
+import { SegmentedButton } from '../components/SegmentedButton'
 import { Surface } from '../components/Surface'
 import { TopAppBar } from '../components/TopAppBar'
+import { useUnits } from '../units/UnitsContext'
 import { UploadPage } from './UploadPage'
 import { formatDateTime } from '../utils/format'
 import './DashboardPage.css'
 import './MorePage.css'
 
+const UNIT_OPTIONS = [
+  { value: 'metric' as const, label: 'Metrisch (km)' },
+  { value: 'imperial' as const, label: 'Imperial (mi)' },
+]
+
 export function MorePage() {
   const [status, setStatus] = useState<ImportCurrentDto | null>(null)
   const [showImport, setShowImport] = useState(false)
+  const { unit, setUnit } = useUnits()
 
   useEffect(() => {
     api.importCurrent().then(setStatus)
@@ -27,6 +35,14 @@ export function MorePage() {
       <TopAppBar title="Mehr" />
 
       <div className="ghl-page-content">
+        <Surface tone="low" className="ghl-more-card">
+          <h2 className="ghl-section-title">Einstellungen</h2>
+          <div className="ghl-more-setting">
+            <div className="ghl-upload-option__title">Einheiten</div>
+            <SegmentedButton options={UNIT_OPTIONS} value={unit} onChange={setUnit} />
+          </div>
+        </Surface>
+
         <Surface tone="low" className="ghl-more-card">
           <h2 className="ghl-section-title">Datenquelle</h2>
           {status && (

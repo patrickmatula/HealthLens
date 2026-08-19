@@ -1,5 +1,23 @@
+export type UnitSystem = 'metric' | 'imperial'
+
+// Set by UnitsProvider (frontend/src/units/UnitsContext.tsx) whenever the user's unit preference
+// changes, so every formatter below can stay unit-aware without threading a parameter through every
+// call site across the app.
+let currentUnitSystem: UnitSystem = 'metric'
+export function setFormatUnitSystem(unit: UnitSystem) {
+  currentUnitSystem = unit
+}
+
+const MILES_PER_KM = 0.621371
+
 export function formatPace(secPerKm: number | null | undefined): string {
   if (secPerKm == null || !Number.isFinite(secPerKm) || secPerKm <= 0) return '–'
+  if (currentUnitSystem === 'imperial') {
+    const secPerMile = secPerKm / MILES_PER_KM
+    const min = Math.floor(secPerMile / 60)
+    const sec = Math.round(secPerMile % 60)
+    return `${min}:${sec.toString().padStart(2, '0')}/mi`
+  }
   const min = Math.floor(secPerKm / 60)
   const sec = Math.round(secPerKm % 60)
   return `${min}:${sec.toString().padStart(2, '0')}/km`
@@ -24,6 +42,10 @@ export function formatDuration(totalSeconds: number | null | undefined): string 
 
 export function formatDistanceKm(meters: number | null | undefined): string {
   if (meters == null) return '–'
+  if (currentUnitSystem === 'imperial') {
+    const miles = (meters / 1000) * MILES_PER_KM
+    return `${miles.toLocaleString('de-AT', { maximumFractionDigits: 2, minimumFractionDigits: 2 })} mi`
+  }
   return `${(meters / 1000).toLocaleString('de-AT', { maximumFractionDigits: 2, minimumFractionDigits: 2 })} km`
 }
 

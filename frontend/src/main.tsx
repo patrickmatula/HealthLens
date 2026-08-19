@@ -7,13 +7,16 @@ import './components/mw'
 import './index.css'
 import { App } from './App'
 import { ThemeProvider } from './theme/ThemeContext'
+import { UnitsProvider } from './units/UnitsContext'
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <ThemeProvider>
-      <BrowserRouter>
-        <App />
-      </BrowserRouter>
+      <UnitsProvider>
+        <BrowserRouter>
+          <App />
+        </BrowserRouter>
+      </UnitsProvider>
     </ThemeProvider>
   </StrictMode>,
 )

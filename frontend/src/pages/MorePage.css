@@ -1,3 +1,9 @@
+.ghl-more-setting {
+  display: flex;
+  flex-direction: column;
+  gap: var(--md-space-2);
+}
+
 .ghl-more-card {
   display: flex;
   flex-direction: column;
