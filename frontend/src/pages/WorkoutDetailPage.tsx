@@ -93,7 +93,7 @@ export function WorkoutDetailPage() {
             <h2 className="ghl-section-title">Bestleistungen bei diesem Workout</h2>
             <ul className="ghl-workout-pr-list">
               {workout.personalRecords.map((r) => (
-                <li key={r.id}>
+                <li key={r.nameLocalizationId}>
                   <Icon name="trophy" size={16} /> {recordLabel(r.nameLocalizationId)}: <strong>{formatRecordValue(r)}</strong>
                 </li>
               ))}
