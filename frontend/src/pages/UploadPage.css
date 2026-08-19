@@ -19,6 +19,11 @@
   align-self: flex-start;
 }
 
+.ghl-upload-dashboard-link {
+  align-self: flex-end;
+  margin-top: calc(var(--md-space-5) * -1);
+}
+
 .ghl-upload-title {
   font: var(--md-sys-typescale-headline-large-weight) var(--md-sys-typescale-headline-large-size)/var(--md-sys-typescale-headline-large-line-height) var(--md-sys-typescale-headline-large-font);
   color: var(--md-sys-color-primary);

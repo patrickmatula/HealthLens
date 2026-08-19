@@ -7,7 +7,16 @@ import './UploadPage.css'
 
 const numberFmt = new Intl.NumberFormat('de-AT')
 
-export function UploadPage({ onImported, onCancel }: { onImported: () => void; onCancel?: () => void }) {
+export function UploadPage({
+  onImported,
+  onCancel,
+  onGoToDashboard,
+}: {
+  onImported: () => void
+  onCancel?: () => void
+  /** Escape hatch for the boot screen: a persistent DB file exists, so there may already be data worth looking at even if this particular check was inconclusive. */
+  onGoToDashboard?: () => void
+}) {
   const [file, setFile] = useState<File | null>(null)
   const [persistent, setPersistent] = useState(true)
   const [scope, setScope] = useState<ImportScope>('Curated')
@@ -76,6 +85,12 @@ export function UploadPage({ onImported, onCancel }: { onImported: () => void; o
         <p className="ghl-upload-subtitle">
           Lade deinen Google-Takeout-Export (Google Health) als .zip hoch, um deine Fitbit/Health-Daten zu erkunden.
         </p>
+
+        {onGoToDashboard && !importing && (
+          <md-text-button onClick={onGoToDashboard} className="ghl-upload-dashboard-link">
+            Zum Dashboard →
+          </md-text-button>
+        )}
 
         {!importing && (
           <>

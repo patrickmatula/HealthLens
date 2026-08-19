@@ -16,11 +16,15 @@ import './App.css'
 
 export function App() {
   const [hasData, setHasData] = useState<boolean | null>(null)
+  const [isPersistentDb, setIsPersistentDb] = useState(false)
 
   useEffect(() => {
     api
       .importCurrent()
-      .then((r) => setHasData(r.hasData))
+      .then((r) => {
+        setHasData(r.hasData)
+        setIsPersistentDb(r.mode === 'Persistent')
+      })
       .catch(() => setHasData(false))
   }, [])
 
@@ -32,7 +36,7 @@ export function App() {
     return (
       <>
         <ThemeToggle />
-        <UploadPage onImported={() => setHasData(true)} />
+        <UploadPage onImported={() => setHasData(true)} onGoToDashboard={isPersistentDb ? () => setHasData(true) : undefined} />
       </>
     )
   }
