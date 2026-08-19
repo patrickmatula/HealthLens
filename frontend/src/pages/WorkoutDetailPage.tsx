@@ -9,6 +9,7 @@ import { Surface } from '../components/Surface'
 import { TopAppBar } from '../components/TopAppBar'
 import { ReferenceRangeGauge } from '../components/ReferenceRangeGauge'
 import { WorkoutRouteMap } from '../components/WorkoutRouteMap'
+import { useLanguage } from '../i18n/LanguageContext'
 import { formatDateTime, formatDistanceKm, formatDuration, formatPace, formatRecordValue, recordLabel } from '../utils/format'
 import {
   CADENCE_DOMAIN,
@@ -23,6 +24,7 @@ import {
 import './WorkoutDetailPage.css'
 
 export function WorkoutDetailPage() {
+  const { t } = useLanguage()
   const { id } = useParams<{ id: string }>()
   const [workout, setWorkout] = useState<WorkoutDetailDto | null>(null)
   const [loading, setLoading] = useState(true)
@@ -39,7 +41,7 @@ export function WorkoutDetailPage() {
   if (loading) {
     return (
       <div>
-        <TopAppBar title="Workout" />
+        <TopAppBar title={t('detail.title')} />
       </div>
     )
   }
@@ -47,10 +49,10 @@ export function WorkoutDetailPage() {
   if (!workout) {
     return (
       <div>
-        <TopAppBar title="Workout" />
+        <TopAppBar title={t('detail.title')} />
         <div className="ghl-page-content">
           <Surface tone="low">
-            <p>Workout nicht gefunden.</p>
+            <p>{t('detail.notFound')}</p>
           </Surface>
         </div>
       </div>
@@ -71,26 +73,26 @@ export function WorkoutDetailPage() {
 
   return (
     <div>
-      <TopAppBar title={workout.activityName} actions={<Link to="/workouts" className="ghl-back-link">Alle Workouts</Link>} />
+      <TopAppBar title={workout.activityName} actions={<Link to="/workouts" className="ghl-back-link">{t('detail.backToWorkouts')}</Link>} />
 
       <div className="ghl-page-content">
         <Surface tone="low" className="ghl-workout-header">
           <div>{formatDateTime(workout.startUtc)}</div>
           <div className="ghl-workout-header__stats">
-            <KpiTile label="Dauer" value={formatDuration(workout.durationSeconds)} />
-            {workout.distanceMeters != null && <KpiTile label="Distanz" value={formatDistanceKm(workout.distanceMeters)} />}
-            {workout.avgPaceSecPerKm != null && <KpiTile label="Ø Pace" value={formatPace(workout.avgPaceSecPerKm)} />}
-            {workout.avgHeartRate != null && <KpiTile label="Ø Herzfrequenz" value={Math.round(workout.avgHeartRate).toString()} unit="bpm" />}
-            {workout.peakHeartRate != null && <KpiTile label="Max. Herzfrequenz" value={Math.round(workout.peakHeartRate).toString()} unit="bpm" />}
-            {workout.calories != null && <KpiTile label="Kalorien" value={Math.round(workout.calories).toString()} unit="kcal" />}
-            {workout.cadenceAvgSpm != null && <KpiTile label="Ø Kadenz" value={Math.round(workout.cadenceAvgSpm).toString()} unit="spm" />}
-            {workout.elevationGainMeters != null && <KpiTile label="Höhenmeter" value={Math.round(workout.elevationGainMeters).toString()} unit="m" />}
+            <KpiTile label={t('detail.duration')} value={formatDuration(workout.durationSeconds)} />
+            {workout.distanceMeters != null && <KpiTile label={t('detail.distance')} value={formatDistanceKm(workout.distanceMeters)} />}
+            {workout.avgPaceSecPerKm != null && <KpiTile label={t('detail.avgPace')} value={formatPace(workout.avgPaceSecPerKm)} />}
+            {workout.avgHeartRate != null && <KpiTile label={t('detail.avgHr')} value={Math.round(workout.avgHeartRate).toString()} unit="bpm" />}
+            {workout.peakHeartRate != null && <KpiTile label={t('detail.maxHr')} value={Math.round(workout.peakHeartRate).toString()} unit="bpm" />}
+            {workout.calories != null && <KpiTile label={t('detail.calories')} value={Math.round(workout.calories).toString()} unit="kcal" />}
+            {workout.cadenceAvgSpm != null && <KpiTile label={t('detail.avgCadence')} value={Math.round(workout.cadenceAvgSpm).toString()} unit="spm" />}
+            {workout.elevationGainMeters != null && <KpiTile label={t('detail.elevation')} value={Math.round(workout.elevationGainMeters).toString()} unit="m" />}
           </div>
         </Surface>
 
         {workout.personalRecords.length > 0 && (
           <Surface tone="low">
-            <h2 className="ghl-section-title">Bestleistungen bei diesem Workout</h2>
+            <h2 className="ghl-section-title">{t('detail.prsInWorkout')}</h2>
             <ul className="ghl-workout-pr-list">
               {workout.personalRecords.map((r) => (
                 <li key={r.nameLocalizationId}>
@@ -103,31 +105,31 @@ export function WorkoutDetailPage() {
 
         {(workout.cadenceAvgSpm != null || workout.groundContactTimeMs != null || workout.verticalOscillationMm != null) && (
           <Surface tone="low" className="ghl-chart-card">
-            <h2 className="ghl-chart-card__title">Lauf-Metriken im Vergleich</h2>
+            <h2 className="ghl-chart-card__title">{t('detail.runMetricsCompare')}</h2>
             {workout.cadenceAvgSpm != null && (
               <div>
-                <div className="ghl-metric-name">Kadenz</div>
+                <div className="ghl-metric-name">{t('detail.cadence')}</div>
                 <ReferenceRangeGauge value={workout.cadenceAvgSpm} domain={CADENCE_DOMAIN} zones={CADENCE_ZONES} unit="spm" />
               </div>
             )}
             {workout.groundContactTimeMs != null && (
               <div>
-                <div className="ghl-metric-name">Bodenkontaktzeit</div>
+                <div className="ghl-metric-name">{t('detail.groundContactTime')}</div>
                 <ReferenceRangeGauge value={workout.groundContactTimeMs} domain={GCT_DOMAIN} zones={GCT_ZONES} unit="ms" />
               </div>
             )}
             {workout.verticalOscillationMm != null && (
               <div>
-                <div className="ghl-metric-name">Vertikalbewegung</div>
+                <div className="ghl-metric-name">{t('detail.verticalOscillation')}</div>
                 <ReferenceRangeGauge value={workout.verticalOscillationMm / 10} domain={VERTICAL_OSC_DOMAIN} zones={VERTICAL_OSC_ZONES} unit="cm" />
               </div>
             )}
             <p className="ghl-chart-card__hint">
-              Referenzbereiche aus Perzentil-Daten von{' '}
+              {t('detail.referenceHintPrefix')}{' '}
               <a href={RUNNING_DYNAMICS_SOURCE_URL} target="_blank" rel="noreferrer">
                 {RUNNING_DYNAMICS_SOURCE}
               </a>
-              . Werte anderer Hersteller/Sensorpositionen können leicht abweichen — als Orientierung, nicht als exakter Vergleichsmaßstab gedacht.
+              {t('detail.referenceHintSuffix')}
             </p>
           </Surface>
         )}
@@ -136,7 +138,7 @@ export function WorkoutDetailPage() {
 
         {hasHr && (
           <Surface tone="low" className="ghl-chart-card">
-            <h2 className="ghl-chart-card__title">Herzfrequenz im Verlauf</h2>
+            <h2 className="ghl-chart-card__title">{t('detail.hrOverTime')}</h2>
             <ResponsiveContainer width="100%" height={220}>
               <LineChart data={chartData}>
                 <XAxis dataKey="elapsedMin" tickFormatter={(v: number) => `${Math.round(v)}'`} tick={{ fontSize: 11 }} stroke="var(--md-sys-color-outline)" />
@@ -150,7 +152,7 @@ export function WorkoutDetailPage() {
 
         {hasPace && (
           <Surface tone="low" className="ghl-chart-card">
-            <h2 className="ghl-chart-card__title">Pace im Verlauf</h2>
+            <h2 className="ghl-chart-card__title">{t('detail.paceOverTime')}</h2>
             <ResponsiveContainer width="100%" height={220}>
               <LineChart data={chartData}>
                 <XAxis dataKey="elapsedMin" tickFormatter={(v: number) => `${Math.round(v)}'`} tick={{ fontSize: 11 }} stroke="var(--md-sys-color-outline)" />
@@ -164,7 +166,7 @@ export function WorkoutDetailPage() {
 
         {hasCadence && (
           <Surface tone="low" className="ghl-chart-card">
-            <h2 className="ghl-chart-card__title">Kadenz im Verlauf</h2>
+            <h2 className="ghl-chart-card__title">{t('detail.cadenceOverTime')}</h2>
             <ResponsiveContainer width="100%" height={180}>
               <LineChart data={chartData}>
                 <XAxis dataKey="elapsedMin" tickFormatter={(v: number) => `${Math.round(v)}'`} tick={{ fontSize: 11 }} stroke="var(--md-sys-color-outline)" />
@@ -178,14 +180,14 @@ export function WorkoutDetailPage() {
 
         {workout.kmSplits.length > 0 && (
           <Surface tone="low">
-            <h2 className="ghl-section-title">Kilometer-Splits</h2>
+            <h2 className="ghl-section-title">{t('detail.kmSplits')}</h2>
             <div className="ghl-table-scroll">
               <table className="ghl-splits-table">
                 <thead>
                   <tr>
                     <th>km</th>
                     <th>Pace</th>
-                    <th>Ø HF</th>
+                    <th>{t('detail.tableAvgHr')}</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -204,17 +206,17 @@ export function WorkoutDetailPage() {
 
         {workout.splits.length > 0 && (
           <Surface tone="low">
-            <h2 className="ghl-section-title">Splits</h2>
+            <h2 className="ghl-section-title">{t('detail.splits')}</h2>
             <div className="ghl-table-scroll">
             <table className="ghl-splits-table">
               <thead>
                 <tr>
                   <th>#</th>
-                  <th>Typ</th>
-                  <th>Distanz</th>
+                  <th>{t('detail.tableType')}</th>
+                  <th>{t('detail.tableDistance')}</th>
                   <th>Pace</th>
-                  <th>Ø HF</th>
-                  <th>Kalorien</th>
+                  <th>{t('detail.tableAvgHr')}</th>
+                  <th>{t('detail.tableCalories')}</th>
                 </tr>
               </thead>
               <tbody>
