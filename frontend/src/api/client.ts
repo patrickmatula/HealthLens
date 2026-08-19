@@ -60,6 +60,8 @@ export const api = {
 
   personalRecords: () => get<PersonalRecordDto[]>('/api/workouts/personal-records'),
 
+  bestPersonalRecords: () => get<PersonalRecordDto[]>('/api/workouts/personal-records/best'),
+
   sleepSummary: (params: { preset?: string; from?: string; to?: string }) => {
     const qs = new URLSearchParams()
     if (params.preset) qs.set('preset', params.preset)

@@ -1,7 +1,7 @@
-import { useEffect, useState } from 'react'
-import { Area, AreaChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
+import { useEffect, useMemo, useState } from 'react'
+import { Area, AreaChart, Bar, BarChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
 import { api } from '../api/client'
-import type { DashboardOverviewDto, TimeframePreset } from '../api/types'
+import type { DailyActivityPointDto, DashboardOverviewDto, TimeframePreset } from '../api/types'
 import { KpiTile } from '../components/KpiTile'
 import { SegmentedButton } from '../components/SegmentedButton'
 import { Surface } from '../components/Surface'
@@ -18,6 +18,35 @@ const PRESETS: { value: TimeframePreset; label: string }[] = [
 
 const numberFmt = new Intl.NumberFormat('de-AT', { maximumFractionDigits: 0 })
 
+type ChartGranularity = 'daily' | 'week' | 'month'
+
+function bucketKey(dateStr: string, mode: 'week' | 'month'): string {
+  if (mode === 'month') return dateStr.slice(0, 7)
+  const d = new Date(`${dateStr}T00:00:00Z`)
+  const isoDay = d.getUTCDay() || 7
+  d.setUTCDate(d.getUTCDate() - isoDay + 1)
+  return d.toISOString().slice(0, 10)
+}
+
+function aggregateDays(days: DailyActivityPointDto[], mode: 'week' | 'month') {
+  const buckets = new Map<string, { date: string; steps: number }>()
+  for (const d of days) {
+    const key = bucketKey(d.date, mode)
+    const entry = buckets.get(key) ?? { date: key, steps: 0 }
+    entry.steps += d.steps ?? 0
+    buckets.set(key, entry)
+  }
+  return [...buckets.values()].sort((a, b) => a.date.localeCompare(b.date))
+}
+
+function formatBucketLabel(date: string, mode: ChartGranularity): string {
+  if (mode === 'month') {
+    const [, m] = date.split('-')
+    return m
+  }
+  return date.slice(5)
+}
+
 export function DashboardPage() {
   const [preset, setPreset] = useState<TimeframePreset>('30d')
   const [data, setData] = useState<DashboardOverviewDto | null>(null)
@@ -32,6 +61,12 @@ export function DashboardPage() {
   }, [preset])
 
   const hasData = data && data.daysWithData > 0
+
+  const chartGranularity: ChartGranularity = preset === '1y' ? 'week' : preset === 'all' ? 'month' : 'daily'
+  const chartData = useMemo(() => {
+    if (!data) return []
+    return chartGranularity === 'daily' ? data.days.map((d) => ({ date: d.date, steps: d.steps ?? 0 })) : aggregateDays(data.days, chartGranularity)
+  }, [data, chartGranularity])
 
   return (
     <div>
@@ -87,22 +122,37 @@ export function DashboardPage() {
             </div>
 
             <Surface tone="low" className="ghl-chart-card">
-              <h2 className="ghl-chart-card__title">Schritte im Zeitverlauf</h2>
+              <h2 className="ghl-chart-card__title">
+                Schritte im Zeitverlauf
+                {chartGranularity !== 'daily' && (
+                  <span className="ghl-chart-card__subtitle"> — {chartGranularity === 'week' ? 'pro Woche' : 'pro Monat'}</span>
+                )}
+              </h2>
               <ResponsiveContainer width="100%" height={280}>
-                <AreaChart data={data.days}>
-                  <defs>
-                    <linearGradient id="stepsGradient" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="0%" stopColor="var(--md-sys-color-primary)" stopOpacity={0.35} />
-                      <stop offset="100%" stopColor="var(--md-sys-color-primary)" stopOpacity={0} />
-                    </linearGradient>
-                  </defs>
-                  <XAxis dataKey="date" tick={{ fontSize: 11 }} tickFormatter={(d) => d.slice(5)} stroke="var(--md-sys-color-outline)" />
-                  <YAxis tick={{ fontSize: 11 }} stroke="var(--md-sys-color-outline)" width={40} />
-                  <Tooltip
-                    contentStyle={{ background: 'var(--md-sys-color-surface-container-high)', border: 'none', borderRadius: 8 }}
-                  />
-                  <Area type="monotone" dataKey="steps" stroke="var(--md-sys-color-primary)" fill="url(#stepsGradient)" strokeWidth={2} />
-                </AreaChart>
+                {chartGranularity === 'daily' ? (
+                  <AreaChart data={chartData}>
+                    <defs>
+                      <linearGradient id="stepsGradient" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="0%" stopColor="var(--md-sys-color-primary)" stopOpacity={0.35} />
+                        <stop offset="100%" stopColor="var(--md-sys-color-primary)" stopOpacity={0} />
+                      </linearGradient>
+                    </defs>
+                    <XAxis dataKey="date" tick={{ fontSize: 11 }} tickFormatter={(d) => formatBucketLabel(d, chartGranularity)} stroke="var(--md-sys-color-outline)" />
+                    <YAxis tick={{ fontSize: 11 }} stroke="var(--md-sys-color-outline)" width={40} />
+                    <Tooltip contentStyle={{ background: 'var(--md-sys-color-surface-container-high)', border: 'none', borderRadius: 8 }} />
+                    <Area type="monotone" dataKey="steps" stroke="var(--md-sys-color-primary)" fill="url(#stepsGradient)" strokeWidth={2} />
+                  </AreaChart>
+                ) : (
+                  <BarChart data={chartData}>
+                    <XAxis dataKey="date" tick={{ fontSize: 11 }} tickFormatter={(d) => formatBucketLabel(d, chartGranularity)} stroke="var(--md-sys-color-outline)" />
+                    <YAxis tick={{ fontSize: 11 }} stroke="var(--md-sys-color-outline)" width={44} />
+                    <Tooltip
+                      contentStyle={{ background: 'var(--md-sys-color-surface-container-high)', border: 'none', borderRadius: 8 }}
+                      formatter={(v) => numberFmt.format(Number(v))}
+                    />
+                    <Bar dataKey="steps" fill="var(--md-sys-color-primary)" radius={[4, 4, 0, 0]} />
+                  </BarChart>
+                )}
               </ResponsiveContainer>
             </Surface>
           </>

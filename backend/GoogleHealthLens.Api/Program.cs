@@ -1,10 +1,11 @@
+using System.Text.Json.Serialization;
 using GoogleHealthLens.Api.Data;
 using GoogleHealthLens.Api.Services;
 using Microsoft.AspNetCore.Http.Features;
 
 var builder = WebApplication.CreateBuilder(args);
 
-builder.Services.AddControllers();
+builder.Services.AddControllers().AddJsonOptions(o => o.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter()));
 builder.Services.AddOpenApi();
 
 builder.Services.AddSingleton<DataSessionService>();

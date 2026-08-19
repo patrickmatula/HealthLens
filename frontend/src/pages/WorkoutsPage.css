@@ -4,6 +4,23 @@
   margin: 0 0 var(--md-space-4);
 }
 
+.ghl-workout-filters {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--md-space-4);
+  margin-bottom: var(--md-space-4);
+}
+
+.ghl-workout-filters .ghl-section-title {
+  margin: 0;
+  margin-right: auto;
+}
+
+.ghl-workout-search {
+  min-width: 260px;
+}
+
 .ghl-workout-list {
   display: flex;
   flex-direction: column;

@@ -41,6 +41,8 @@ public record WorkoutSampleDto(
     double? VerticalRatioPercent,
     double? GroundContactTimeMs);
 
+public record KmSplitDto(int Km, double DurationSeconds, double? AvgHeartRate);
+
 public record WorkoutDetailDto(
     string Id,
     DateTime StartUtc,
@@ -67,6 +69,7 @@ public record WorkoutDetailDto(
     bool HasGps,
     bool IsLegacy,
     IReadOnlyList<WorkoutSplitDto> Splits,
+    IReadOnlyList<KmSplitDto> KmSplits,
     IReadOnlyList<WorkoutSampleDto> Samples,
     IReadOnlyList<PersonalRecordDto> PersonalRecords);
 

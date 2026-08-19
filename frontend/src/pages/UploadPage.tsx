@@ -5,7 +5,9 @@ import { Icon } from '../components/Icon'
 import { Surface } from '../components/Surface'
 import './UploadPage.css'
 
-export function UploadPage({ onImported }: { onImported: () => void }) {
+const numberFmt = new Intl.NumberFormat('de-AT')
+
+export function UploadPage({ onImported, onCancel }: { onImported: () => void; onCancel?: () => void }) {
   const [file, setFile] = useState<File | null>(null)
   const [persistent, setPersistent] = useState(true)
   const [scope, setScope] = useState<ImportScope>('Curated')
@@ -65,6 +67,11 @@ export function UploadPage({ onImported }: { onImported: () => void }) {
   return (
     <div className="ghl-upload-page">
       <Surface className="ghl-upload-card" tone="low">
+        {onCancel && !importing && (
+          <md-text-button onClick={onCancel} className="ghl-upload-cancel">
+            ← Zurück
+          </md-text-button>
+        )}
         <h1 className="ghl-upload-title">GoogleHealthLens</h1>
         <p className="ghl-upload-subtitle">
           Lade deinen Google-Takeout-Export (Google Health) als .zip hoch, um deine Fitbit/Health-Daten zu erkunden.
@@ -123,8 +130,14 @@ export function UploadPage({ onImported }: { onImported: () => void }) {
 
         {status && (
           <div className="ghl-upload-progress">
+            <div className="ghl-upload-progress__header">
+              <span className="ghl-upload-progress__step">{status.currentStep}</span>
+              <span className="ghl-upload-progress__percent">{status.progressPercent}%</span>
+            </div>
             <md-linear-progress value={status.progressPercent / 100} indeterminate={status.progressPercent === 0 || undefined} />
-            <div className="ghl-upload-progress__step">{status.currentStep}</div>
+            {status.rowsImported > 0 && (
+              <div className="ghl-upload-progress__rows">{numberFmt.format(status.rowsImported)} Zeilen importiert</div>
+            )}
             {error && <div className="ghl-upload-error">{error}</div>}
           </div>
         )}

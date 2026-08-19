@@ -1,6 +1,7 @@
 .ghl-page-content {
   padding: 0 var(--md-space-6) var(--md-space-6);
   max-width: var(--ghl-content-max-width);
+  margin: 0 auto;
   display: flex;
   flex-direction: column;
   gap: var(--md-space-5);
@@ -42,5 +43,14 @@
 .ghl-chart-card__hint {
   margin: -8px 0 0;
   font: var(--md-sys-typescale-body-small-weight) var(--md-sys-typescale-body-small-size)/var(--md-sys-typescale-body-small-line-height) var(--md-sys-typescale-body-small-font);
+  color: var(--md-sys-color-on-surface-variant);
+}
+
+.ghl-chart-card__hint a {
+  color: var(--md-sys-color-primary);
+}
+
+.ghl-chart-card__subtitle {
+  font: var(--md-sys-typescale-body-medium-weight) var(--md-sys-typescale-body-medium-size)/var(--md-sys-typescale-body-medium-line-height) var(--md-sys-typescale-body-medium-font);
   color: var(--md-sys-color-on-surface-variant);
 }

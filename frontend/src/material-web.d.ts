@@ -42,6 +42,7 @@ declare module 'react' {
       'md-chip-set': MdElementProps
       'md-filter-chip': MdElementProps
       'md-assist-chip': MdElementProps
+      'md-outlined-text-field': MdElementProps & { placeholder?: string; supportingText?: string }
     }
   }
 }

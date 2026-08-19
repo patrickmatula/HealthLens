@@ -4,7 +4,7 @@ import { api } from './api/client'
 import { NavigationRail } from './components/NavigationRail'
 import { DashboardPage } from './pages/DashboardPage'
 import { HeartPage } from './pages/HeartPage'
-import { PlaceholderPage } from './pages/PlaceholderPage'
+import { MorePage } from './pages/MorePage'
 import { RecoveryPage } from './pages/RecoveryPage'
 import { SleepDetailPage } from './pages/SleepDetailPage'
 import { SleepPage } from './pages/SleepPage'
@@ -50,7 +50,7 @@ export function App() {
           <Route path="/sleep/:id" element={<SleepDetailPage />} />
           <Route path="/heart" element={<HeartPage />} />
           <Route path="/recovery" element={<RecoveryPage />} />
-          <Route path="/more" element={<PlaceholderPage title="Mehr" />} />
+          <Route path="/more" element={<MorePage />} />
         </Routes>
       </main>
     </div>

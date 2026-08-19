@@ -6,6 +6,11 @@
   z-index: 5;
 }
 
+.ghl-top-app-bar__inner {
+  max-width: var(--ghl-content-max-width);
+  margin: 0 auto;
+}
+
 .ghl-top-app-bar__row {
   display: flex;
   align-items: center;

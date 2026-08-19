@@ -15,6 +15,10 @@
   gap: var(--md-space-5);
 }
 
+.ghl-upload-cancel {
+  align-self: flex-start;
+}
+
 .ghl-upload-title {
   font: var(--md-sys-typescale-headline-large-weight) var(--md-sys-typescale-headline-large-size)/var(--md-sys-typescale-headline-large-line-height) var(--md-sys-typescale-headline-large-font);
   color: var(--md-sys-color-primary);
@@ -83,9 +87,27 @@
   gap: var(--md-space-3);
 }
 
+.ghl-upload-progress__header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--md-space-3);
+}
+
 .ghl-upload-progress__step {
   color: var(--md-sys-color-on-surface-variant);
   font: var(--md-sys-typescale-body-medium-weight) var(--md-sys-typescale-body-medium-size)/var(--md-sys-typescale-body-medium-line-height) var(--md-sys-typescale-body-medium-font);
+}
+
+.ghl-upload-progress__percent {
+  color: var(--md-sys-color-primary);
+  font: var(--md-sys-typescale-title-large-weight) var(--md-sys-typescale-title-large-size)/var(--md-sys-typescale-title-large-line-height) var(--md-sys-typescale-title-large-font);
+  flex-shrink: 0;
+}
+
+.ghl-upload-progress__rows {
+  color: var(--md-sys-color-on-surface-variant);
+  font: var(--md-sys-typescale-body-small-weight) var(--md-sys-typescale-body-small-size)/var(--md-sys-typescale-body-small-line-height) var(--md-sys-typescale-body-small-font);
 }
 
 md-linear-progress {

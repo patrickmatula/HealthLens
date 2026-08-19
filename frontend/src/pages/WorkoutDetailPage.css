@@ -4,6 +4,12 @@
   font: var(--md-sys-typescale-label-large-weight) var(--md-sys-typescale-label-large-size)/var(--md-sys-typescale-label-large-line-height) var(--md-sys-typescale-label-large-font);
 }
 
+.ghl-metric-name {
+  font: var(--md-sys-typescale-label-large-weight) var(--md-sys-typescale-label-large-size)/var(--md-sys-typescale-label-large-line-height) var(--md-sys-typescale-label-large-font);
+  color: var(--md-sys-color-on-surface-variant);
+  margin-bottom: var(--md-space-2);
+}
+
 .ghl-workout-header {
   display: flex;
   flex-direction: column;

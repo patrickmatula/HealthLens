@@ -7,8 +7,19 @@ import { Icon } from '../components/Icon'
 import { KpiTile } from '../components/KpiTile'
 import { Surface } from '../components/Surface'
 import { TopAppBar } from '../components/TopAppBar'
+import { ReferenceRangeGauge } from '../components/ReferenceRangeGauge'
 import { WorkoutRouteMap } from '../components/WorkoutRouteMap'
 import { formatDateTime, formatDistanceKm, formatDuration, formatPace, formatRecordValue, recordLabel } from '../utils/format'
+import {
+  CADENCE_DOMAIN,
+  CADENCE_ZONES,
+  GCT_DOMAIN,
+  GCT_ZONES,
+  RUNNING_DYNAMICS_SOURCE,
+  RUNNING_DYNAMICS_SOURCE_URL,
+  VERTICAL_OSC_DOMAIN,
+  VERTICAL_OSC_ZONES,
+} from '../utils/references'
 import './WorkoutDetailPage.css'
 
 export function WorkoutDetailPage() {
@@ -90,6 +101,37 @@ export function WorkoutDetailPage() {
           </Surface>
         )}
 
+        {(workout.cadenceAvgSpm != null || workout.groundContactTimeMs != null || workout.verticalOscillationMm != null) && (
+          <Surface tone="low" className="ghl-chart-card">
+            <h2 className="ghl-chart-card__title">Lauf-Metriken im Vergleich</h2>
+            {workout.cadenceAvgSpm != null && (
+              <div>
+                <div className="ghl-metric-name">Kadenz</div>
+                <ReferenceRangeGauge value={workout.cadenceAvgSpm} domain={CADENCE_DOMAIN} zones={CADENCE_ZONES} unit="spm" />
+              </div>
+            )}
+            {workout.groundContactTimeMs != null && (
+              <div>
+                <div className="ghl-metric-name">Bodenkontaktzeit</div>
+                <ReferenceRangeGauge value={workout.groundContactTimeMs} domain={GCT_DOMAIN} zones={GCT_ZONES} unit="ms" />
+              </div>
+            )}
+            {workout.verticalOscillationMm != null && (
+              <div>
+                <div className="ghl-metric-name">Vertikalbewegung</div>
+                <ReferenceRangeGauge value={workout.verticalOscillationMm / 10} domain={VERTICAL_OSC_DOMAIN} zones={VERTICAL_OSC_ZONES} unit="cm" />
+              </div>
+            )}
+            <p className="ghl-chart-card__hint">
+              Referenzbereiche aus Perzentil-Daten von{' '}
+              <a href={RUNNING_DYNAMICS_SOURCE_URL} target="_blank" rel="noreferrer">
+                {RUNNING_DYNAMICS_SOURCE}
+              </a>
+              . Werte anderer Hersteller/Sensorpositionen können leicht abweichen — als Orientierung, nicht als exakter Vergleichsmaßstab gedacht.
+            </p>
+          </Surface>
+        )}
+
         {workout.hasGps && <WorkoutRouteMap samples={workout.samples} />}
 
         {hasHr && (
@@ -131,6 +173,30 @@ export function WorkoutDetailPage() {
                 <Line type="monotone" dataKey="cadenceSpm" stroke="#8e24aa" dot={false} strokeWidth={2} connectNulls />
               </LineChart>
             </ResponsiveContainer>
+          </Surface>
+        )}
+
+        {workout.kmSplits.length > 0 && (
+          <Surface tone="low">
+            <h2 className="ghl-section-title">Kilometer-Splits</h2>
+            <table className="ghl-splits-table">
+              <thead>
+                <tr>
+                  <th>km</th>
+                  <th>Pace</th>
+                  <th>Ø HF</th>
+                </tr>
+              </thead>
+              <tbody>
+                {workout.kmSplits.map((s) => (
+                  <tr key={s.km}>
+                    <td>{s.km}</td>
+                    <td>{formatPace(s.durationSeconds)}</td>
+                    <td>{s.avgHeartRate ? `${Math.round(s.avgHeartRate)} bpm` : '–'}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </Surface>
         )}
 

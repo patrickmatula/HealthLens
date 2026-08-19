@@ -59,6 +59,26 @@ export function recordLabel(name: string): string {
   return RECORD_LABELS[name] ?? name.replace(/_NAME$/, '').replace(/_/g, ' ')
 }
 
+export type WorkoutCategory = 'Lauf' | 'Spaziergang' | 'Rad' | 'Kraft' | 'Sonstiges'
+
+/**
+ * Fitbit's own activityName is inconsistent (generic "Workout"/"Structured Workout"/"Sport" entries are
+ * common), so name keywords alone under-classify. Fall back to pace for those generic names: sustained
+ * paces faster than ~8:00/km are essentially never walking, matching typical running-vs-walking pace
+ * thresholds used by fitness apps.
+ */
+export function categorizeWorkout(w: { activityName: string; avgPaceSecPerKm: number | null }): WorkoutCategory {
+  const name = w.activityName.toLowerCase()
+  if (/(run|laufen|hike|wander)/.test(name)) return 'Lauf'
+  if (/(walk|geh)/.test(name)) return 'Spaziergang'
+  if (/(bike|cycl|rad)/.test(name)) return 'Rad'
+  if (/(strength|hiit|aerobic|kraft|gym)/.test(name)) return 'Kraft'
+  if (w.avgPaceSecPerKm != null) {
+    return w.avgPaceSecPerKm < 480 ? 'Lauf' : 'Spaziergang'
+  }
+  return 'Sonstiges'
+}
+
 export function formatRecordValue(record: { recordType: string; recordValue: number }): string {
   if (record.recordType === 'PERSONAL_RECORD_TYPE_SHORTEST_TIME_FOR_DISTANCE') {
     return formatDuration(record.recordValue / 1000)

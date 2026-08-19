@@ -236,6 +236,12 @@ export interface CorrelationPointDto {
   readinessScore: number | null
 }
 
+export interface KmSplitDto {
+  km: number
+  durationSeconds: number
+  avgHeartRate: number | null
+}
+
 export interface WorkoutDetailDto extends WorkoutListItemDto {
   logType: string
   source: string | null
@@ -251,6 +257,7 @@ export interface WorkoutDetailDto extends WorkoutListItemDto {
   verticalRatioPercent: number | null
   ratePerceivedExertion: number | null
   splits: WorkoutSplitDto[]
+  kmSplits: KmSplitDto[]
   samples: WorkoutSampleDto[]
   personalRecords: PersonalRecordDto[]
 }

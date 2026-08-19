@@ -3,9 +3,11 @@ import { Bar, BarChart, Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YA
 import { api } from '../api/client'
 import type { HeartOverviewDto, TimeframePreset } from '../api/types'
 import { KpiTile } from '../components/KpiTile'
+import { ReferenceRangeGauge } from '../components/ReferenceRangeGauge'
 import { SegmentedButton } from '../components/SegmentedButton'
 import { Surface } from '../components/Surface'
 import { TopAppBar } from '../components/TopAppBar'
+import { RESTING_HR_DOMAIN, RESTING_HR_SOURCE, RESTING_HR_SOURCE_URL, RESTING_HR_ZONES, restingHrAssessment } from '../utils/references'
 import './DashboardPage.css'
 
 const PRESETS: { value: TimeframePreset; label: string }[] = [
@@ -52,6 +54,20 @@ export function HeartPage() {
               )}
               {data.avgHrv != null && <KpiTile label="Ø HRV (RMSSD)" value={data.avgHrv.toFixed(1)} unit="ms" />}
             </div>
+
+            {data.avgRestingHeartRate != null && (
+              <Surface tone="low" className="ghl-chart-card">
+                <h2 className="ghl-chart-card__title">Wie gut ist mein Ruhepuls?</h2>
+                <ReferenceRangeGauge value={data.avgRestingHeartRate} domain={RESTING_HR_DOMAIN} zones={RESTING_HR_ZONES} unit="bpm" />
+                <p className="ghl-chart-card__hint">
+                  {restingHrAssessment(data.avgRestingHeartRate)} Quelle:{' '}
+                  <a href={RESTING_HR_SOURCE_URL} target="_blank" rel="noreferrer">
+                    {RESTING_HR_SOURCE}
+                  </a>
+                  . Keine medizinische Diagnose — bei Beschwerden ärztlichen Rat einholen.
+                </p>
+              </Surface>
+            )}
 
             {data.restingHeartRate.length > 0 && (
               <Surface tone="low" className="ghl-chart-card">
