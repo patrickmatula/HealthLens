@@ -6,11 +6,14 @@ import 'leaflet/dist/leaflet.css'
 import './components/mw'
 import './index.css'
 import { App } from './App'
+import { ThemeProvider } from './theme/ThemeContext'
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
-    <BrowserRouter>
-      <App />
-    </BrowserRouter>
+    <ThemeProvider>
+      <BrowserRouter>
+        <App />
+      </BrowserRouter>
+    </ThemeProvider>
   </StrictMode>,
 )

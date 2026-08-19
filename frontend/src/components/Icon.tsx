@@ -10,11 +10,44 @@ const PATHS = {
   chevronRight: 'M9 6l6 6-6 6',
   trophy: 'M6 3h12v2h2v3a4 4 0 01-4 4v0a4 4 0 01-3 3.87V17h3v2H8v-2h3v-1.13A4 4 0 018 12v0a4 4 0 01-4-4V5h2V3zm0 4H4v1a2 2 0 002 2V7zm12 0v3a2 2 0 002-2V7h-2z',
   route: 'M5 4a3 3 0 100 6 3 3 0 000-6zm14 10a3 3 0 100 6 3 3 0 000-6zM6.5 9.5C9 12 12 12 14 12s5 0 5 3.5',
+  moon: 'M12.5 3c-5 .3-9 4.5-9 9.5C3.5 18 7.9 22 13 22c4.2 0 7.8-2.8 8.9-6.7-1.3.6-2.7 1-4.2 1-5 0-9-4-9-9 0-1.6.4-3.1 1.1-4.4-.4-.1-.9-.2-1.3-.2z',
 } as const
 
-export type IconName = keyof typeof PATHS
+const RAY_ANGLES = [0, 45, 90, 135, 180, 225, 270, 315]
+
+export type IconName = keyof typeof PATHS | 'sun' | 'auto'
 
 export function Icon({ name, size = 24 }: { name: IconName; size?: number }) {
+  if (name === 'sun') {
+    return (
+      <svg width={size} height={size} viewBox="0 0 24 24" aria-hidden="true">
+        <circle cx="12" cy="12" r="4.5" fill="currentColor" />
+        {RAY_ANGLES.map((angle) => (
+          <line
+            key={angle}
+            x1="12"
+            y1="3.5"
+            x2="12"
+            y2="6"
+            stroke="currentColor"
+            strokeWidth="1.8"
+            strokeLinecap="round"
+            transform={`rotate(${angle} 12 12)`}
+          />
+        ))}
+      </svg>
+    )
+  }
+
+  if (name === 'auto') {
+    return (
+      <svg width={size} height={size} viewBox="0 0 24 24" aria-hidden="true">
+        <circle cx="12" cy="12" r="8.5" fill="none" stroke="currentColor" strokeWidth="1.8" />
+        <path d="M12 3.5a8.5 8.5 0 010 17z" fill="currentColor" />
+      </svg>
+    )
+  }
+
   return (
     <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="none" aria-hidden="true">
       <path d={PATHS[name]} fill="currentColor" />

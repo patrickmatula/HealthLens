@@ -1,0 +1,21 @@
+.ghl-theme-toggle {
+  position: fixed;
+  top: var(--md-space-4);
+  right: var(--md-space-5);
+  z-index: 20;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border-radius: var(--md-sys-shape-corner-full);
+  border: 1px solid var(--md-sys-color-outline-variant);
+  background: var(--md-sys-color-surface-container-high);
+  color: var(--md-sys-color-on-surface);
+  cursor: pointer;
+  transition: background-color 150ms ease;
+}
+
+.ghl-theme-toggle:hover {
+  background: var(--md-sys-color-surface-container-highest);
+}

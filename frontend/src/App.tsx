@@ -5,6 +5,7 @@ import { NavigationRail } from './components/NavigationRail'
 import { DashboardPage } from './pages/DashboardPage'
 import { PlaceholderPage } from './pages/PlaceholderPage'
 import { UploadPage } from './pages/UploadPage'
+import { ThemeToggle } from './theme/ThemeToggle'
 import './App.css'
 
 export function App() {
@@ -22,11 +23,17 @@ export function App() {
   }
 
   if (!hasData) {
-    return <UploadPage onImported={() => setHasData(true)} />
+    return (
+      <>
+        <ThemeToggle />
+        <UploadPage onImported={() => setHasData(true)} />
+      </>
+    )
   }
 
   return (
     <div className="ghl-shell">
+      <ThemeToggle />
       <NavigationRail />
       <main className="ghl-shell__content">
         <Routes>
