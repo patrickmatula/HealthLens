@@ -4,6 +4,28 @@
   gap: var(--md-space-2);
 }
 
+.ghl-theme-swatches {
+  display: flex;
+  gap: var(--md-space-3);
+}
+
+.ghl-theme-swatch {
+  width: 36px;
+  height: 36px;
+  border-radius: var(--md-sys-shape-corner-full);
+  border: 2px solid transparent;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  cursor: pointer;
+  padding: 0;
+}
+
+.ghl-theme-swatch--selected {
+  border-color: var(--md-sys-color-on-surface);
+}
+
 .ghl-more-card {
   display: flex;
   flex-direction: column;

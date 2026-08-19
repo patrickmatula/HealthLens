@@ -6,6 +6,8 @@ import { Icon } from '../components/Icon'
 import { SegmentedButton } from '../components/SegmentedButton'
 import { Surface } from '../components/Surface'
 import { TopAppBar } from '../components/TopAppBar'
+import { useTheme } from '../theme/ThemeContext'
+import { COLOR_THEMES } from '../theme/themes.generated'
 import { useUnits } from '../units/UnitsContext'
 import { UploadPage } from './UploadPage'
 import { formatDateTime } from '../utils/format'
@@ -21,6 +23,7 @@ export function MorePage() {
   const [status, setStatus] = useState<ImportCurrentDto | null>(null)
   const [showImport, setShowImport] = useState(false)
   const { unit, setUnit } = useUnits()
+  const { colorTheme, setColorTheme } = useTheme()
 
   useEffect(() => {
     api.importCurrent().then(setStatus)
@@ -40,6 +43,24 @@ export function MorePage() {
           <div className="ghl-more-setting">
             <div className="ghl-upload-option__title">Einheiten</div>
             <SegmentedButton options={UNIT_OPTIONS} value={unit} onChange={setUnit} />
+          </div>
+          <div className="ghl-more-setting">
+            <div className="ghl-upload-option__title">Farbthema</div>
+            <div className="ghl-theme-swatches">
+              {COLOR_THEMES.map((t) => (
+                <button
+                  key={t.key}
+                  type="button"
+                  className={`ghl-theme-swatch ${colorTheme === t.key ? 'ghl-theme-swatch--selected' : ''}`}
+                  style={{ background: t.seed }}
+                  onClick={() => setColorTheme(t.key)}
+                  aria-label={t.label}
+                  title={t.label}
+                >
+                  {colorTheme === t.key && <Icon name="check" size={16} />}
+                </button>
+              ))}
+            </div>
           </div>
         </Surface>
 
