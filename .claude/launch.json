@@ -4,7 +4,7 @@
     {
       "name": "backend",
       "runtimeExecutable": "dotnet",
-      "runtimeArgs": ["run", "--project", "backend/GoogleHealthLens.Api"],
+      "runtimeArgs": ["run", "--project", "backend/HealthLens.Api"],
       "port": 5172
     },
     {

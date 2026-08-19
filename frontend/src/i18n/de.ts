@@ -1,7 +1,7 @@
 // German dictionary — the source of truth for keys (this app started German-only).
 // Scaffold covers the app "shell" (nav, page titles, upload, settings) first;
 // per-page content strings are translated incrementally — see project memory
-// "project-googlehealthlens-backlog" for the remaining file list.
+// "project-healthlens-backlog" for the remaining file list.
 const de = {
   'nav.mainLabel': 'Hauptnavigation',
   'nav.dashboard': 'Übersicht',
@@ -15,7 +15,7 @@ const de = {
   'theme.light': 'Design: Hell — klicken für Dunkel',
   'theme.dark': 'Design: Dunkel — klicken für System',
 
-  'upload.title': 'GoogleHealthLens',
+  'upload.title': 'HealthLens',
   'upload.subtitle': 'Lade deinen Google-Takeout-Export (Google Health) als .zip hoch, um deine Fitbit/Health-Daten zu erkunden.',
   'upload.dropzoneCta': 'Zip-Datei auswählen…',
   'upload.persistentTitle': 'Dauerhaft speichern',
@@ -51,7 +51,7 @@ const de = {
   'more.scopeFull': 'Vollständig',
   'more.rowsImportedLabel': 'Importierte Zeilen',
   'more.reimportButton': 'Neuen Export importieren',
-  'more.aboutTitle': 'Über GoogleHealthLens',
+  'more.aboutTitle': 'Über HealthLens',
   'more.aboutText':
     'Eine lokale Auswertungs-App für deinen Google-Takeout-Export (Google Health/Fitbit). Alle Daten bleiben auf diesem Rechner — es wird nichts an einen Server außerhalb deines eigenen Backends gesendet.',
 } as const

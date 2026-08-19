@@ -13,7 +13,7 @@ const en: Record<TranslationKey, string> = {
   'theme.light': 'Theme: Light — click for Dark',
   'theme.dark': 'Theme: Dark — click for System',
 
-  'upload.title': 'GoogleHealthLens',
+  'upload.title': 'HealthLens',
   'upload.subtitle': 'Upload your Google Takeout export (Google Health) as a .zip to explore your Fitbit/health data.',
   'upload.dropzoneCta': 'Choose a zip file…',
   'upload.persistentTitle': 'Save permanently',
@@ -49,7 +49,7 @@ const en: Record<TranslationKey, string> = {
   'more.scopeFull': 'Full',
   'more.rowsImportedLabel': 'Rows imported',
   'more.reimportButton': 'Import a new export',
-  'more.aboutTitle': 'About GoogleHealthLens',
+  'more.aboutTitle': 'About HealthLens',
   'more.aboutText':
     'A local analytics app for your Google Takeout export (Google Health/Fitbit). All data stays on this machine — nothing is sent to any server outside your own backend.',
 }

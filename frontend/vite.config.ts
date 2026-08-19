@@ -10,7 +10,7 @@ export default defineConfig({
     },
   },
   build: {
-    outDir: '../backend/GoogleHealthLens.Api/wwwroot',
+    outDir: '../backend/HealthLens.Api/wwwroot',
     emptyOutDir: true,
   },
 })

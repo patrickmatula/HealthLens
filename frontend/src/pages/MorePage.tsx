@@ -94,7 +94,7 @@ export function MorePage() {
         </Surface>
 
         <Surface tone="low" className="ghl-more-card">
-          <h2 className="ghl-section-title">Über GoogleHealthLens</h2>
+          <h2 className="ghl-section-title">Über HealthLens</h2>
           <p className="ghl-more-text">
             Eine lokale Auswertungs-App für deinen Google-Takeout-Export (Google Health/Fitbit). Alle Daten bleiben auf diesem
             Rechner — es wird nichts an einen Server außerhalb deines eigenen Backends gesendet.
