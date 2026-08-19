@@ -1,19 +1,21 @@
 import { NavLink } from 'react-router-dom'
+import { useLanguage, type TranslationKey } from '../i18n/LanguageContext'
 import { Icon, type IconName } from './Icon'
 import './NavigationRail.css'
 
-const ITEMS: { to: string; icon: IconName; label: string }[] = [
-  { to: '/', icon: 'dashboard', label: 'Übersicht' },
-  { to: '/workouts', icon: 'workouts', label: 'Workouts' },
-  { to: '/sleep', icon: 'sleep', label: 'Schlaf' },
-  { to: '/heart', icon: 'heart', label: 'Herz' },
-  { to: '/recovery', icon: 'recovery', label: 'Erholung' },
-  { to: '/more', icon: 'more', label: 'Mehr' },
+const ITEMS: { to: string; icon: IconName; labelKey: TranslationKey }[] = [
+  { to: '/', icon: 'dashboard', labelKey: 'nav.dashboard' },
+  { to: '/workouts', icon: 'workouts', labelKey: 'nav.workouts' },
+  { to: '/sleep', icon: 'sleep', labelKey: 'nav.sleep' },
+  { to: '/heart', icon: 'heart', labelKey: 'nav.heart' },
+  { to: '/recovery', icon: 'recovery', labelKey: 'nav.recovery' },
+  { to: '/more', icon: 'more', labelKey: 'nav.more' },
 ]
 
 export function NavigationRail() {
+  const { t } = useLanguage()
   return (
-    <nav className="ghl-nav-rail" aria-label="Hauptnavigation">
+    <nav className="ghl-nav-rail" aria-label={t('nav.mainLabel')}>
       {ITEMS.map((item) => (
         <NavLink
           key={item.to}
@@ -24,7 +26,7 @@ export function NavigationRail() {
           <span className="ghl-nav-rail__indicator">
             <Icon name={item.icon} />
           </span>
-          <span className="ghl-nav-rail__label">{item.label}</span>
+          <span className="ghl-nav-rail__label">{t(item.labelKey)}</span>
         </NavLink>
       ))}
     </nav>

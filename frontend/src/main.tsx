@@ -6,17 +6,20 @@ import 'leaflet/dist/leaflet.css'
 import './components/mw'
 import './index.css'
 import { App } from './App'
+import { LanguageProvider } from './i18n/LanguageContext'
 import { ThemeProvider } from './theme/ThemeContext'
 import { UnitsProvider } from './units/UnitsContext'
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
-    <ThemeProvider>
-      <UnitsProvider>
-        <BrowserRouter>
-          <App />
-        </BrowserRouter>
-      </UnitsProvider>
-    </ThemeProvider>
+    <LanguageProvider>
+      <ThemeProvider>
+        <UnitsProvider>
+          <BrowserRouter>
+            <App />
+          </BrowserRouter>
+        </UnitsProvider>
+      </ThemeProvider>
+    </LanguageProvider>
   </StrictMode>,
 )

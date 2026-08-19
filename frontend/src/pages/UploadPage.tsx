@@ -3,6 +3,7 @@ import { api } from '../api/client'
 import type { ImportScope, ImportStatusDto } from '../api/types'
 import { Icon } from '../components/Icon'
 import { Surface } from '../components/Surface'
+import { useLanguage } from '../i18n/LanguageContext'
 import './UploadPage.css'
 
 const numberFmt = new Intl.NumberFormat('de-AT')
@@ -17,6 +18,7 @@ export function UploadPage({
   /** Escape hatch for the boot screen: a persistent DB file exists, so there may already be data worth looking at even if this particular check was inconclusive. */
   onGoToDashboard?: () => void
 }) {
+  const { t } = useLanguage()
   const [file, setFile] = useState<File | null>(null)
   const [persistent, setPersistent] = useState(true)
   const [scope, setScope] = useState<ImportScope>('Curated')
@@ -41,7 +43,7 @@ export function UploadPage({
       const { jobId } = await api.startImport(file, persistent, scope)
       poll(jobId)
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Import konnte nicht gestartet werden.')
+      setError(e instanceof Error ? e.message : t('upload.errorGeneric'))
     }
   }
 
@@ -55,11 +57,11 @@ export function UploadPage({
           onImported()
         } else if (s.status === 'Failed') {
           stopPolling()
-          setError(s.errorMessage ?? 'Import fehlgeschlagen.')
+          setError(s.errorMessage ?? t('upload.errorFailed'))
         }
       } catch {
         stopPolling()
-        setError('Verbindung zum Server verloren.')
+        setError(t('upload.errorConnection'))
       }
     }, 800)
   }
@@ -78,17 +80,15 @@ export function UploadPage({
       <Surface className="ghl-upload-card" tone="low">
         {onCancel && !importing && (
           <md-text-button onClick={onCancel} className="ghl-upload-cancel">
-            ← Zurück
+            {t('upload.backButton')}
           </md-text-button>
         )}
-        <h1 className="ghl-upload-title">GoogleHealthLens</h1>
-        <p className="ghl-upload-subtitle">
-          Lade deinen Google-Takeout-Export (Google Health) als .zip hoch, um deine Fitbit/Health-Daten zu erkunden.
-        </p>
+        <h1 className="ghl-upload-title">{t('upload.title')}</h1>
+        <p className="ghl-upload-subtitle">{t('upload.subtitle')}</p>
 
         {onGoToDashboard && !importing && (
           <md-text-button onClick={onGoToDashboard} className="ghl-upload-dashboard-link">
-            Zum Dashboard →
+            {t('upload.dashboardButton')}
           </md-text-button>
         )}
 
@@ -96,40 +96,34 @@ export function UploadPage({
           <>
             <button type="button" className="ghl-dropzone" onClick={pickFile}>
               <Icon name="upload" size={32} />
-              <span>{file ? file.name : 'Zip-Datei auswählen...'}</span>
+              <span>{file ? file.name : t('upload.dropzoneCta')}</span>
             </button>
             <input ref={inputRef} type="file" accept=".zip" hidden onChange={onFileChange} />
 
             <div className="ghl-upload-option">
               <md-switch selected={persistent || undefined} onChange={(e) => setPersistent((e.target as HTMLInputElement & { selected: boolean }).selected)} />
               <div>
-                <div className="ghl-upload-option__title">Dauerhaft speichern</div>
+                <div className="ghl-upload-option__title">{t('upload.persistentTitle')}</div>
                 <div className="ghl-upload-option__hint">
-                  {persistent
-                    ? 'Daten werden in eine lokale SQLite-Datenbank geschrieben und bleiben nach einem Neustart erhalten.'
-                    : 'Daten werden nur für diese Sitzung geladen — nach einem Neustart der App sind sie wieder weg.'}
+                  {persistent ? t('upload.persistentHintOn') : t('upload.persistentHintOff')}
                 </div>
               </div>
             </div>
 
             <div className="ghl-upload-option">
-              <div className="ghl-scope-radios" role="radiogroup" aria-label="Datenumfang">
+              <div className="ghl-scope-radios" role="radiogroup" aria-label={t('upload.scopeGroupLabel')}>
                 <label className="ghl-scope-radio">
                   <md-radio name="scope" checked={scope === 'Curated' || undefined} onChange={() => setScope('Curated')} />
                   <div>
-                    <div className="ghl-upload-option__title">Kuratiert (empfohlen)</div>
-                    <div className="ghl-upload-option__hint">
-                      Zusammenfassungen vollständig, hochfrequente Rohdaten (Herzfrequenz u.a.) aggregiert — außer bei Workouts. Schneller Import.
-                    </div>
+                    <div className="ghl-upload-option__title">{t('upload.scopeCuratedTitle')}</div>
+                    <div className="ghl-upload-option__hint">{t('upload.scopeCuratedHint')}</div>
                   </div>
                 </label>
                 <label className="ghl-scope-radio">
                   <md-radio name="scope" checked={scope === 'Full' || undefined} onChange={() => setScope('Full')} />
                   <div>
-                    <div className="ghl-upload-option__title">Vollständig, alles roh</div>
-                    <div className="ghl-upload-option__hint">
-                      Jede Zeile 1:1 importiert. Größere Datenbank, deutlich längerer Import.
-                    </div>
+                    <div className="ghl-upload-option__title">{t('upload.scopeFullTitle')}</div>
+                    <div className="ghl-upload-option__hint">{t('upload.scopeFullHint')}</div>
                   </div>
                 </label>
               </div>
@@ -138,7 +132,7 @@ export function UploadPage({
             {error && <div className="ghl-upload-error">{error}</div>}
 
             <md-filled-button disabled={!file || undefined} onClick={startImport}>
-              Import starten
+              {t('upload.startButton')}
             </md-filled-button>
           </>
         )}
@@ -151,7 +145,9 @@ export function UploadPage({
             </div>
             <md-linear-progress value={status.progressPercent / 100} indeterminate={status.progressPercent === 0 || undefined} />
             {status.rowsImported > 0 && (
-              <div className="ghl-upload-progress__rows">{numberFmt.format(status.rowsImported)} Zeilen importiert</div>
+              <div className="ghl-upload-progress__rows">
+                {t('upload.progressRows', { count: numberFmt.format(status.rowsImported) })}
+              </div>
             )}
             {error && <div className="ghl-upload-error">{error}</div>}
           </div>
