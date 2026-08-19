@@ -72,6 +72,26 @@ const de = {
   'dashboard.stepsOverTime': 'Schritte im Zeitverlauf',
   'dashboard.perWeek': 'pro Woche',
   'dashboard.perMonth': 'pro Monat',
+
+  'category.all': 'Alle',
+  'category.run': 'Läufe',
+  'category.walk': 'Spaziergänge',
+  'category.bike': 'Rad',
+  'category.strength': 'Kraft',
+  'category.other': 'Sonstiges',
+
+  'workouts.bestRecords': 'Bestleistungen',
+  'workouts.insightsToggle': 'Bestenlisten & Trends',
+  'workouts.leaderboardFastest5k': 'Top 5 schnellste 5-km-Läufe',
+  'workouts.leaderboardLongest': 'Top 5 längste Workouts',
+  'workouts.leaderboardMostCalories': 'Top 5 meiste Kalorien',
+  'workouts.paceTrendTitle': 'Pace-Entwicklung deiner Läufe',
+  'workouts.paceTrendHint': 'Jeder Punkt ist ein Lauf ab 1,5 km — zeigt, ob du über die Zeit schneller wirst.',
+  'workouts.allWorkouts': 'Alle Workouts',
+  'workouts.searchPlaceholder': 'Suchen nach Name oder Datum…',
+  'workouts.clearSearchLabel': 'Suche löschen',
+  'workouts.emptyRange': 'Keine Workouts in diesem Zeitraum.',
+  'workouts.emptyFilter': 'Keine Workouts passen zu diesem Filter.',
 } as const
 
 export default de

@@ -70,6 +70,26 @@ const en: Record<TranslationKey, string> = {
   'dashboard.stepsOverTime': 'Steps over time',
   'dashboard.perWeek': 'per week',
   'dashboard.perMonth': 'per month',
+
+  'category.all': 'All',
+  'category.run': 'Runs',
+  'category.walk': 'Walks',
+  'category.bike': 'Bike',
+  'category.strength': 'Strength',
+  'category.other': 'Other',
+
+  'workouts.bestRecords': 'Personal bests',
+  'workouts.insightsToggle': 'Leaderboards & trends',
+  'workouts.leaderboardFastest5k': 'Top 5 fastest 5K runs',
+  'workouts.leaderboardLongest': 'Top 5 longest workouts',
+  'workouts.leaderboardMostCalories': 'Top 5 most calories',
+  'workouts.paceTrendTitle': 'Your pace over time',
+  'workouts.paceTrendHint': 'Each point is a run of 1.5 km or more — shows whether you\'re getting faster over time.',
+  'workouts.allWorkouts': 'All workouts',
+  'workouts.searchPlaceholder': 'Search by name or date…',
+  'workouts.clearSearchLabel': 'Clear search',
+  'workouts.emptyRange': 'No workouts in this time range.',
+  'workouts.emptyFilter': 'No workouts match this filter.',
 }
 
 export default en

@@ -9,26 +9,12 @@ import { PersonalRecordCard } from '../components/PersonalRecordCard'
 import { SegmentedButton } from '../components/SegmentedButton'
 import { Surface } from '../components/Surface'
 import { TopAppBar } from '../components/TopAppBar'
+import { useLanguage } from '../i18n/LanguageContext'
 import { categorizeWorkout, formatDate, formatDateTime, formatDistanceKm, formatDuration, formatPace, type WorkoutCategory } from '../utils/format'
 import './WorkoutsPage.css'
 import './DashboardPage.css'
 
 const tooltipStyle = { background: 'var(--md-sys-color-surface-container-high)', border: 'none', borderRadius: 8 }
-
-const PRESETS: { value: TimeframePreset; label: string }[] = [
-  { value: '30d', label: '30 Tage' },
-  { value: '1y', label: '1 Jahr' },
-  { value: 'all', label: 'Alle' },
-]
-
-const CATEGORIES: { value: WorkoutCategory | 'Alle'; label: string }[] = [
-  { value: 'Alle', label: 'Alle' },
-  { value: 'Lauf', label: 'Läufe' },
-  { value: 'Spaziergang', label: 'Spaziergänge' },
-  { value: 'Rad', label: 'Rad' },
-  { value: 'Kraft', label: 'Kraft' },
-  { value: 'Sonstiges', label: 'Sonstiges' },
-]
 
 const PR_ORDER = [
   'FASTEST_KILOMETRE_NAME',
@@ -43,6 +29,7 @@ const PR_ORDER = [
 const INSIGHTS_STORAGE_KEY = 'ghl-workouts-show-insights'
 
 export function WorkoutsPage() {
+  const { language, t } = useLanguage()
   const [preset, setPreset] = useState<TimeframePreset>('all')
   const [workouts, setWorkouts] = useState<WorkoutListItemDto[]>([])
   const [records, setRecords] = useState<PersonalRecordDto[]>([])
@@ -50,6 +37,21 @@ export function WorkoutsPage() {
   const [search, setSearch] = useState('')
   const [category, setCategory] = useState<WorkoutCategory | 'Alle'>('Alle')
   const [showInsights, setShowInsights] = useState(() => localStorage.getItem(INSIGHTS_STORAGE_KEY) === '1')
+
+  const PRESETS: { value: TimeframePreset; label: string }[] = [
+    { value: '30d', label: t('preset.30d') },
+    { value: '1y', label: t('preset.1y') },
+    { value: 'all', label: t('preset.all') },
+  ]
+
+  const CATEGORIES: { value: WorkoutCategory | 'Alle'; label: string }[] = [
+    { value: 'Alle', label: t('category.all') },
+    { value: 'Lauf', label: t('category.run') },
+    { value: 'Spaziergang', label: t('category.walk') },
+    { value: 'Rad', label: t('category.bike') },
+    { value: 'Kraft', label: t('category.strength') },
+    { value: 'Sonstiges', label: t('category.other') },
+  ]
 
   useEffect(() => {
     localStorage.setItem(INSIGHTS_STORAGE_KEY, showInsights ? '1' : '0')
@@ -111,14 +113,14 @@ export function WorkoutsPage() {
 
   return (
     <div>
-      <TopAppBar title="Workouts">
+      <TopAppBar title={t('nav.workouts')}>
         <SegmentedButton options={PRESETS} value={preset} onChange={setPreset} />
       </TopAppBar>
 
       <div className="ghl-page-content">
         {bestRecords.length > 0 && (
           <section>
-            <h2 className="ghl-section-title">Bestleistungen</h2>
+            <h2 className="ghl-section-title">{t('workouts.bestRecords')}</h2>
             <div className="ghl-pr-grid">
               {bestRecords.map((r) => (
                 <PersonalRecordCard key={r.nameLocalizationId} record={r} />
@@ -135,7 +137,7 @@ export function WorkoutsPage() {
               onClick={() => setShowInsights((v) => !v)}
               aria-expanded={showInsights}
             >
-              <span>Bestenlisten &amp; Trends</span>
+              <span>{t('workouts.insightsToggle')}</span>
               <Icon name="chevronRight" size={18} />
             </button>
 
@@ -143,16 +145,16 @@ export function WorkoutsPage() {
               <div className="ghl-insights-body">
                 {(leaderboards.fastest5k.length > 0 || leaderboards.longest.length > 0 || leaderboards.mostCalories.length > 0) && (
                   <div className="ghl-leaderboard-grid">
-                    <Leaderboard title="Top 5 schnellste 5-km-Läufe" icon="route" entries={leaderboards.fastest5k} />
-                    <Leaderboard title="Top 5 längste Workouts" icon="workouts" entries={leaderboards.longest} />
-                    <Leaderboard title="Top 5 meiste Kalorien" icon="heart" entries={leaderboards.mostCalories} />
+                    <Leaderboard title={t('workouts.leaderboardFastest5k')} icon="route" entries={leaderboards.fastest5k} />
+                    <Leaderboard title={t('workouts.leaderboardLongest')} icon="workouts" entries={leaderboards.longest} />
+                    <Leaderboard title={t('workouts.leaderboardMostCalories')} icon="heart" entries={leaderboards.mostCalories} />
                   </div>
                 )}
 
                 {paceTrend.length >= 5 && (
                   <Surface tone="low" className="ghl-chart-card">
-                    <h2 className="ghl-chart-card__title">Pace-Entwicklung deiner Läufe</h2>
-                    <p className="ghl-chart-card__hint">Jeder Punkt ist ein Lauf ab 1,5 km — zeigt, ob du über die Zeit schneller wirst.</p>
+                    <h2 className="ghl-chart-card__title">{t('workouts.paceTrendTitle')}</h2>
+                    <p className="ghl-chart-card__hint">{t('workouts.paceTrendHint')}</p>
                     <ResponsiveContainer width="100%" height={240}>
                       <ScatterChart>
                         <CartesianGrid stroke="var(--md-sys-color-outline-variant)" />
@@ -160,7 +162,9 @@ export function WorkoutsPage() {
                           dataKey="dateMs"
                           type="number"
                           domain={['dataMin', 'dataMax']}
-                          tickFormatter={(v: number) => new Date(v).toLocaleDateString('de-AT', { month: '2-digit', year: '2-digit' })}
+                          tickFormatter={(v: number) =>
+                            new Date(v).toLocaleDateString(language === 'de' ? 'de-AT' : 'en-US', { month: '2-digit', year: '2-digit' })
+                          }
                           tick={{ fontSize: 11 }}
                           stroke="var(--md-sys-color-outline)"
                         />
@@ -179,19 +183,19 @@ export function WorkoutsPage() {
 
         <section>
           <div className="ghl-workout-filters">
-            <h2 className="ghl-section-title">Alle Workouts</h2>
+            <h2 className="ghl-section-title">{t('workouts.allWorkouts')}</h2>
             <div className="ghl-workout-filters__row">
               <label className="ghl-search-bar">
                 <Icon name="search" size={20} />
                 <input
                   type="text"
                   className="ghl-search-bar__input"
-                  placeholder="Suchen nach Name oder Datum…"
+                  placeholder={t('workouts.searchPlaceholder')}
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
                 />
                 {search && (
-                  <button type="button" className="ghl-search-bar__clear" onClick={() => setSearch('')} aria-label="Suche löschen">
+                  <button type="button" className="ghl-search-bar__clear" onClick={() => setSearch('')} aria-label={t('workouts.clearSearchLabel')}>
                     <Icon name="close" size={16} />
                   </button>
                 )}
@@ -202,13 +206,13 @@ export function WorkoutsPage() {
 
           {!loading && workouts.length === 0 && (
             <Surface tone="low">
-              <p>Keine Workouts in diesem Zeitraum.</p>
+              <p>{t('workouts.emptyRange')}</p>
             </Surface>
           )}
 
           {!loading && workouts.length > 0 && filteredWorkouts.length === 0 && (
             <Surface tone="low">
-              <p>Keine Workouts passen zu diesem Filter.</p>
+              <p>{t('workouts.emptyFilter')}</p>
             </Surface>
           )}
 
