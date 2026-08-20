@@ -1,4 +1,7 @@
 import type {
+  BodyMeasurementTypeKey,
+  BodyOverviewDto,
+  BodyProfileDto,
   CorrelationPointDto,
   DashboardOverviewDto,
   ImportCurrentDto,
@@ -115,4 +118,22 @@ export const api = {
   deleteShoe: (id: number) => send<void>('DELETE', `/api/shoes/${id}`),
 
   assignShoe: (shoeId: number | null, workoutIds: string[]) => send<void>('POST', '/api/shoes/assign', { shoeId, workoutIds }),
+
+  bodyProfile: () => get<BodyProfileDto>('/api/body/profile'),
+
+  updateBodyProfile: (heightCm: number | null, sex: 'male' | 'female' | null) =>
+    send<BodyProfileDto>('PUT', '/api/body/profile', { heightCm, sex }),
+
+  bodyOverview: (params: { preset?: string; from?: string; to?: string }) => {
+    const qs = new URLSearchParams()
+    if (params.preset) qs.set('preset', params.preset)
+    if (params.from) qs.set('from', params.from)
+    if (params.to) qs.set('to', params.to)
+    return get<BodyOverviewDto>(`/api/body/overview?${qs.toString()}`)
+  },
+
+  submitBodyEntry: (date: string, values: Partial<Record<BodyMeasurementTypeKey, number>>) =>
+    send<void>('POST', '/api/body/entry', { date, values }),
+
+  deleteBodyEntry: (date: string) => send<void>('DELETE', `/api/body/entry/${date}`),
 }

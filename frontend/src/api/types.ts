@@ -74,6 +74,36 @@ export interface ShoeDto {
   totalDistanceMeters: number
 }
 
+export const BODY_MEASUREMENT_TYPES = [
+  'WeightKg',
+  'BodyFatPercent',
+  'WaistCm',
+  'HipCm',
+  'ChestCm',
+  'NeckCm',
+  'BicepCm',
+  'ThighCm',
+  'CalfCm',
+] as const
+
+export type BodyMeasurementTypeKey = (typeof BODY_MEASUREMENT_TYPES)[number]
+
+export interface BodyProfileDto {
+  heightCm: number | null
+  sex: 'male' | 'female' | null
+}
+
+export interface BodyMeasurementPointDto {
+  date: string
+  type: BodyMeasurementTypeKey
+  value: number
+}
+
+export interface BodyOverviewDto {
+  profile: BodyProfileDto
+  measurements: BodyMeasurementPointDto[]
+}
+
 export interface WorkoutSplitDto {
   splitIndex: number
   type: string

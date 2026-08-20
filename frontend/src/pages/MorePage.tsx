@@ -6,6 +6,7 @@ import { Icon } from '../components/Icon'
 import { SegmentedButton } from '../components/SegmentedButton'
 import { Surface } from '../components/Surface'
 import { TopAppBar } from '../components/TopAppBar'
+import { useBodyFeature } from '../body/BodyFeatureContext'
 import { useLanguage, type Language } from '../i18n/LanguageContext'
 import { useShoesFeature } from '../shoes/ShoesFeatureContext'
 import { useTheme } from '../theme/ThemeContext'
@@ -23,6 +24,7 @@ export function MorePage() {
   const { colorTheme, setColorTheme } = useTheme()
   const { language, setLanguage, t } = useLanguage()
   const { enabled: shoesEnabled, setEnabled: setShoesEnabled } = useShoesFeature()
+  const { enabled: bodyEnabled, setEnabled: setBodyEnabled } = useBodyFeature()
 
   const unitOptions = [
     { value: 'metric' as const, label: t('more.unitMetric') },
@@ -91,6 +93,21 @@ export function MorePage() {
             <div className="ghl-feature-row__hint">{t('shoes.enableHint')}</div>
             <Link className="ghl-more-nav-link" to="/shoes">
               <Icon name="shoe" size={18} /> {t('shoes.manageLink')}
+            </Link>
+          </div>
+
+          <div className="ghl-feature-row">
+            <div className="ghl-feature-row__header">
+              <Icon name="body" size={20} />
+              <div className="ghl-feature-row__title">{t('body.settingsTitle')}</div>
+              <md-switch
+                selected={bodyEnabled || undefined}
+                onChange={(e) => setBodyEnabled((e.target as HTMLInputElement & { selected: boolean }).selected)}
+              />
+            </div>
+            <div className="ghl-feature-row__hint">{t('body.enableHint')}</div>
+            <Link className="ghl-more-nav-link" to="/body">
+              <Icon name="body" size={18} /> {t('body.manageLink')}
             </Link>
           </div>
         </Surface>

@@ -94,4 +94,12 @@ public class BodyController(DataSessionService session) : ControllerBase
         await db.SaveChangesAsync(ct);
         return NoContent();
     }
+
+    [HttpDelete("entry/{date}")]
+    public async Task<IActionResult> DeleteEntry(DateOnly date, CancellationToken ct)
+    {
+        await using var db = session.CreateContext();
+        await db.BodyMeasurements.Where(m => m.Date == date).ExecuteDeleteAsync(ct);
+        return NoContent();
+    }
 }

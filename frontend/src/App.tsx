@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { Route, Routes } from 'react-router-dom'
 import { api } from './api/client'
 import { NavigationRail } from './components/NavigationRail'
+import { BodyPage } from './pages/BodyPage'
 import { DashboardPage } from './pages/DashboardPage'
 import { HeartPage } from './pages/HeartPage'
 import { MorePage } from './pages/MorePage'
@@ -57,6 +58,7 @@ export function App() {
           <Route path="/recovery" element={<RecoveryPage />} />
           <Route path="/more" element={<MorePage />} />
           <Route path="/shoes" element={<ShoesPage />} />
+          <Route path="/body" element={<BodyPage />} />
         </Routes>
       </main>
     </div>
