@@ -10,10 +10,13 @@
   gap: var(--md-space-2);
   text-decoration: none;
   color: inherit;
+}
+
+.ghl-pr-card__surface {
   transition: background-color 150ms ease;
 }
 
-a.ghl-pr-card:hover {
+a.ghl-pr-card:hover .ghl-pr-card__surface {
   background: var(--md-sys-color-surface-container-highest);
 }
 

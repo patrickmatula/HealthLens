@@ -21,7 +21,7 @@ export function PersonalRecordCard({ record }: { record: PersonalRecordDto }) {
   if (record.workoutId) {
     return (
       <Link to={`/workouts/${record.workoutId}`} className="ghl-pr-card">
-        <Surface tone="low" padded>
+        <Surface tone="low" padded className="ghl-pr-card__surface">
           {content}
         </Surface>
       </Link>
