@@ -7,8 +7,6 @@ import { Surface } from '../components/Surface'
 import { useLanguage } from '../i18n/LanguageContext'
 import './UploadPage.css'
 
-const numberFmt = new Intl.NumberFormat('de-AT')
-
 export function UploadPage({
   onImported,
   onCancel,
@@ -19,7 +17,8 @@ export function UploadPage({
   /** Escape hatch for the boot screen: a persistent DB file exists, so there may already be data worth looking at even if this particular check was inconclusive. */
   onGoToDashboard?: () => void
 }) {
-  const { t } = useLanguage()
+  const { language, t } = useLanguage()
+  const numberFmt = new Intl.NumberFormat(language === 'de' ? 'de-AT' : 'en-US')
   const [file, setFile] = useState<File | null>(null)
   const [persistent, setPersistent] = useState(true)
   const [scope, setScope] = useState<ImportScope>('Curated')

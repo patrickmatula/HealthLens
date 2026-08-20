@@ -1,6 +1,7 @@
-import { createContext, useContext, useMemo, useState, type PropsWithChildren } from 'react'
+import { createContext, useContext, useEffect, useMemo, useState, type PropsWithChildren } from 'react'
 import de, { type TranslationKey } from './de'
 import en from './en'
+import { setFormatLanguage } from '../utils/format'
 
 export type { TranslationKey }
 
@@ -23,6 +24,10 @@ const LanguageCtx = createContext<LanguageState | null>(null)
 
 export function LanguageProvider({ children }: PropsWithChildren) {
   const [language, setLanguageState] = useState<Language>(readStored)
+
+  useEffect(() => {
+    setFormatLanguage(language)
+  }, [language])
 
   const value = useMemo<LanguageState>(() => {
     const dict = DICTIONARIES[language]

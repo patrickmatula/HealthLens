@@ -8,6 +8,17 @@ export function setFormatUnitSystem(unit: UnitSystem) {
   currentUnitSystem = unit
 }
 
+// Same pattern, set by LanguageProvider (frontend/src/i18n/LanguageContext.tsx) whenever the user's
+// language preference changes — keeps date/number formatting and record labels language-aware without
+// threading a parameter through every call site.
+type FormatLanguage = 'de' | 'en'
+let currentLanguage: FormatLanguage = 'de'
+let currentIntlLocale = 'de-AT'
+export function setFormatLanguage(language: FormatLanguage) {
+  currentLanguage = language
+  currentIntlLocale = language === 'en' ? 'en-US' : 'de-AT'
+}
+
 const MILES_PER_KM = 0.621371
 
 export function formatPace(secPerKm: number | null | undefined): string {
@@ -44,13 +55,13 @@ export function formatDistanceKm(meters: number | null | undefined): string {
   if (meters == null) return '–'
   if (currentUnitSystem === 'imperial') {
     const miles = (meters / 1000) * MILES_PER_KM
-    return `${miles.toLocaleString('de-AT', { maximumFractionDigits: 2, minimumFractionDigits: 2 })} mi`
+    return `${miles.toLocaleString(currentIntlLocale, { maximumFractionDigits: 2, minimumFractionDigits: 2 })} mi`
   }
-  return `${(meters / 1000).toLocaleString('de-AT', { maximumFractionDigits: 2, minimumFractionDigits: 2 })} km`
+  return `${(meters / 1000).toLocaleString(currentIntlLocale, { maximumFractionDigits: 2, minimumFractionDigits: 2 })} km`
 }
 
 export function formatDateTime(iso: string): string {
-  return new Date(iso + (iso.endsWith('Z') ? '' : 'Z')).toLocaleString('de-AT', {
+  return new Date(iso + (iso.endsWith('Z') ? '' : 'Z')).toLocaleString(currentIntlLocale, {
     day: '2-digit',
     month: '2-digit',
     year: 'numeric',
@@ -60,25 +71,36 @@ export function formatDateTime(iso: string): string {
 }
 
 export function formatDate(iso: string): string {
-  return new Date(iso + (iso.endsWith('Z') ? '' : 'Z')).toLocaleDateString('de-AT', {
+  return new Date(iso + (iso.endsWith('Z') ? '' : 'Z')).toLocaleDateString(currentIntlLocale, {
     day: '2-digit',
     month: '2-digit',
     year: 'numeric',
   })
 }
 
-const RECORD_LABELS: Record<string, string> = {
-  FASTEST_MILE_NAME: 'Schnellste Meile',
-  FASTEST_KILOMETRE_NAME: 'Schnellster 1 km',
-  FASTEST_2_KILOMETRES_NAME: 'Schnellste 2 km',
-  FASTEST_5K_NAME: 'Schnellste 5 km',
-  FASTEST_10K_NAME: 'Schnellste 10 km',
-  FASTEST_2_MILES_NAME: 'Schnellste 2 Meilen',
-  FARTHEST_RUN_NAME: 'Weitester Lauf',
+const RECORD_LABELS: Record<FormatLanguage, Record<string, string>> = {
+  de: {
+    FASTEST_MILE_NAME: 'Schnellste Meile',
+    FASTEST_KILOMETRE_NAME: 'Schnellster 1 km',
+    FASTEST_2_KILOMETRES_NAME: 'Schnellste 2 km',
+    FASTEST_5K_NAME: 'Schnellste 5 km',
+    FASTEST_10K_NAME: 'Schnellste 10 km',
+    FASTEST_2_MILES_NAME: 'Schnellste 2 Meilen',
+    FARTHEST_RUN_NAME: 'Weitester Lauf',
+  },
+  en: {
+    FASTEST_MILE_NAME: 'Fastest mile',
+    FASTEST_KILOMETRE_NAME: 'Fastest 1 km',
+    FASTEST_2_KILOMETRES_NAME: 'Fastest 2 km',
+    FASTEST_5K_NAME: 'Fastest 5 km',
+    FASTEST_10K_NAME: 'Fastest 10 km',
+    FASTEST_2_MILES_NAME: 'Fastest 2 miles',
+    FARTHEST_RUN_NAME: 'Farthest run',
+  },
 }
 
 export function recordLabel(name: string): string {
-  return RECORD_LABELS[name] ?? name.replace(/_NAME$/, '').replace(/_/g, ' ')
+  return RECORD_LABELS[currentLanguage][name] ?? name.replace(/_NAME$/, '').replace(/_/g, ' ')
 }
 
 export type WorkoutCategory = 'Lauf' | 'Spaziergang' | 'Rad' | 'Kraft' | 'Sonstiges'
