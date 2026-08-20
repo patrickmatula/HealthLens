@@ -39,11 +39,12 @@ export const api = {
     return res.json() as Promise<ImportStartedDto>
   },
 
-  dashboardOverview: (params: { preset?: string; from?: string; to?: string }) => {
+  dashboardOverview: (params: { preset?: string; from?: string; to?: string; lang?: string }) => {
     const qs = new URLSearchParams()
     if (params.preset) qs.set('preset', params.preset)
     if (params.from) qs.set('from', params.from)
     if (params.to) qs.set('to', params.to)
+    if (params.lang) qs.set('lang', params.lang)
     return get<DashboardOverviewDto>(`/api/dashboard/overview?${qs.toString()}`)
   },
 

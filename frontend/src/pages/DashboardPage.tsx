@@ -58,10 +58,10 @@ export function DashboardPage() {
   useEffect(() => {
     setLoading(true)
     api
-      .dashboardOverview({ preset })
+      .dashboardOverview({ preset, lang: language })
       .then(setData)
       .finally(() => setLoading(false))
-  }, [preset])
+  }, [preset, language])
 
   const hasData = data && data.daysWithData > 0
 

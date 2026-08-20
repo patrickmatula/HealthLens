@@ -11,8 +11,9 @@ namespace HealthLens.Api.Controllers;
 public class DashboardController(DataSessionService session) : ControllerBase
 {
     [HttpGet("overview")]
-    public async Task<ActionResult<DashboardOverviewDto>> Overview(string? preset, DateOnly? from, DateOnly? to, CancellationToken ct)
+    public async Task<ActionResult<DashboardOverviewDto>> Overview(string? preset, DateOnly? from, DateOnly? to, string? lang, CancellationToken ct)
     {
+        var isEnglish = lang == "en";
         await using var db = session.CreateContext();
 
         if (!await db.DailyActivitySummaries.AnyAsync(ct))
@@ -50,7 +51,9 @@ public class DashboardController(DataSessionService session) : ControllerBase
             .CountAsync(ct);
         if (newRecords > 0)
         {
-            insights.Add($"{newRecords} neue Bestleistung(en) in diesem Zeitraum erreicht.");
+            insights.Add(isEnglish
+                ? $"{newRecords} new personal best(s) reached in this time range."
+                : $"{newRecords} neue Bestleistung(en) in diesem Zeitraum erreicht.");
         }
 
         if (rhrInRange.Count >= 14)
@@ -62,8 +65,16 @@ public class DashboardController(DataSessionService session) : ControllerBase
             var delta = secondHalfAvg - firstHalfAvg;
             if (Math.Abs(delta) >= 1.5)
             {
-                var direction = delta < 0 ? "gesunken" : "gestiegen";
-                insights.Add($"Ruhepuls ist im Verlauf dieses Zeitraums um {Math.Abs(delta):F1} bpm {direction}.");
+                if (isEnglish)
+                {
+                    var direction = delta < 0 ? "decreased" : "increased";
+                    insights.Add($"Resting heart rate has {direction} by {Math.Abs(delta):F1} bpm over this time range.");
+                }
+                else
+                {
+                    var direction = delta < 0 ? "gesunken" : "gestiegen";
+                    insights.Add($"Ruhepuls ist im Verlauf dieses Zeitraums um {Math.Abs(delta):F1} bpm {direction}.");
+                }
             }
         }
 
