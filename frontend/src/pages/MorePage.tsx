@@ -7,6 +7,7 @@ import { SegmentedButton } from '../components/SegmentedButton'
 import { Surface } from '../components/Surface'
 import { TopAppBar } from '../components/TopAppBar'
 import { useLanguage, type Language } from '../i18n/LanguageContext'
+import { useShoesFeature } from '../shoes/ShoesFeatureContext'
 import { useTheme } from '../theme/ThemeContext'
 import { COLOR_THEMES } from '../theme/themes.generated'
 import { useUnits } from '../units/UnitsContext'
@@ -21,6 +22,7 @@ export function MorePage() {
   const { unit, setUnit } = useUnits()
   const { colorTheme, setColorTheme } = useTheme()
   const { language, setLanguage, t } = useLanguage()
+  const { enabled: shoesEnabled, setEnabled: setShoesEnabled } = useShoesFeature()
 
   const unitOptions = [
     { value: 'metric' as const, label: t('more.unitMetric') },
@@ -72,6 +74,25 @@ export function MorePage() {
               ))}
             </div>
           </div>
+        </Surface>
+
+        <Surface tone="low" className="ghl-more-card">
+          <h2 className="ghl-section-title">{t('shoes.settingsTitle')}</h2>
+          <div className="ghl-upload-option">
+            <md-switch
+              selected={shoesEnabled || undefined}
+              onChange={(e) => setShoesEnabled((e.target as HTMLInputElement & { selected: boolean }).selected)}
+            />
+            <div>
+              <div className="ghl-upload-option__title">{t('shoes.enableToggle')}</div>
+              <div className="ghl-upload-option__hint">{t('shoes.enableHint')}</div>
+            </div>
+          </div>
+          {shoesEnabled && (
+            <Link className="ghl-more-nav-link" to="/shoes">
+              <Icon name="shoe" size={18} /> {t('shoes.manageLink')}
+            </Link>
+          )}
         </Surface>
 
         <Surface tone="low" className="ghl-more-card">

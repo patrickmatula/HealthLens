@@ -8,6 +8,7 @@ import type {
   HeartOverviewDto,
   PersonalRecordDto,
   RecoveryOverviewDto,
+  ShoeDto,
   SleepSessionDetailDto,
   SleepSummaryDto,
   WorkoutDetailDto,
@@ -20,6 +21,18 @@ async function get<T>(path: string): Promise<T> {
     throw new Error(`${path} -> ${res.status}`)
   }
   return res.json() as Promise<T>
+}
+
+async function send<T>(method: 'POST' | 'PUT' | 'DELETE', path: string, body?: unknown): Promise<T> {
+  const res = await fetch(path, {
+    method,
+    headers: body !== undefined ? { 'Content-Type': 'application/json' } : undefined,
+    body: body !== undefined ? JSON.stringify(body) : undefined,
+  })
+  if (!res.ok) {
+    throw new Error(await res.text())
+  }
+  return res.status === 204 ? (undefined as T) : ((await res.json()) as T)
 }
 
 export const api = {
@@ -48,12 +61,13 @@ export const api = {
     return get<DashboardOverviewDto>(`/api/dashboard/overview?${qs.toString()}`)
   },
 
-  workouts: (params: { preset?: string; from?: string; to?: string; activity?: string }) => {
+  workouts: (params: { preset?: string; from?: string; to?: string; activity?: string; shoeId?: number }) => {
     const qs = new URLSearchParams()
     if (params.preset) qs.set('preset', params.preset)
     if (params.from) qs.set('from', params.from)
     if (params.to) qs.set('to', params.to)
     if (params.activity) qs.set('activity', params.activity)
+    if (params.shoeId != null) qs.set('shoeId', String(params.shoeId))
     return get<WorkoutListItemDto[]>(`/api/workouts?${qs.toString()}`)
   },
 
@@ -90,4 +104,15 @@ export const api = {
   },
 
   correlation: () => get<CorrelationPointDto[]>('/api/recovery/correlation'),
+
+  shoes: () => get<ShoeDto[]>('/api/shoes'),
+
+  createShoe: (name: string, brand: string | null) => send<ShoeDto>('POST', '/api/shoes', { name, brand }),
+
+  updateShoe: (id: number, name: string, brand: string | null, isRetired: boolean) =>
+    send<ShoeDto>('PUT', `/api/shoes/${id}`, { name, brand, isRetired }),
+
+  deleteShoe: (id: number) => send<void>('DELETE', `/api/shoes/${id}`),
+
+  assignShoe: (shoeId: number | null, workoutIds: string[]) => send<void>('POST', '/api/shoes/assign', { shoeId, workoutIds }),
 }

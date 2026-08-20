@@ -60,6 +60,18 @@ export interface WorkoutListItemDto {
   avgPaceSecPerKm: number | null
   hasGps: boolean
   isLegacy: boolean
+  shoeId: number | null
+  shoeName: string | null
+}
+
+export interface ShoeDto {
+  id: number
+  name: string
+  brand: string | null
+  isRetired: boolean
+  createdAtUtc: string
+  workoutCount: number
+  totalDistanceMeters: number
 }
 
 export interface WorkoutSplitDto {

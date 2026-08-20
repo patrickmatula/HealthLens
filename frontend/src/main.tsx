@@ -7,6 +7,7 @@ import './components/mw'
 import './index.css'
 import { App } from './App'
 import { LanguageProvider } from './i18n/LanguageContext'
+import { ShoesFeatureProvider } from './shoes/ShoesFeatureContext'
 import { ThemeProvider } from './theme/ThemeContext'
 import { UnitsProvider } from './units/UnitsContext'
 
@@ -15,9 +16,11 @@ createRoot(document.getElementById('root')!).render(
     <LanguageProvider>
       <ThemeProvider>
         <UnitsProvider>
-          <BrowserRouter>
-            <App />
-          </BrowserRouter>
+          <ShoesFeatureProvider>
+            <BrowserRouter>
+              <App />
+            </BrowserRouter>
+          </ShoesFeatureProvider>
         </UnitsProvider>
       </ThemeProvider>
     </LanguageProvider>

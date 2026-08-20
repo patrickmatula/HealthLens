@@ -6,6 +6,7 @@ import { DashboardPage } from './pages/DashboardPage'
 import { HeartPage } from './pages/HeartPage'
 import { MorePage } from './pages/MorePage'
 import { RecoveryPage } from './pages/RecoveryPage'
+import { ShoesPage } from './pages/ShoesPage'
 import { SleepDetailPage } from './pages/SleepDetailPage'
 import { SleepPage } from './pages/SleepPage'
 import { UploadPage } from './pages/UploadPage'
@@ -55,6 +56,7 @@ export function App() {
           <Route path="/heart" element={<HeartPage />} />
           <Route path="/recovery" element={<RecoveryPage />} />
           <Route path="/more" element={<MorePage />} />
+          <Route path="/shoes" element={<ShoesPage />} />
         </Routes>
       </main>
     </div>

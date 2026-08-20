@@ -1,0 +1,101 @@
+.ghl-back-link {
+  color: var(--md-sys-color-primary);
+  text-decoration: none;
+  font: var(--md-sys-typescale-label-large-weight) var(--md-sys-typescale-label-large-size)/var(--md-sys-typescale-label-large-line-height) var(--md-sys-typescale-label-large-font);
+}
+
+.ghl-shoe-form {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--md-space-3);
+  margin-top: var(--md-space-2);
+}
+
+.ghl-shoe-form--inline {
+  margin-top: 0;
+  margin-bottom: var(--md-space-2);
+}
+
+.ghl-shoe-form__input {
+  flex: 1 1 160px;
+  min-width: 0;
+  height: 40px;
+  padding: 0 var(--md-space-4);
+  border: 1px solid var(--md-sys-color-outline);
+  border-radius: var(--md-sys-shape-corner-full);
+  background: var(--md-sys-color-surface-container-lowest);
+  color: var(--md-sys-color-on-surface);
+  font: var(--md-sys-typescale-body-large-weight) var(--md-sys-typescale-body-large-size)/var(--md-sys-typescale-body-large-line-height) var(--md-sys-typescale-body-large-font);
+}
+
+.ghl-shoe-form__input:focus {
+  outline: 2px solid var(--md-sys-color-primary);
+  outline-offset: -1px;
+}
+
+.ghl-shoe-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--md-space-3);
+}
+
+.ghl-shoe-card {
+  display: flex;
+  align-items: center;
+  gap: var(--md-space-4);
+  flex-wrap: wrap;
+}
+
+.ghl-shoe-card--retired {
+  opacity: 0.6;
+}
+
+.ghl-shoe-card__icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  flex-shrink: 0;
+  border-radius: var(--md-sys-shape-corner-full);
+  background: var(--md-sys-color-tertiary-container);
+  color: var(--md-sys-color-on-tertiary-container);
+}
+
+.ghl-shoe-card__main {
+  flex: 1 1 200px;
+  min-width: 0;
+}
+
+.ghl-shoe-card__name {
+  display: flex;
+  align-items: center;
+  gap: var(--md-space-2);
+  font: var(--md-sys-typescale-title-medium-weight) var(--md-sys-typescale-title-medium-size)/var(--md-sys-typescale-title-medium-line-height) var(--md-sys-typescale-title-medium-font);
+}
+
+.ghl-shoe-card__badge {
+  padding: 2px 8px;
+  border-radius: var(--md-sys-shape-corner-full);
+  font: var(--md-sys-typescale-label-small-weight) var(--md-sys-typescale-label-small-size)/var(--md-sys-typescale-label-small-line-height) var(--md-sys-typescale-label-small-font);
+  background: var(--md-sys-color-surface-container-highest);
+  color: var(--md-sys-color-on-surface-variant);
+}
+
+.ghl-shoe-card__brand {
+  color: var(--md-sys-color-on-surface-variant);
+  font: var(--md-sys-typescale-body-medium-weight) var(--md-sys-typescale-body-medium-size)/var(--md-sys-typescale-body-medium-line-height) var(--md-sys-typescale-body-medium-font);
+}
+
+.ghl-shoe-card__stats {
+  margin-top: 2px;
+  color: var(--md-sys-color-on-surface-variant);
+  font: var(--md-sys-typescale-body-small-weight) var(--md-sys-typescale-body-small-size)/var(--md-sys-typescale-body-small-line-height) var(--md-sys-typescale-body-small-font);
+}
+
+.ghl-shoe-card__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--md-space-1);
+}

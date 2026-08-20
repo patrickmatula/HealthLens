@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
 import { Link, useParams } from 'react-router-dom'
 import { api } from '../api/client'
-import type { WorkoutDetailDto } from '../api/types'
+import type { ShoeDto, WorkoutDetailDto } from '../api/types'
 import { Icon } from '../components/Icon'
 import { KpiTile } from '../components/KpiTile'
 import { Surface } from '../components/Surface'
@@ -10,6 +10,7 @@ import { TopAppBar } from '../components/TopAppBar'
 import { ReferenceRangeGauge } from '../components/ReferenceRangeGauge'
 import { WorkoutRouteMap } from '../components/WorkoutRouteMap'
 import { useLanguage } from '../i18n/LanguageContext'
+import { useShoesFeature } from '../shoes/ShoesFeatureContext'
 import { formatDateTime, formatDistanceKm, formatDuration, formatPace, formatRecordValue, recordLabel } from '../utils/format'
 import {
   CADENCE_DOMAIN,
@@ -25,9 +26,11 @@ import './WorkoutDetailPage.css'
 
 export function WorkoutDetailPage() {
   const { language, t } = useLanguage()
+  const { enabled: shoesEnabled } = useShoesFeature()
   const { id } = useParams<{ id: string }>()
   const [workout, setWorkout] = useState<WorkoutDetailDto | null>(null)
   const [loading, setLoading] = useState(true)
+  const [shoes, setShoes] = useState<ShoeDto[]>([])
 
   useEffect(() => {
     if (!id) return
@@ -37,6 +40,20 @@ export function WorkoutDetailPage() {
       .then(setWorkout)
       .finally(() => setLoading(false))
   }, [id])
+
+  useEffect(() => {
+    if (shoesEnabled) {
+      api.shoes().then(setShoes)
+    }
+  }, [shoesEnabled])
+
+  async function handleShoeChange(value: string) {
+    if (!workout) return
+    const shoeId = value === '' ? null : Number(value)
+    await api.assignShoe(shoeId, [workout.id])
+    const shoeName = shoeId === null ? null : (shoes.find((s) => s.id === shoeId)?.name ?? null)
+    setWorkout({ ...workout, shoeId, shoeName })
+  }
 
   if (loading) {
     return (
@@ -88,6 +105,25 @@ export function WorkoutDetailPage() {
             {workout.cadenceAvgSpm != null && <KpiTile label={t('detail.avgCadence')} value={Math.round(workout.cadenceAvgSpm).toString()} unit="spm" />}
             {workout.elevationGainMeters != null && <KpiTile label={t('detail.elevation')} value={Math.round(workout.elevationGainMeters).toString()} unit="m" />}
           </div>
+
+          {shoesEnabled && (
+            <div className="ghl-workout-header__shoe">
+              <Icon name="shoe" size={18} />
+              <span className="ghl-workout-header__shoe-label">{t('shoes.assignedLabel')}</span>
+              <select
+                className="ghl-shoe-select-bar__picker"
+                value={workout.shoeId ?? ''}
+                onChange={(e) => handleShoeChange(e.target.value)}
+              >
+                <option value="">{t('shoes.noneOption')}</option>
+                {shoes.map((shoe) => (
+                  <option key={shoe.id} value={shoe.id}>
+                    {shoe.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
         </Surface>
 
         {workout.personalRecords.length > 0 && (
