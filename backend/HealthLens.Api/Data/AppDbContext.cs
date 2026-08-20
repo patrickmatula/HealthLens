@@ -25,6 +25,8 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
     public DbSet<SpO2Daily> SpO2Dailies => Set<SpO2Daily>();
     public DbSet<TemperatureNightly> TemperatureNightlies => Set<TemperatureNightly>();
     public DbSet<Shoe> Shoes => Set<Shoe>();
+    public DbSet<BodyMeasurement> BodyMeasurements => Set<BodyMeasurement>();
+    public DbSet<BodyProfile> BodyProfiles => Set<BodyProfile>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -78,6 +80,8 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
         modelBuilder.Entity<HrvDetail>(e => e.HasKey(x => x.TimestampUtc));
         modelBuilder.Entity<RespiratoryRateDaily>(e => e.HasKey(x => x.Date));
         modelBuilder.Entity<HeartRateMinutely>(e => e.HasKey(x => x.MinuteUtc));
+
+        modelBuilder.Entity<BodyMeasurement>(e => e.HasKey(x => new { x.Date, x.Type }));
 
         modelBuilder.Entity<StressScoreDaily>(e => e.HasKey(x => x.Date));
         modelBuilder.Entity<DailyReadiness>(e => e.HasKey(x => x.Date));

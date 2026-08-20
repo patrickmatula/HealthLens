@@ -77,22 +77,22 @@ export function MorePage() {
         </Surface>
 
         <Surface tone="low" className="ghl-more-card">
-          <h2 className="ghl-section-title">{t('shoes.settingsTitle')}</h2>
-          <div className="ghl-upload-option">
-            <md-switch
-              selected={shoesEnabled || undefined}
-              onChange={(e) => setShoesEnabled((e.target as HTMLInputElement & { selected: boolean }).selected)}
-            />
-            <div>
-              <div className="ghl-upload-option__title">{t('shoes.enableToggle')}</div>
-              <div className="ghl-upload-option__hint">{t('shoes.enableHint')}</div>
+          <h2 className="ghl-section-title">{t('more.optionalFeaturesTitle')}</h2>
+
+          <div className="ghl-feature-row">
+            <div className="ghl-feature-row__header">
+              <Icon name="shoe" size={20} />
+              <div className="ghl-feature-row__title">{t('shoes.settingsTitle')}</div>
+              <md-switch
+                selected={shoesEnabled || undefined}
+                onChange={(e) => setShoesEnabled((e.target as HTMLInputElement & { selected: boolean }).selected)}
+              />
             </div>
-          </div>
-          {shoesEnabled && (
+            <div className="ghl-feature-row__hint">{t('shoes.enableHint')}</div>
             <Link className="ghl-more-nav-link" to="/shoes">
               <Icon name="shoe" size={18} /> {t('shoes.manageLink')}
             </Link>
-          )}
+          </div>
         </Surface>
 
         <Surface tone="low" className="ghl-more-card">

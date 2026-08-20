@@ -41,6 +41,7 @@ const de = {
   'more.unitImperial': 'Imperial (mi)',
   'more.languageLabel': 'Sprache',
   'more.colorThemeLabel': 'Farbthema',
+  'more.optionalFeaturesTitle': 'Optionale Funktionen',
   'more.dataSourceTitle': 'Datenquelle',
   'more.storageLabel': 'Speicherung',
   'more.storagePersistent': 'Dauerhaft (übersteht einen Neustart)',

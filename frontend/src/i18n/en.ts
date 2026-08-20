@@ -39,6 +39,7 @@ const en: Record<TranslationKey, string> = {
   'more.unitImperial': 'Imperial (mi)',
   'more.languageLabel': 'Language',
   'more.colorThemeLabel': 'Color theme',
+  'more.optionalFeaturesTitle': 'Optional features',
   'more.dataSourceTitle': 'Data source',
   'more.storageLabel': 'Storage',
   'more.storagePersistent': 'Permanent (survives a restart)',
