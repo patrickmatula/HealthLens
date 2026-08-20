@@ -10,7 +10,6 @@ builder.Services.AddOpenApi();
 
 builder.Services.AddSingleton<DataSessionService>();
 builder.Services.AddSingleton<ImportJobRunner>();
-builder.Services.AddDbContext<AppDbContext>((sp, options) => sp.GetRequiredService<DataSessionService>().Configure(options));
 
 // Takeout exports with years of intraday data can be large; raise the default multipart limits.
 builder.Services.Configure<FormOptions>(o => o.MultipartBodyLengthLimit = 4L * 1024 * 1024 * 1024);

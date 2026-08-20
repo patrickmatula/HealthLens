@@ -1,18 +1,35 @@
-using System.Globalization;
-using CsvHelper;
+using System.Runtime.InteropServices;
 using HealthLens.Api.Models;
+using HealthLens.Api.Services.Csv;
+using HealthLens.Api.Services.Import;
+using Microsoft.EntityFrameworkCore;
 
 namespace HealthLens.Api.Services.Importers;
 
 /// <summary>
 /// Aggregates the per-event Physical Activity_GoogleData time-series CSVs (steps_, distance_, calories_,
-/// active_minutes_, sedentary_period_) into one row per local calendar date.
+/// active_minutes_, sedentary_period_) into one row per local calendar date. Each file is independent,
+/// so all of them — across all five metrics — are parsed in parallel and their day totals merged after.
 /// </summary>
-public class DailyActivityImporter : IDomainImporter
+public sealed class DailyActivityImporter : IDomainImporter
 {
-    // Fitbit/Pixel Watch data for this account is logged in Central European time; bucket "daily" totals by that,
-    // matching what the Fitbit app itself would show as "today".
-    private static readonly TimeZoneInfo LocalZone = ResolveLocalZone();
+    private static readonly (string Prefix, Metric Metric)[] Sources =
+    [
+        ("steps_", Metric.Steps),
+        ("distance_", Metric.Distance),
+        ("calories_", Metric.Calories),
+        ("active_minutes_", Metric.ActiveMinutes),
+        ("sedentary_period_", Metric.Sedentary),
+    ];
+
+    private enum Metric
+    {
+        Steps,
+        Distance,
+        Calories,
+        ActiveMinutes,
+        Sedentary,
+    }
 
     public string Name => "Tagesaktivität";
 
@@ -24,166 +41,147 @@ public class DailyActivityImporter : IDomainImporter
             return;
         }
 
-        var days = new Dictionary<DateOnly, DayAccumulator>();
+        var work = Sources
+            .SelectMany(source => EnumerateDataFiles(folder, source.Prefix), (source, file) => (File: file, source.Metric))
+            .ToArray();
 
-        context.ReportProgress("Schritte werden gelesen...", 0);
-        SumInto(folder, "steps_", days, (acc, value) => acc.Steps += (int)value);
+        var days = new Dictionary<DateOnly, DayTotals>();
+        context.ReportProgress($"Tagesaktivität wird gelesen ({work.Length} Dateien)...", 0);
 
-        context.ReportProgress("Distanz wird gelesen...", 20);
-        SumInto(folder, "distance_", days, (acc, value) => acc.DistanceMeters += value);
-
-        context.ReportProgress("Kalorien werden gelesen...", 40);
-        SumInto(folder, "calories_", days, (acc, value) => acc.CaloriesTotal += value);
-
-        context.ReportProgress("Aktive Minuten werden gelesen...", 60);
-        ImportActiveMinutes(folder, days);
-
-        context.ReportProgress("Sitzzeit wird gelesen...", 80);
-        ImportSedentary(folder, days);
+        await ParallelCsv.RunAsync(
+            work,
+            item => ParseFile(item.File, item.Metric),
+            partial => Merge(days, partial),
+            done => context.ReportProgress($"Tagesaktivität wird gelesen ({done}/{work.Length})...", 85 * done / work.Length),
+            ct);
 
         context.ReportProgress("Tagesaktivität wird gespeichert...", 90);
         await using var db = context.CreateContext();
-        foreach (var (date, acc) in days)
+        var existing = await db.DailyActivitySummaries.ToDictionaryAsync(d => d.Date, ct);
+
+        foreach (var (date, totals) in days)
         {
-            var existing = await db.DailyActivitySummaries.FindAsync([date], ct);
-            if (existing is null)
+            if (!existing.TryGetValue(date, out var row))
             {
-                existing = new DailyActivitySummary { Date = date };
-                db.DailyActivitySummaries.Add(existing);
+                row = new DailyActivitySummary { Date = date };
+                db.DailyActivitySummaries.Add(row);
             }
 
-            existing.Steps = acc.Steps > 0 ? acc.Steps : existing.Steps;
-            existing.DistanceMeters = acc.DistanceMeters > 0 ? acc.DistanceMeters : existing.DistanceMeters;
-            existing.CaloriesTotal = acc.CaloriesTotal > 0 ? acc.CaloriesTotal : existing.CaloriesTotal;
-            existing.ActiveMinutes = acc.ActiveMinutes > 0 ? acc.ActiveMinutes : existing.ActiveMinutes;
-            existing.SedentaryMinutes = acc.SedentaryMinutes > 0 ? acc.SedentaryMinutes : existing.SedentaryMinutes;
+            // A zero total means this export carried no data for the metric that day, not a real zero —
+            // keep whatever an earlier import already established.
+            row.Steps = totals.Steps > 0 ? (int)totals.Steps : row.Steps;
+            row.DistanceMeters = totals.DistanceMeters > 0 ? totals.DistanceMeters : row.DistanceMeters;
+            row.CaloriesTotal = totals.Calories > 0 ? totals.Calories : row.CaloriesTotal;
+            row.ActiveMinutes = totals.ActiveMinutes > 0 ? totals.ActiveMinutes : row.ActiveMinutes;
+            row.SedentaryMinutes = totals.SedentaryMinutes > 0 ? totals.SedentaryMinutes : row.SedentaryMinutes;
         }
 
         await db.SaveChangesAsync(ct);
-        context.RowsImported += days.Count;
+        context.AddRows(days.Count);
         context.ReportProgress("Tagesaktivität importiert", 100);
     }
 
-    private void SumInto(string folder, string prefix, Dictionary<DateOnly, DayAccumulator> days, Action<DayAccumulator, double> add)
+    private static Dictionary<DateOnly, DayTotals> ParseFile(string file, Metric metric)
     {
-        foreach (var file in EnumerateDataFiles(folder, prefix))
+        var days = new Dictionary<DateOnly, DayTotals>();
+        using var csv = CsvCursor.Open(file);
+        if (csv is null)
         {
-            using var reader = new StreamReader(file);
-            using var csv = new CsvReader(reader, CultureInfo.InvariantCulture);
-            csv.Read();
-            csv.ReadHeader();
-            var valueField = csv.HeaderRecord!.First(h => h != "timestamp" && h != "data source");
+            return days;
+        }
 
-            while (csv.Read())
+        if (metric == Metric.Sedentary)
+        {
+            var startColumn = csv.Column("start time");
+            var endColumn = csv.Column("end time");
+            while (startColumn >= 0 && endColumn >= 0 && csv.NextRow())
             {
-                var ts = ParseUtc(csv.GetField("timestamp"));
-                if (ts is null || !double.TryParse(csv.GetField(valueField), NumberStyles.Float, CultureInfo.InvariantCulture, out var value))
+                if (csv.GetUtc(startColumn) is not { } start || csv.GetUtc(endColumn) is not { } end)
                 {
                     continue;
                 }
 
-                var date = ToLocalDate(ts.Value);
-                add(GetOrAdd(days, date), value);
+                Day(days, start).SedentaryMinutes += (int)Math.Round((end - start).TotalMinutes);
+            }
+
+            return days;
+        }
+
+        var timestampColumn = csv.Column("timestamp");
+        if (timestampColumn < 0)
+        {
+            return days;
+        }
+
+        if (metric == Metric.ActiveMinutes)
+        {
+            var light = csv.Column("light");
+            var moderate = csv.Column("moderate");
+            var very = csv.Column("very");
+            while (csv.NextRow())
+            {
+                if (csv.GetUtc(timestampColumn) is not { } timestamp)
+                {
+                    continue;
+                }
+
+                Day(days, timestamp).ActiveMinutes += csv.GetInt32OrZero(light) + csv.GetInt32OrZero(moderate) + csv.GetInt32OrZero(very);
+            }
+
+            return days;
+        }
+
+        // These files name their value column after the metric ("steps", "distance", ...).
+        var valueColumn = csv.ValueColumn("timestamp", "data source");
+        while (valueColumn >= 0 && csv.NextRow())
+        {
+            if (csv.GetUtc(timestampColumn) is not { } timestamp || !csv.TryGetDouble(valueColumn, out var value))
+            {
+                continue;
+            }
+
+            ref var totals = ref Day(days, timestamp);
+            switch (metric)
+            {
+                case Metric.Steps:
+                    totals.Steps += (long)value;
+                    break;
+                case Metric.Distance:
+                    totals.DistanceMeters += value;
+                    break;
+                default:
+                    totals.Calories += value;
+                    break;
             }
         }
+
+        return days;
     }
 
-    private void ImportActiveMinutes(string folder, Dictionary<DateOnly, DayAccumulator> days)
+    private static ref DayTotals Day(Dictionary<DateOnly, DayTotals> days, DateTime utc) =>
+        ref CollectionsMarshal.GetValueRefOrAddDefault(days, LocalTimeZone.ToLocalDate(utc), out _);
+
+    private static void Merge(Dictionary<DateOnly, DayTotals> days, Dictionary<DateOnly, DayTotals> partial)
     {
-        foreach (var file in EnumerateDataFiles(folder, "active_minutes_"))
+        foreach (var (date, totals) in partial)
         {
-            using var reader = new StreamReader(file);
-            using var csv = new CsvReader(reader, CultureInfo.InvariantCulture);
-            csv.Read();
-            csv.ReadHeader();
-
-            while (csv.Read())
-            {
-                var ts = ParseUtc(csv.GetField("timestamp"));
-                if (ts is null)
-                {
-                    continue;
-                }
-
-                var light = ParseIntOrZero(csv.GetField("light"));
-                var moderate = ParseIntOrZero(csv.GetField("moderate"));
-                var very = ParseIntOrZero(csv.GetField("very"));
-                GetOrAdd(days, ToLocalDate(ts.Value)).ActiveMinutes += light + moderate + very;
-            }
-        }
-    }
-
-    private void ImportSedentary(string folder, Dictionary<DateOnly, DayAccumulator> days)
-    {
-        foreach (var file in EnumerateDataFiles(folder, "sedentary_period_"))
-        {
-            using var reader = new StreamReader(file);
-            using var csv = new CsvReader(reader, CultureInfo.InvariantCulture);
-            csv.Read();
-            csv.ReadHeader();
-
-            while (csv.Read())
-            {
-                var start = ParseUtc(csv.GetField("start time"));
-                var end = ParseUtc(csv.GetField("end time"));
-                if (start is null || end is null)
-                {
-                    continue;
-                }
-
-                var minutes = (end.Value - start.Value).TotalMinutes;
-                GetOrAdd(days, ToLocalDate(start.Value)).SedentaryMinutes += (int)Math.Round(minutes);
-            }
+            ref var target = ref CollectionsMarshal.GetValueRefOrAddDefault(days, date, out _);
+            target.Steps += totals.Steps;
+            target.DistanceMeters += totals.DistanceMeters;
+            target.Calories += totals.Calories;
+            target.ActiveMinutes += totals.ActiveMinutes;
+            target.SedentaryMinutes += totals.SedentaryMinutes;
         }
     }
 
     private static IEnumerable<string> EnumerateDataFiles(string folder, string prefix) =>
         Directory.EnumerateFiles(folder, $"{prefix}*.csv").Where(f => !Path.GetFileName(f).Contains("readme", StringComparison.OrdinalIgnoreCase));
 
-    private static int ParseIntOrZero(string? s) => int.TryParse(s, out var v) ? v : 0;
-
-    private static DateTime? ParseUtc(string? raw)
+    private struct DayTotals
     {
-        if (string.IsNullOrWhiteSpace(raw))
-        {
-            return null;
-        }
-
-        return DateTime.TryParse(raw, CultureInfo.InvariantCulture, DateTimeStyles.AdjustToUniversal | DateTimeStyles.AssumeUniversal, out var dt)
-            ? dt
-            : null;
-    }
-
-    private static DateOnly ToLocalDate(DateTime utc) => DateOnly.FromDateTime(TimeZoneInfo.ConvertTimeFromUtc(utc, LocalZone));
-
-    private static DayAccumulator GetOrAdd(Dictionary<DateOnly, DayAccumulator> days, DateOnly date)
-    {
-        if (!days.TryGetValue(date, out var acc))
-        {
-            acc = new DayAccumulator();
-            days[date] = acc;
-        }
-
-        return acc;
-    }
-
-    private static TimeZoneInfo ResolveLocalZone()
-    {
-        try
-        {
-            return TimeZoneInfo.FindSystemTimeZoneById("Europe/Vienna");
-        }
-        catch (TimeZoneNotFoundException)
-        {
-            return TimeZoneInfo.FindSystemTimeZoneById("Central European Standard Time");
-        }
-    }
-
-    private class DayAccumulator
-    {
-        public int Steps;
+        public long Steps;
         public double DistanceMeters;
-        public double CaloriesTotal;
+        public double Calories;
         public int ActiveMinutes;
         public int SedentaryMinutes;
     }

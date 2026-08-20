@@ -91,7 +91,7 @@ public class ImportJobRunner(DataSessionService session, ILogger<ImportJobRunner
             var context = new ImportContext(
                 googleHealthRoot,
                 scope,
-                session.CreateContext,
+                session,
                 (step, pct) =>
                 {
                     status.CurrentStep = step;

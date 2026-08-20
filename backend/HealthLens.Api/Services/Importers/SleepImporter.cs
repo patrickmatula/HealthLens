@@ -1,21 +1,20 @@
-using System.Globalization;
 using System.Text.Json;
-using CsvHelper;
 using HealthLens.Api.Models;
-using Microsoft.EntityFrameworkCore;
+using HealthLens.Api.Services.Csv;
+using HealthLens.Api.Services.Import;
+using Microsoft.Data.Sqlite;
 
 namespace HealthLens.Api.Services.Importers;
 
 /// <summary>
 /// Builds SleepSessions/SleepStages/SleepScores from the modern UserSleeps/UserSleepStages/
-/// UserSleepScores snapshots, gap-filled with the legacy Fitbit sleep-*.json export for nights
-/// the modern pipeline doesn't cover (this account's modern coverage is sparse — most history
-/// lives in the legacy export).
+/// UserSleepScores snapshots, gap-filled with the legacy Fitbit sleep-*.json export for nights the
+/// modern pipeline doesn't cover (this account's modern coverage is sparse — most history lives in
+/// the legacy export). The legacy JSON files are parsed in parallel; stage rows, which run to a
+/// six-figure count once the legacy nights are included, are written with batched raw SQL.
 /// </summary>
-public class SleepImporter : IDomainImporter
+public sealed class SleepImporter : IDomainImporter
 {
-    private static readonly TimeZoneInfo LocalZone = ResolveLocalZone();
-
     public string Name => "Schlaf";
 
     public async Task ImportAsync(ImportContext context, CancellationToken ct)
@@ -42,92 +41,148 @@ public class SleepImporter : IDomainImporter
         if (legacy is not null)
         {
             context.ReportProgress("Ältere Schlafdaten (Legacy-Export) werden ergänzt...", 60);
-            ImportLegacySleep(legacy, sessions, stages);
+            await ImportLegacySleepAsync(legacy, sessions, stages, ct);
         }
 
         context.ReportProgress("Schlafdaten werden gespeichert...", 85);
-        await using var db = context.CreateContext();
-
-        foreach (var session in sessions.Values)
-        {
-            var existing = await db.SleepSessions.FindAsync([session.Id], ct);
-            if (existing is null)
-            {
-                db.SleepSessions.Add(session);
-            }
-            else
-            {
-                db.Entry(existing).CurrentValues.SetValues(session);
-            }
-        }
-
-        await db.SaveChangesAsync(ct);
-
-        foreach (var (sessionId, list) in stages)
-        {
-            if (await db.SleepStages.AnyAsync(s => s.SleepSessionId == sessionId, ct))
-            {
-                continue;
-            }
-
-            foreach (var stage in list)
-            {
-                stage.SleepSessionId = sessionId;
-            }
-
-            db.SleepStages.AddRange(list);
-        }
-
-        foreach (var (sessionId, score) in scores)
-        {
-            if (await db.SleepScores.FindAsync([sessionId], ct) is null)
-            {
-                score.SleepSessionId = sessionId;
-                db.SleepScores.Add(score);
-            }
-        }
-
-        await db.SaveChangesAsync(ct);
-        context.RowsImported += sessions.Count + stages.Sum(s => s.Value.Count) + scores.Count;
+        Save(context, sessions, stages, scores);
         context.ReportProgress("Schlafdaten importiert", 100);
+    }
+
+    private static void Save(
+        ImportContext context,
+        Dictionary<long, SleepSession> sessions,
+        Dictionary<long, List<SleepStage>> stages,
+        Dictionary<long, SleepScore> scores)
+    {
+        using var connection = context.OpenWriteConnection();
+
+        using (var writer = new SqliteBulkWriter(
+            connection,
+            """
+            INSERT OR REPLACE INTO SleepSessions
+                (Id, StartUtc, EndUtc, SleepType, DataSource, MinutesAsleep, MinutesAwake, MinutesToFallAsleep, MinutesAfterWakeup, TimeInBedMinutes, EfficiencyPercent, IsLegacy)
+            VALUES ($id, $start, $end, $type, $source, $asleep, $awake, $toFallAsleep, $afterWakeup, $inBed, $efficiency, $isLegacy)
+            """,
+            "$id", "$start", "$end", "$type", "$source", "$asleep", "$awake", "$toFallAsleep", "$afterWakeup", "$inBed", "$efficiency", "$isLegacy"))
+        {
+            foreach (var s in sessions.Values)
+            {
+                writer.Write(s.Id, s.StartUtc, s.EndUtc, s.SleepType, s.DataSource, s.MinutesAsleep, s.MinutesAwake,
+                    s.MinutesToFallAsleep, s.MinutesAfterWakeup, s.TimeInBedMinutes, s.EfficiencyPercent, s.IsLegacy);
+            }
+
+            writer.Flush();
+            context.AddRows(writer.RowCount);
+        }
+
+        // Stages have a surrogate key, so a re-import can't upsert them — replace each session's set
+        // wholesale, which also means a corrected export actually refreshes them.
+        DeleteChildren(connection, "DELETE FROM SleepStages WHERE SleepSessionId = $id", stages.Keys);
+
+        using (var writer = new SqliteBulkWriter(
+            connection,
+            "INSERT INTO SleepStages (SleepSessionId, StageType, StartUtc, EndUtc) VALUES ($id, $type, $start, $end)",
+            "$id", "$type", "$start", "$end"))
+        {
+            foreach (var (sessionId, list) in stages)
+            {
+                foreach (var stage in list)
+                {
+                    writer.Write(sessionId, stage.StageType, stage.StartUtc, stage.EndUtc);
+                }
+            }
+
+            writer.Flush();
+            context.AddRows(writer.RowCount);
+        }
+
+        using (var writer = new SqliteBulkWriter(
+            connection,
+            """
+            INSERT OR REPLACE INTO SleepScores
+                (SleepSessionId, OverallScore, DurationScore, CompositionScore, RevitalizationScore, DeepSleepMinutes, RemSleepPercent, RestingHeartRate, RestlessnessNormalized)
+            VALUES ($id, $overall, $duration, $composition, $revitalization, $deep, $rem, $restingHr, $restlessness)
+            """,
+            "$id", "$overall", "$duration", "$composition", "$revitalization", "$deep", "$rem", "$restingHr", "$restlessness"))
+        {
+            foreach (var (sessionId, score) in scores)
+            {
+                if (!sessions.ContainsKey(sessionId))
+                {
+                    continue;
+                }
+
+                writer.Write(sessionId, score.OverallScore, score.DurationScore, score.CompositionScore, score.RevitalizationScore,
+                    score.DeepSleepMinutes, score.RemSleepPercent, score.RestingHeartRate, score.RestlessnessNormalized);
+            }
+
+            writer.Flush();
+            context.AddRows(writer.RowCount);
+        }
+    }
+
+    internal static void DeleteChildren(SqliteConnection connection, string sql, IEnumerable<long> parentIds)
+    {
+        using var transaction = connection.BeginTransaction();
+        using var command = connection.CreateCommand();
+        command.Transaction = transaction;
+        command.CommandText = sql;
+        var parameter = command.CreateParameter();
+        parameter.ParameterName = "$id";
+        command.Parameters.Add(parameter);
+
+        foreach (var id in parentIds)
+        {
+            parameter.Value = id;
+            command.ExecuteNonQuery();
+        }
+
+        transaction.Commit();
     }
 
     // ---- Modern (UserSleeps / UserSleepStages / UserSleepScores) ----------
 
     private static void ParseUserSleeps(string folder, Dictionary<long, SleepSession> sessions)
     {
-        foreach (var file in Directory.EnumerateFiles(folder, "UserSleeps_*.csv").OrderBy(f => f))
+        foreach (var file in Directory.EnumerateFiles(folder, "UserSleeps_*.csv").Order(StringComparer.Ordinal))
         {
-            using var reader = new StreamReader(file);
-            using var csv = new CsvReader(reader, CultureInfo.InvariantCulture);
-            csv.Read();
-            csv.ReadHeader();
-            while (csv.Read())
+            using var csv = CsvCursor.Open(file);
+            if (csv is null)
             {
-                if (!long.TryParse(csv.GetField("sleep_id"), out var id))
+                continue;
+            }
+
+            var id = csv.Column("sleep_id");
+            var start = csv.Column("sleep_start");
+            var end = csv.Column("sleep_end");
+            var type = csv.Column("sleep_type");
+            var dataSource = csv.Column("data_source");
+            var asleep = csv.Column("minutes_asleep");
+            var awake = csv.Column("minutes_awake");
+            var toFallAsleep = csv.Column("minutes_to_fall_asleep");
+            var afterWakeup = csv.Column("minutes_after_wake_up");
+            var inBed = csv.Column("minutes_in_sleep_period");
+
+            while (csv.NextRow())
+            {
+                if (csv.GetInt64(id) is not { } sleepId || csv.GetUtc(start) is not { } startUtc || csv.GetUtc(end) is not { } endUtc)
                 {
                     continue;
                 }
 
-                var start = ParseUtc(csv.GetField("sleep_start"));
-                var end = ParseUtc(csv.GetField("sleep_end"));
-                if (start is null || end is null)
+                sessions[sleepId] = new SleepSession
                 {
-                    continue;
-                }
-
-                sessions[id] = new SleepSession
-                {
-                    Id = id,
-                    StartUtc = start.Value,
-                    EndUtc = end.Value,
-                    SleepType = csv.GetField("sleep_type") ?? "",
-                    DataSource = csv.GetField("data_source"),
-                    MinutesAsleep = ParseIntOrZero(csv.GetField("minutes_asleep")),
-                    MinutesAwake = ParseIntOrZero(csv.GetField("minutes_awake")),
-                    MinutesToFallAsleep = ParseIntOrZero(csv.GetField("minutes_to_fall_asleep")),
-                    MinutesAfterWakeup = ParseIntOrZero(csv.GetField("minutes_after_wake_up")),
-                    TimeInBedMinutes = ParseIntOrZero(csv.GetField("minutes_in_sleep_period")),
+                    Id = sleepId,
+                    StartUtc = startUtc,
+                    EndUtc = endUtc,
+                    SleepType = csv.GetString(type),
+                    DataSource = csv.GetString(dataSource),
+                    MinutesAsleep = csv.GetInt32OrZero(asleep),
+                    MinutesAwake = csv.GetInt32OrZero(awake),
+                    MinutesToFallAsleep = csv.GetInt32OrZero(toFallAsleep),
+                    MinutesAfterWakeup = csv.GetInt32OrZero(afterWakeup),
+                    TimeInBedMinutes = csv.GetInt32OrZero(inBed),
                 };
             }
         }
@@ -135,22 +190,22 @@ public class SleepImporter : IDomainImporter
 
     private static void ParseUserSleepStages(string folder, Dictionary<long, List<SleepStage>> stages)
     {
-        foreach (var file in Directory.EnumerateFiles(folder, "UserSleepStages_*.csv").OrderBy(f => f))
+        foreach (var file in Directory.EnumerateFiles(folder, "UserSleepStages_*.csv").Order(StringComparer.Ordinal))
         {
-            using var reader = new StreamReader(file);
-            using var csv = new CsvReader(reader, CultureInfo.InvariantCulture);
-            csv.Read();
-            csv.ReadHeader();
-            while (csv.Read())
+            using var csv = CsvCursor.Open(file);
+            if (csv is null)
             {
-                if (!long.TryParse(csv.GetField("sleep_id"), out var sleepId))
-                {
-                    continue;
-                }
+                continue;
+            }
 
-                var start = ParseUtc(csv.GetField("sleep_stage_start"));
-                var end = ParseUtc(csv.GetField("sleep_stage_end"));
-                if (start is null || end is null)
+            var id = csv.Column("sleep_id");
+            var type = csv.Column("sleep_stage_type");
+            var start = csv.Column("sleep_stage_start");
+            var end = csv.Column("sleep_stage_end");
+
+            while (csv.NextRow())
+            {
+                if (csv.GetInt64(id) is not { } sleepId || csv.GetUtc(start) is not { } startUtc || csv.GetUtc(end) is not { } endUtc)
                 {
                     continue;
                 }
@@ -161,22 +216,34 @@ public class SleepImporter : IDomainImporter
                     stages[sleepId] = list;
                 }
 
-                list.Add(new SleepStage { SleepSessionId = sleepId, StageType = csv.GetField("sleep_stage_type") ?? "", StartUtc = start.Value, EndUtc = end.Value });
+                list.Add(new SleepStage { SleepSessionId = sleepId, StageType = csv.GetString(type), StartUtc = startUtc, EndUtc = endUtc });
             }
         }
     }
 
     private static void ParseUserSleepScores(string folder, Dictionary<long, SleepScore> scores)
     {
-        foreach (var file in Directory.EnumerateFiles(folder, "UserSleepScores_*.csv").OrderBy(f => f))
+        foreach (var file in Directory.EnumerateFiles(folder, "UserSleepScores_*.csv").Order(StringComparer.Ordinal))
         {
-            using var reader = new StreamReader(file);
-            using var csv = new CsvReader(reader, CultureInfo.InvariantCulture);
-            csv.Read();
-            csv.ReadHeader();
-            while (csv.Read())
+            using var csv = CsvCursor.Open(file);
+            if (csv is null)
             {
-                if (!long.TryParse(csv.GetField("sleep_id"), out var sleepId))
+                continue;
+            }
+
+            var id = csv.Column("sleep_id");
+            var overall = csv.Column("overall_score");
+            var duration = csv.Column("duration_score");
+            var composition = csv.Column("composition_score");
+            var revitalization = csv.Column("revitalization_score");
+            var deep = csv.Column("deep_sleep_minutes");
+            var rem = csv.Column("rem_sleep_percent");
+            var restingHr = csv.Column("resting_heart_rate");
+            var restlessness = csv.Column("restlessness_normalized");
+
+            while (csv.NextRow())
+            {
+                if (csv.GetInt64(id) is not { } sleepId)
                 {
                     continue;
                 }
@@ -184,14 +251,14 @@ public class SleepImporter : IDomainImporter
                 scores[sleepId] = new SleepScore
                 {
                     SleepSessionId = sleepId,
-                    OverallScore = ParseNullableDouble(csv.GetField("overall_score")) ?? 0,
-                    DurationScore = PositiveOrNull(ParseNullableDouble(csv.GetField("duration_score"))),
-                    CompositionScore = PositiveOrNull(ParseNullableDouble(csv.GetField("composition_score"))),
-                    RevitalizationScore = PositiveOrNull(ParseNullableDouble(csv.GetField("revitalization_score"))),
-                    DeepSleepMinutes = ParseNullableDouble(csv.GetField("deep_sleep_minutes")) ?? 0,
-                    RemSleepPercent = ParseNullableDouble(csv.GetField("rem_sleep_percent")) ?? 0,
-                    RestingHeartRate = ParseNullableDouble(csv.GetField("resting_heart_rate")),
-                    RestlessnessNormalized = ParseNullableDouble(csv.GetField("restlessness_normalized")),
+                    OverallScore = csv.GetDoubleOrZero(overall),
+                    DurationScore = PositiveOrNull(csv.GetDouble(duration)),
+                    CompositionScore = PositiveOrNull(csv.GetDouble(composition)),
+                    RevitalizationScore = PositiveOrNull(csv.GetDouble(revitalization)),
+                    DeepSleepMinutes = csv.GetDoubleOrZero(deep),
+                    RemSleepPercent = csv.GetDoubleOrZero(rem),
+                    RestingHeartRate = csv.GetDouble(restingHr),
+                    RestlessnessNormalized = csv.GetDouble(restlessness),
                 };
             }
         }
@@ -199,125 +266,111 @@ public class SleepImporter : IDomainImporter
 
     // ---- Legacy (sleep-*.json) ---------------------------------------------
 
-    private static void ImportLegacySleep(string folder, Dictionary<long, SleepSession> sessions, Dictionary<long, List<SleepStage>> stages)
+    private static async Task ImportLegacySleepAsync(
+        string folder,
+        Dictionary<long, SleepSession> sessions,
+        Dictionary<long, List<SleepStage>> stages,
+        CancellationToken ct)
     {
-        var modern = sessions.Values.ToList();
-
-        foreach (var file in Directory.EnumerateFiles(folder, "sleep-*.json"))
+        var modern = new IntervalIndex();
+        foreach (var session in sessions.Values)
         {
-            using var stream = File.OpenRead(file);
-            using var doc = JsonDocument.Parse(stream);
-            if (doc.RootElement.ValueKind != JsonValueKind.Array)
+            modern.Add(session.StartUtc, session.EndUtc);
+        }
+
+        await ParallelCsv.RunAsync(
+            Directory.GetFiles(folder, "sleep-*.json"),
+            ParseLegacyFile,
+            nights =>
+            {
+                foreach (var (session, nightStages) in nights)
+                {
+                    if (sessions.ContainsKey(session.Id) || modern.Overlaps(session.StartUtc, session.EndUtc))
+                    {
+                        continue;
+                    }
+
+                    sessions[session.Id] = session;
+                    if (nightStages.Count > 0)
+                    {
+                        stages[session.Id] = nightStages;
+                    }
+                }
+            },
+            null,
+            ct);
+    }
+
+    private static List<(SleepSession Session, List<SleepStage> Stages)> ParseLegacyFile(string file)
+    {
+        var nights = new List<(SleepSession, List<SleepStage>)>();
+
+        using var stream = File.OpenRead(file);
+        using var document = JsonDocument.Parse(stream);
+        if (document.RootElement.ValueKind != JsonValueKind.Array)
+        {
+            return nights;
+        }
+
+        foreach (var entry in document.RootElement.EnumerateArray())
+        {
+            if (!entry.TryGetProperty("logId", out var idProperty) ||
+                ParseLegacyLocalTime(entry, "startTime") is not { } start ||
+                ParseLegacyLocalTime(entry, "endTime") is not { } end)
             {
                 continue;
             }
 
-            foreach (var entry in doc.RootElement.EnumerateArray())
+            var id = idProperty.GetInt64();
+            var session = new SleepSession
             {
-                if (!entry.TryGetProperty("logId", out var idProp) || !entry.TryGetProperty("startTime", out var startProp) || !entry.TryGetProperty("endTime", out var endProp))
-                {
-                    continue;
-                }
+                Id = id,
+                StartUtc = start,
+                EndUtc = end,
+                SleepType = LegacyJson.String(entry, "type") ?? "classic",
+                DataSource = "Legacy Export",
+                MinutesAsleep = (int)(LegacyJson.Number(entry, "minutesAsleep") ?? 0),
+                MinutesAwake = (int)(LegacyJson.Number(entry, "minutesAwake") ?? 0),
+                MinutesToFallAsleep = (int)(LegacyJson.Number(entry, "minutesToFallAsleep") ?? 0),
+                MinutesAfterWakeup = (int)(LegacyJson.Number(entry, "minutesAfterWakeup") ?? 0),
+                TimeInBedMinutes = (int)(LegacyJson.Number(entry, "timeInBed") ?? 0),
+                EfficiencyPercent = LegacyJson.Number(entry, "efficiency"),
+                IsLegacy = true,
+            };
 
-                var id = idProp.GetInt64();
-                if (sessions.ContainsKey(id))
+            var nightStages = new List<SleepStage>();
+            if (entry.TryGetProperty("levels", out var levels) &&
+                levels.TryGetProperty("data", out var data) &&
+                data.ValueKind == JsonValueKind.Array)
+            {
+                foreach (var point in data.EnumerateArray())
                 {
-                    continue;
-                }
-
-                var start = ParseLegacyLocalTime(startProp.GetString());
-                var end = ParseLegacyLocalTime(endProp.GetString());
-                if (start is null || end is null)
-                {
-                    continue;
-                }
-
-                if (modern.Any(s => s.StartUtc < end && start.Value < s.EndUtc))
-                {
-                    continue;
-                }
-
-                sessions[id] = new SleepSession
-                {
-                    Id = id,
-                    StartUtc = start.Value,
-                    EndUtc = end.Value,
-                    SleepType = entry.TryGetProperty("type", out var typeProp) ? typeProp.GetString() ?? "classic" : "classic",
-                    DataSource = "Legacy Export",
-                    MinutesAsleep = entry.TryGetProperty("minutesAsleep", out var mAsleep) ? mAsleep.GetInt32() : 0,
-                    MinutesAwake = entry.TryGetProperty("minutesAwake", out var mAwake) ? mAwake.GetInt32() : 0,
-                    MinutesToFallAsleep = entry.TryGetProperty("minutesToFallAsleep", out var mFall) ? mFall.GetInt32() : 0,
-                    MinutesAfterWakeup = entry.TryGetProperty("minutesAfterWakeup", out var mAfter) ? mAfter.GetInt32() : 0,
-                    TimeInBedMinutes = entry.TryGetProperty("timeInBed", out var tib) ? tib.GetInt32() : 0,
-                    EfficiencyPercent = entry.TryGetProperty("efficiency", out var eff) ? eff.GetDouble() : null,
-                    IsLegacy = true,
-                };
-
-                if (entry.TryGetProperty("levels", out var levels) && levels.TryGetProperty("data", out var data) && data.ValueKind == JsonValueKind.Array)
-                {
-                    var list = new List<SleepStage>();
-                    foreach (var point in data.EnumerateArray())
+                    var seconds = (int)(LegacyJson.Number(point, "seconds") ?? 0);
+                    if (seconds <= 0 || ParseLegacyLocalTime(point, "dateTime") is not { } stageStart)
                     {
-                        var dt = point.TryGetProperty("dateTime", out var dtProp) ? ParseLegacyLocalTime(dtProp.GetString()) : null;
-                        var seconds = point.TryGetProperty("seconds", out var secProp) ? secProp.GetInt32() : 0;
-                        var level = point.TryGetProperty("level", out var levelProp) ? levelProp.GetString() ?? "" : "";
-                        if (dt is null || seconds <= 0)
-                        {
-                            continue;
-                        }
-
-                        list.Add(new SleepStage { SleepSessionId = id, StageType = level.ToUpperInvariant(), StartUtc = dt.Value, EndUtc = dt.Value.AddSeconds(seconds) });
+                        continue;
                     }
 
-                    stages[id] = list;
+                    nightStages.Add(new SleepStage
+                    {
+                        SleepSessionId = id,
+                        StageType = (LegacyJson.String(point, "level") ?? "").ToUpperInvariant(),
+                        StartUtc = stageStart,
+                        EndUtc = stageStart.AddSeconds(seconds),
+                    });
                 }
             }
+
+            nights.Add((session, nightStages));
         }
+
+        return nights;
     }
 
-    private static DateTime? ParseLegacyLocalTime(string? raw)
-    {
-        if (string.IsNullOrWhiteSpace(raw))
-        {
-            return null;
-        }
-
-        if (!DateTime.TryParse(raw, CultureInfo.InvariantCulture, DateTimeStyles.None, out var local))
-        {
-            return null;
-        }
-
-        return TimeZoneInfo.ConvertTimeToUtc(DateTime.SpecifyKind(local, DateTimeKind.Unspecified), LocalZone);
-    }
-
-    private static TimeZoneInfo ResolveLocalZone()
-    {
-        try
-        {
-            return TimeZoneInfo.FindSystemTimeZoneById("Europe/Vienna");
-        }
-        catch (TimeZoneNotFoundException)
-        {
-            return TimeZoneInfo.FindSystemTimeZoneById("Central European Standard Time");
-        }
-    }
-
-    private static int ParseIntOrZero(string? s) => int.TryParse(s, out var v) ? v : 0;
-
-    private static double? PositiveOrNull(double? v) => v is null or < 0 ? null : v;
-
-    private static double? ParseNullableDouble(string? s) =>
-        !string.IsNullOrWhiteSpace(s) && double.TryParse(s, NumberStyles.Float, CultureInfo.InvariantCulture, out var v) ? v : null;
-
-    private static DateTime? ParseUtc(string? raw)
-    {
-        if (string.IsNullOrWhiteSpace(raw))
-        {
-            return null;
-        }
-
-        return DateTime.TryParse(raw, CultureInfo.InvariantCulture, DateTimeStyles.AdjustToUniversal | DateTimeStyles.AssumeUniversal, out var dt)
-            ? dt
+    private static DateTime? ParseLegacyLocalTime(JsonElement element, string property) =>
+        LegacyJson.String(element, property) is { } raw && DateTime.TryParse(raw, System.Globalization.CultureInfo.InvariantCulture, System.Globalization.DateTimeStyles.None, out var local)
+            ? LocalTimeZone.ToUtc(local)
             : null;
-    }
+
+    private static double? PositiveOrNull(double? value) => value is null or < 0 ? null : value;
 }

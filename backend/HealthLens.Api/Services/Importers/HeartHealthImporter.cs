@@ -1,338 +1,304 @@
-using System.Globalization;
-using CsvHelper;
-using HealthLens.Api.Models;
-using HealthLens.Api.Data;
+using System.Runtime.InteropServices;
+using HealthLens.Api.Services.Csv;
+using HealthLens.Api.Services.Import;
 using Microsoft.Data.Sqlite;
-using Microsoft.EntityFrameworkCore;
 
 namespace HealthLens.Api.Services.Importers;
 
 /// <summary>
-/// Resting HR, AZM zone minutes, HRV (daily + 5-min sleep detail), respiratory rate, and a
-/// curated 1-minute aggregate of the continuous intraday heart rate stream (which is by far the
-/// largest source in this export — imported via raw batched ADO.NET, not EF change tracking).
+/// Resting HR, AZM zone minutes, HRV (daily + 5-min sleep detail), respiratory rate, and a curated
+/// 1-minute aggregate of the continuous intraday heart rate stream — by far the largest source in a
+/// Takeout export, at hundreds of daily files and millions of rows. Every table here is a plain keyed
+/// upsert, so the whole importer runs on batched raw SQL: files are parsed across all cores and the
+/// rows funnelled into a single writer, instead of round-tripping through EF change tracking.
 /// </summary>
-public class HeartHealthImporter : IDomainImporter
+public sealed class HeartHealthImporter : IDomainImporter
 {
-    private static readonly TimeZoneInfo LocalZone = ResolveLocalZone();
-
     public string Name => "Herzfrequenz & HRV";
 
     public async Task ImportAsync(ImportContext context, CancellationToken ct)
     {
-        var pa = context.FindFolder("Physical Activity_GoogleData");
-        if (pa is null)
+        var folder = context.FindFolder("Physical Activity_GoogleData");
+        if (folder is null)
         {
             return;
         }
 
+        await using var connection = context.OpenWriteConnection();
+
         context.ReportProgress("Ruhepuls wird gelesen...", 0);
-        await ImportSimpleDaily(context, Path.Combine(pa, "daily_resting_heart_rate.csv"), "beats per minute",
-            async (db, date, value, token) =>
-            {
-                var existing = await db.RestingHeartRateDailies.FindAsync([date], token);
-                if (existing is null)
-                {
-                    db.RestingHeartRateDailies.Add(new RestingHeartRateDaily { Date = date, Bpm = value });
-                }
-                else
-                {
-                    existing.Bpm = value;
-                }
-            }, ct);
+        ImportDailyValue(context, connection, Path.Combine(folder, "daily_resting_heart_rate.csv"), "beats per minute",
+            "INSERT OR REPLACE INTO RestingHeartRateDailies (Date, Bpm) VALUES ($date, $value)");
+
+        context.ReportProgress("Atemfrequenz wird gelesen...", 5);
+        ImportDailyValue(context, connection, Path.Combine(folder, "daily_respiratory_rate.csv"), "breaths per minute",
+            "INSERT OR REPLACE INTO RespiratoryRateDailies (Date, BreathsPerMinute) VALUES ($date, $value)");
 
         context.ReportProgress("Active Zone Minutes werden gelesen...", 10);
-        await ImportAzm(context, pa, ct);
+        await ImportAzmAsync(context, connection, folder, ct);
 
         context.ReportProgress("HRV-Tageswerte werden gelesen...", 20);
-        await ImportHrvDaily(context, pa, ct);
+        ImportHrvDaily(context, connection, folder);
 
         context.ReportProgress("HRV-Details werden gelesen...", 30);
-        await ImportHrvDetail(context, pa, ct);
-
-        context.ReportProgress("Atemfrequenz wird gelesen...", 35);
-        await ImportSimpleDaily(context, Path.Combine(pa, "daily_respiratory_rate.csv"), "breaths per minute",
-            async (db, date, value, token) =>
-            {
-                var existing = await db.RespiratoryRateDailies.FindAsync([date], token);
-                if (existing is null)
-                {
-                    db.RespiratoryRateDailies.Add(new RespiratoryRateDaily { Date = date, BreathsPerMinute = value });
-                }
-                else
-                {
-                    existing.BreathsPerMinute = value;
-                }
-            }, ct);
+        await ImportHrvDetailAsync(context, connection, folder, ct);
 
         context.ReportProgress("Herzfrequenz-Verlauf wird aggregiert (das kann etwas dauern)...", 40);
-        await ImportIntradayHeartRate(context, pa, ct);
+        await ImportIntradayHeartRateAsync(context, connection, folder, ct);
 
         context.ReportProgress("Herzfrequenz & HRV importiert", 100);
     }
 
-    private async Task ImportSimpleDaily(ImportContext context, string path, string valueColumn, Func<AppDbContext, DateOnly, double, CancellationToken, Task> upsert, CancellationToken ct)
+    private static void ImportDailyValue(ImportContext context, SqliteConnection connection, string path, string valueColumn, string sql)
     {
-        if (!File.Exists(path))
+        using var csv = CsvCursor.Open(path);
+        if (csv is null)
         {
             return;
         }
 
-        await using var db = context.CreateContext();
-
-        using var reader = new StreamReader(path);
-        using var csv = new CsvReader(reader, CultureInfo.InvariantCulture);
-        csv.Read();
-        csv.ReadHeader();
-        long count = 0;
-        while (csv.Read())
+        var timestamp = csv.Column("timestamp");
+        var value = csv.Column(valueColumn);
+        if (timestamp < 0 || value < 0)
         {
-            var ts = ParseUtc(csv.GetField("timestamp"));
-            if (ts is null || !double.TryParse(csv.GetField(valueColumn), NumberStyles.Float, CultureInfo.InvariantCulture, out var value))
-            {
-                continue;
-            }
-
-            await upsert(db, DateOnly.FromDateTime(ts.Value), value, ct);
-            count++;
+            return;
         }
 
-        await db.SaveChangesAsync(ct);
-        context.RowsImported += count;
+        using var writer = new SqliteBulkWriter(connection, sql, "$date", "$value");
+        while (csv.NextRow())
+        {
+            if (csv.GetUtcDate(timestamp) is { } date && csv.TryGetDouble(value, out var parsed))
+            {
+                writer.Write(date, parsed);
+            }
+        }
+
+        writer.Flush();
+        context.AddRows(writer.RowCount);
     }
 
-    private static async Task ImportAzm(ImportContext context, string folder, CancellationToken ct)
+    private static async Task ImportAzmAsync(ImportContext context, SqliteConnection connection, string folder, CancellationToken ct)
     {
-        var totals = new Dictionary<(DateOnly date, string zone), int>();
-        foreach (var file in Directory.EnumerateFiles(folder, "active_zone_minutes_*.csv"))
-        {
-            using var reader = new StreamReader(file);
-            using var csv = new CsvReader(reader, CultureInfo.InvariantCulture);
-            csv.Read();
-            csv.ReadHeader();
-            while (csv.Read())
+        // Zone minutes arrive as intraday events, so they have to be totalled per local day before
+        // anything can be written — merge every file's partial totals first, then write once.
+        var totals = new Dictionary<(DateOnly Date, string Zone), int>();
+
+        await ParallelCsv.RunAsync(
+            Directory.GetFiles(folder, "active_zone_minutes_*.csv"),
+            ParseAzmFile,
+            partial =>
             {
-                var ts = ParseUtc(csv.GetField("timestamp"));
-                var zone = csv.GetField("heart rate zone");
-                if (ts is null || string.IsNullOrEmpty(zone) || !int.TryParse(csv.GetField("total minutes"), out var minutes))
+                foreach (var (key, minutes) in partial)
                 {
-                    continue;
+                    CollectionsMarshal.GetValueRefOrAddDefault(totals, key, out _) += minutes;
                 }
+            },
+            null,
+            ct);
 
-                var date = DateOnly.FromDateTime(TimeZoneInfo.ConvertTimeFromUtc(ts.Value, LocalZone));
-                var key = (date, zone);
-                totals[key] = totals.GetValueOrDefault(key) + minutes;
-            }
-        }
+        using var writer = new SqliteBulkWriter(
+            connection,
+            "INSERT OR REPLACE INTO HeartRateZoneMinutesDailies (Date, Zone, Minutes) VALUES ($date, $zone, $minutes)",
+            "$date", "$zone", "$minutes");
 
-        await using var db = context.CreateContext();
         foreach (var ((date, zone), minutes) in totals)
         {
-            var existing = await db.HeartRateZoneMinutesDailies.FindAsync([date, zone], ct);
-            if (existing is null)
-            {
-                db.HeartRateZoneMinutesDailies.Add(new HeartRateZoneMinutesDaily { Date = date, Zone = zone, Minutes = minutes });
-            }
-            else
-            {
-                existing.Minutes = minutes;
-            }
+            writer.Write(date, zone, minutes);
         }
 
-        await db.SaveChangesAsync(ct);
-        context.RowsImported += totals.Count;
+        writer.Flush();
+        context.AddRows(writer.RowCount);
     }
 
-    private static async Task ImportHrvDaily(ImportContext context, string folder, CancellationToken ct)
+    private static Dictionary<(DateOnly Date, string Zone), int> ParseAzmFile(string file)
     {
-        var path = Path.Combine(folder, "daily_heart_rate_variability.csv");
-        if (!File.Exists(path))
+        var totals = new Dictionary<(DateOnly, string), int>();
+        using var csv = CsvCursor.Open(file);
+        if (csv is null)
+        {
+            return totals;
+        }
+
+        var timestamp = csv.Column("timestamp");
+        var zone = csv.Column("heart rate zone");
+        var minutes = csv.Column("total minutes");
+        while (timestamp >= 0 && zone >= 0 && minutes >= 0 && csv.NextRow())
+        {
+            if (csv.GetUtc(timestamp) is not { } utc || csv.Field(zone).IsEmpty)
+            {
+                continue;
+            }
+
+            var key = (LocalTimeZone.ToLocalDate(utc), csv.GetString(zone));
+            CollectionsMarshal.GetValueRefOrAddDefault(totals, key, out _) += csv.GetInt32OrZero(minutes);
+        }
+
+        return totals;
+    }
+
+    private static void ImportHrvDaily(ImportContext context, SqliteConnection connection, string folder)
+    {
+        using var csv = CsvCursor.Open(Path.Combine(folder, "daily_heart_rate_variability.csv"));
+        if (csv is null)
         {
             return;
         }
 
-        await using var db = context.CreateContext();
-        using var reader = new StreamReader(path);
-        using var csv = new CsvReader(reader, CultureInfo.InvariantCulture);
-        csv.Read();
-        csv.ReadHeader();
-        long count = 0;
-        while (csv.Read())
+        var timestamp = csv.Column("timestamp");
+        if (timestamp < 0)
         {
-            var ts = ParseUtc(csv.GetField("timestamp"));
-            if (ts is null)
-            {
-                continue;
-            }
-
-            var date = DateOnly.FromDateTime(ts.Value);
-            var existing = await db.HrvDailySummaries.FindAsync([date], ct);
-            if (existing is not null)
-            {
-                continue;
-            }
-
-            db.HrvDailySummaries.Add(new HrvDailySummary
-            {
-                Date = date,
-                RmssdMs = ParseDoubleOrZero(csv.GetField("average heart rate variability milliseconds")),
-                NonRemHrBpm = ParseDoubleOrZero(csv.GetField("non rem heart rate beats per minute")),
-                Entropy = ParseDoubleOrZero(csv.GetField("entropy")),
-            });
-            count++;
+            return;
         }
 
-        await db.SaveChangesAsync(ct);
-        context.RowsImported += count;
+        var rmssd = csv.Column("average heart rate variability milliseconds");
+        var nonRem = csv.Column("non rem heart rate beats per minute");
+        var entropy = csv.Column("entropy");
+
+        using var writer = new SqliteBulkWriter(
+            connection,
+            "INSERT OR REPLACE INTO HrvDailySummaries (Date, RmssdMs, NonRemHrBpm, Entropy) VALUES ($date, $rmssd, $nonRem, $entropy)",
+            "$date", "$rmssd", "$nonRem", "$entropy");
+
+        while (csv.NextRow())
+        {
+            if (csv.GetUtcDate(timestamp) is { } date)
+            {
+                writer.Write(date, csv.GetDoubleOrZero(rmssd), csv.GetDoubleOrZero(nonRem), csv.GetDoubleOrZero(entropy));
+            }
+        }
+
+        writer.Flush();
+        context.AddRows(writer.RowCount);
     }
 
-    private static async Task ImportHrvDetail(ImportContext context, string folder, CancellationToken ct)
+    private static async Task ImportHrvDetailAsync(ImportContext context, SqliteConnection connection, string folder, CancellationToken ct)
     {
-        await using var db = context.CreateContext();
-        var conn = (SqliteConnection)db.Database.GetDbConnection();
-        await conn.OpenAsync(ct);
-        await using var tx = await conn.BeginTransactionAsync(ct);
-        await using var cmd = conn.CreateCommand();
-        cmd.Transaction = (SqliteTransaction)tx;
-        cmd.CommandText = "INSERT OR IGNORE INTO HrvDetails (TimestampUtc, RmssdMs, StdDevMs) VALUES ($ts, $rmssd, $stddev)";
-        var pTs = cmd.CreateParameter(); pTs.ParameterName = "$ts"; cmd.Parameters.Add(pTs);
-        var pRmssd = cmd.CreateParameter(); pRmssd.ParameterName = "$rmssd"; cmd.Parameters.Add(pRmssd);
-        var pStdDev = cmd.CreateParameter(); pStdDev.ParameterName = "$stddev"; cmd.Parameters.Add(pStdDev);
+        using var writer = new SqliteBulkWriter(
+            connection,
+            "INSERT OR REPLACE INTO HrvDetails (TimestampUtc, RmssdMs, StdDevMs) VALUES ($timestamp, $rmssd, $stdDev)",
+            "$timestamp", "$rmssd", "$stdDev");
 
-        long count = 0;
-        foreach (var file in Directory.EnumerateFiles(folder, "heart_rate_variability_*.csv"))
-        {
-            using var reader = new StreamReader(file);
-            using var csv = new CsvReader(reader, CultureInfo.InvariantCulture);
-            csv.Read();
-            csv.ReadHeader();
-            while (csv.Read())
+        await ParallelCsv.RunAsync(
+            Directory.GetFiles(folder, "heart_rate_variability_*.csv"),
+            ParseHrvDetailFile,
+            rows =>
             {
-                var ts = ParseUtc(csv.GetField("timestamp"));
-                if (ts is null)
+                foreach (var (timestamp, rmssd, stdDev) in rows)
                 {
-                    continue;
+                    writer.Write(timestamp, rmssd, stdDev);
                 }
+            },
+            null,
+            ct);
 
-                pTs.Value = ts.Value;
-                pRmssd.Value = ParseDoubleOrZero(csv.GetField("root mean square of successive differences milliseconds"));
-                pStdDev.Value = ParseDoubleOrZero(csv.GetField("standard deviation milliseconds"));
-                await cmd.ExecuteNonQueryAsync(ct);
-                count++;
+        writer.Flush();
+        context.AddRows(writer.RowCount);
+    }
+
+    private static List<(DateTime Timestamp, double Rmssd, double StdDev)> ParseHrvDetailFile(string file)
+    {
+        var rows = new List<(DateTime, double, double)>();
+        using var csv = CsvCursor.Open(file);
+        if (csv is null)
+        {
+            return rows;
+        }
+
+        var timestamp = csv.Column("timestamp");
+        var rmssd = csv.Column("root mean square of successive differences milliseconds");
+        var stdDev = csv.Column("standard deviation milliseconds");
+        while (timestamp >= 0 && csv.NextRow())
+        {
+            if (csv.GetUtc(timestamp) is { } utc)
+            {
+                rows.Add((utc, csv.GetDoubleOrZero(rmssd), csv.GetDoubleOrZero(stdDev)));
             }
         }
 
-        await tx.CommitAsync(ct);
-        context.RowsImported += count;
+        return rows;
     }
 
-    private static async Task ImportIntradayHeartRate(ImportContext context, string folder, CancellationToken ct)
+    private static async Task ImportIntradayHeartRateAsync(ImportContext context, SqliteConnection connection, string folder, CancellationToken ct)
     {
         var files = Directory.EnumerateFiles(folder, "heart_rate_*.csv")
             .Where(f => !Path.GetFileName(f).Contains("variability", StringComparison.OrdinalIgnoreCase))
-            .OrderBy(f => f)
-            .ToList();
+            .Order(StringComparer.Ordinal)
+            .ToArray();
 
-        if (files.Count == 0)
-        {
-            return;
-        }
+        using var writer = new SqliteBulkWriter(
+            connection,
+            "INSERT OR REPLACE INTO HeartRateMinutelies (MinuteUtc, MinBpm, AvgBpm, MaxBpm, SampleCount) VALUES ($minute, $min, $avg, $max, $count)",
+            "$minute", "$min", "$avg", "$max", "$count");
 
-        await using var db = context.CreateContext();
-        var conn = (SqliteConnection)db.Database.GetDbConnection();
-        await conn.OpenAsync(ct);
-        using (var pragma = conn.CreateCommand())
-        {
-            pragma.CommandText = "PRAGMA synchronous = OFF;";
-            await pragma.ExecuteNonQueryAsync(ct);
-        }
-
-        long totalRows = 0;
-        for (var i = 0; i < files.Count; i++)
-        {
-            var minuteBuckets = new Dictionary<DateTime, (double min, double max, double sum, int count)>();
-
-            using (var reader = new StreamReader(files[i]))
-            using (var csv = new CsvReader(reader, CultureInfo.InvariantCulture))
+        await ParallelCsv.RunAsync(
+            files,
+            ParseMinuteBuckets,
+            buckets =>
             {
-                csv.Read();
-                csv.ReadHeader();
-                while (csv.Read())
+                foreach (var (minute, bucket) in buckets)
                 {
-                    var ts = ParseUtc(csv.GetField("timestamp"));
-                    if (ts is null || !double.TryParse(csv.GetField("beats per minute"), NumberStyles.Float, CultureInfo.InvariantCulture, out var bpm))
-                    {
-                        continue;
-                    }
-
-                    var minute = new DateTime(ts.Value.Year, ts.Value.Month, ts.Value.Day, ts.Value.Hour, ts.Value.Minute, 0, DateTimeKind.Utc);
-                    if (minuteBuckets.TryGetValue(minute, out var bucket))
-                    {
-                        minuteBuckets[minute] = (Math.Min(bucket.min, bpm), Math.Max(bucket.max, bpm), bucket.sum + bpm, bucket.count + 1);
-                    }
-                    else
-                    {
-                        minuteBuckets[minute] = (bpm, bpm, bpm, 1);
-                    }
+                    writer.Write(minute, bucket.Min, bucket.Sum / bucket.Count, bucket.Max, bucket.Count);
                 }
-            }
-
-            await using var tx = await conn.BeginTransactionAsync(ct);
-            await using var cmd = conn.CreateCommand();
-            cmd.Transaction = (SqliteTransaction)tx;
-            cmd.CommandText = "INSERT OR IGNORE INTO HeartRateMinutelies (MinuteUtc, MinBpm, AvgBpm, MaxBpm, SampleCount) VALUES ($minute, $min, $avg, $max, $count)";
-            var pMinute = cmd.CreateParameter(); pMinute.ParameterName = "$minute"; cmd.Parameters.Add(pMinute);
-            var pMin = cmd.CreateParameter(); pMin.ParameterName = "$min"; cmd.Parameters.Add(pMin);
-            var pAvg = cmd.CreateParameter(); pAvg.ParameterName = "$avg"; cmd.Parameters.Add(pAvg);
-            var pMax = cmd.CreateParameter(); pMax.ParameterName = "$max"; cmd.Parameters.Add(pMax);
-            var pCount = cmd.CreateParameter(); pCount.ParameterName = "$count"; cmd.Parameters.Add(pCount);
-
-            foreach (var (minute, bucket) in minuteBuckets)
+            },
+            done =>
             {
-                pMinute.Value = minute;
-                pMin.Value = bucket.min;
-                pAvg.Value = bucket.sum / bucket.count;
-                pMax.Value = bucket.max;
-                pCount.Value = bucket.count;
-                await cmd.ExecuteNonQueryAsync(ct);
-            }
+                if (done % 25 == 0 || done == files.Length)
+                {
+                    context.ReportProgress($"Herzfrequenz-Verlauf wird aggregiert ({done}/{files.Length} Tage)...", 40 + (55 * done / files.Length));
+                }
+            },
+            ct);
 
-            await tx.CommitAsync(ct);
-            totalRows += minuteBuckets.Count;
-
-            if (i % 25 == 0)
-            {
-                var pct = 40 + (int)(55.0 * i / files.Count);
-                context.ReportProgress($"Herzfrequenz-Verlauf wird aggregiert ({i}/{files.Count} Tage)...", pct);
-            }
-        }
-
-        context.RowsImported += totalRows;
+        writer.Flush();
+        context.AddRows(writer.RowCount);
     }
 
-    private static double ParseDoubleOrZero(string? s) => double.TryParse(s, NumberStyles.Float, CultureInfo.InvariantCulture, out var v) ? v : 0;
-
-    private static DateTime? ParseUtc(string? raw)
+    /// <summary>
+    /// Collapses one day of the continuous heart rate stream into min/avg/max per minute. Nothing in
+    /// the app plots raw samples, and this is what keeps the table at a few hundred thousand rows
+    /// rather than tens of millions.
+    /// </summary>
+    private static Dictionary<DateTime, MinuteBucket> ParseMinuteBuckets(string file)
     {
-        if (string.IsNullOrWhiteSpace(raw))
+        var buckets = new Dictionary<DateTime, MinuteBucket>(1440);
+        using var csv = CsvCursor.Open(file);
+        if (csv is null)
         {
-            return null;
+            return buckets;
         }
 
-        return DateTime.TryParse(raw, CultureInfo.InvariantCulture, DateTimeStyles.AdjustToUniversal | DateTimeStyles.AssumeUniversal, out var dt)
-            ? dt
-            : null;
+        var timestamp = csv.Column("timestamp");
+        var bpmColumn = csv.Column("beats per minute");
+        while (timestamp >= 0 && bpmColumn >= 0 && csv.NextRow())
+        {
+            if (csv.GetUtc(timestamp) is not { } utc || !csv.TryGetDouble(bpmColumn, out var bpm))
+            {
+                continue;
+            }
+
+            var minute = new DateTime(utc.Ticks - (utc.Ticks % TimeSpan.TicksPerMinute), DateTimeKind.Utc);
+            ref var bucket = ref CollectionsMarshal.GetValueRefOrAddDefault(buckets, minute, out var existed);
+            if (existed)
+            {
+                bucket.Min = Math.Min(bucket.Min, bpm);
+                bucket.Max = Math.Max(bucket.Max, bpm);
+                bucket.Sum += bpm;
+                bucket.Count++;
+            }
+            else
+            {
+                bucket = new MinuteBucket { Min = bpm, Max = bpm, Sum = bpm, Count = 1 };
+            }
+        }
+
+        return buckets;
     }
 
-    private static TimeZoneInfo ResolveLocalZone()
+    private struct MinuteBucket
     {
-        try
-        {
-            return TimeZoneInfo.FindSystemTimeZoneById("Europe/Vienna");
-        }
-        catch (TimeZoneNotFoundException)
-        {
-            return TimeZoneInfo.FindSystemTimeZoneById("Central European Standard Time");
-        }
+        public double Min;
+        public double Max;
+        public double Sum;
+        public int Count;
     }
 }

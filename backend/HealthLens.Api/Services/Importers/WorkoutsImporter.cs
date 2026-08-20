@@ -1,8 +1,8 @@
 using System.Globalization;
-using System.Text.Json;
 using System.Text.RegularExpressions;
-using CsvHelper;
 using HealthLens.Api.Models;
+using HealthLens.Api.Services.Csv;
+using HealthLens.Api.Services.Import;
 using Microsoft.EntityFrameworkCore;
 
 namespace HealthLens.Api.Services.Importers;
@@ -31,7 +31,7 @@ public partial class WorkoutsImporter : IDomainImporter
         if (hfd is not null)
         {
             context.ReportProgress("Workouts (UserExercises) werden gelesen...", 0);
-            ParseUserExercises(hfd, workouts, splits);
+            await ParseUserExercisesAsync(hfd, workouts, splits, ct);
 
             context.ReportProgress("Lauf-Dynamik (WorkoutSummariesAndRounds) wird verknüpft...", 15);
             ParseWorkoutSummariesAndRounds(hfd, workouts);
@@ -89,7 +89,7 @@ public partial class WorkoutsImporter : IDomainImporter
         }
 
         await db.SaveChangesAsync(ct);
-        context.RowsImported += workouts.Count + splits.Sum(s => s.Value.Count) + records.Count;
+        context.AddRows(workouts.Count + splits.Sum(s => s.Value.Count) + records.Count);
 
         context.ReportProgress("Sensordaten der Workouts werden gespeichert...", 92);
         await SaveSamplesAsync(context, samples, ct);
@@ -114,86 +114,126 @@ public partial class WorkoutsImporter : IDomainImporter
         }
 
         await db.SaveChangesAsync(ct);
-        context.RowsImported += total;
+        context.AddRows(total);
     }
 
     // ---- UserExercises ----------------------------------------------------
 
-    private static void ParseUserExercises(string folder, Dictionary<long, Workout> workouts, Dictionary<long, List<WorkoutSplit>> splits)
+    private readonly record struct UserExercisesResult(Dictionary<long, Workout> Workouts, Dictionary<long, List<WorkoutSplit>> Splits);
+
+    private static async Task ParseUserExercisesAsync(string folder, Dictionary<long, Workout> workouts, Dictionary<long, List<WorkoutSplit>> splits, CancellationToken ct)
     {
-        foreach (var file in Directory.EnumerateFiles(folder, "UserExercises_*.csv").OrderBy(f => f))
-        {
-            using var reader = new StreamReader(file);
-            using var csv = new CsvReader(reader, CultureInfo.InvariantCulture);
-            csv.Read();
-            csv.ReadHeader();
+        var files = Directory.EnumerateFiles(folder, "UserExercises_*.csv").Order(StringComparer.Ordinal).ToArray();
 
-            while (csv.Read())
+        await ParallelCsv.RunAsync(
+            files,
+            ParseUserExercisesFile,
+            partial =>
             {
-                if (!long.TryParse(csv.GetField("exercise_id"), out var id))
+                foreach (var (id, workout) in partial.Workouts)
                 {
-                    continue;
+                    workouts[id] = workout;
                 }
 
-                var start = ParseUtc(csv.GetField("exercise_start"));
-                var end = ParseUtc(csv.GetField("exercise_end"));
-                if (start is null || end is null)
+                foreach (var (id, list) in partial.Splits)
                 {
-                    continue;
+                    splits[id] = list;
                 }
+            },
+            null,
+            ct);
+    }
 
-                var avgSpeedMmS = ParseNullableDouble(csv.GetField("tracker_avg_speed_mm_per_second"));
-                var avgSpeedKmh = avgSpeedMmS is > 0 ? avgSpeedMmS * 0.0036 : null;
-                var peakSpeedMmS = ParseNullableDouble(csv.GetField("tracker_peak_speed_mm_per_second"));
+    private static UserExercisesResult ParseUserExercisesFile(string file)
+    {
+        var workouts = new Dictionary<long, Workout>();
+        var splits = new Dictionary<long, List<WorkoutSplit>>();
 
-                var distanceMm = ParseNullableDouble(csv.GetField("tracker_total_distance_mm"));
-                if (distanceMm is null or 0)
-                {
-                    distanceMm = ParseNullableDouble(csv.GetField("manually_logged_total_distance_mm"));
-                }
-
-                var calories = ParseNullableDouble(csv.GetField("tracker_total_calories"));
-                if (calories is null or 0)
-                {
-                    calories = ParseNullableDouble(csv.GetField("manually_logged_total_calories"));
-                }
-
-                var steps = ParseNullableDouble(csv.GetField("tracker_total_steps"));
-                if (steps is null or 0)
-                {
-                    steps = ParseNullableDouble(csv.GetField("manually_logged_total_steps"));
-                }
-
-                var workout = new Workout
-                {
-                    Id = id,
-                    StartUtc = start.Value,
-                    EndUtc = end.Value,
-                    ActivityName = csv.GetField("activity_name") ?? "Workout",
-                    LogType = csv.GetField("log_type") ?? "",
-                    DistanceMeters = distanceMm is > 0 ? distanceMm / 1000.0 : null,
-                    Calories = calories is > 0 ? calories : null,
-                    Steps = steps is > 0 ? (int)steps : null,
-                    AvgHeartRate = NullIfZero(ParseNullableDouble(csv.GetField("tracker_avg_heart_rate"))),
-                    PeakHeartRate = NullIfZero(ParseNullableDouble(csv.GetField("tracker_peak_heart_rate"))),
-                    AvgSpeedKmh = avgSpeedKmh,
-                    PeakSpeedKmh = peakSpeedMmS is > 0 ? peakSpeedMmS * 0.0036 : null,
-                    AvgPaceSecPerKm = avgSpeedKmh is > 0 ? 3600.0 / avgSpeedKmh : null,
-                    ElevationGainMeters = NullIfZero(ParseNullableDouble(csv.GetField("tracker_total_altitude_mm")) / 1000.0),
-                    CardioLoad = ParseNullableDouble(csv.GetField("tracker_cardio_load")),
-                    HasGps = false,
-                };
-
-                if (workout.AvgSpeedKmh is null && workout.DistanceMeters is > 0 && workout.DurationSeconds > 0)
-                {
-                    workout.AvgSpeedKmh = (workout.DistanceMeters.Value / 1000.0) / (workout.DurationSeconds / 3600.0);
-                    workout.AvgPaceSecPerKm = 3600.0 / workout.AvgSpeedKmh;
-                }
-
-                workouts[id] = workout;
-                splits[id] = ParseEvents(csv.GetField("events"), id);
-            }
+        using var csv = CsvCursor.Open(file);
+        if (csv is null)
+        {
+            return new UserExercisesResult(workouts, splits);
         }
+
+        var id = csv.Column("exercise_id");
+        var start = csv.Column("exercise_start");
+        var end = csv.Column("exercise_end");
+        var avgSpeedCol = csv.Column("tracker_avg_speed_mm_per_second");
+        var peakSpeedCol = csv.Column("tracker_peak_speed_mm_per_second");
+        var trackerDistance = csv.Column("tracker_total_distance_mm");
+        var manualDistance = csv.Column("manually_logged_total_distance_mm");
+        var trackerCalories = csv.Column("tracker_total_calories");
+        var manualCalories = csv.Column("manually_logged_total_calories");
+        var trackerSteps = csv.Column("tracker_total_steps");
+        var manualSteps = csv.Column("manually_logged_total_steps");
+        var activityName = csv.Column("activity_name");
+        var logType = csv.Column("log_type");
+        var avgHr = csv.Column("tracker_avg_heart_rate");
+        var peakHr = csv.Column("tracker_peak_heart_rate");
+        var altitude = csv.Column("tracker_total_altitude_mm");
+        var cardioLoad = csv.Column("tracker_cardio_load");
+        var events = csv.Column("events");
+
+        while (csv.NextRow())
+        {
+            if (csv.GetInt64(id) is not { } exerciseId || csv.GetUtc(start) is not { } startUtc || csv.GetUtc(end) is not { } endUtc)
+            {
+                continue;
+            }
+
+            var avgSpeedMmS = csv.GetDouble(avgSpeedCol);
+            var avgSpeedKmh = avgSpeedMmS is > 0 ? avgSpeedMmS * 0.0036 : null;
+            var peakSpeedMmS = csv.GetDouble(peakSpeedCol);
+
+            var distanceMm = csv.GetDouble(trackerDistance);
+            if (distanceMm is null or 0)
+            {
+                distanceMm = csv.GetDouble(manualDistance);
+            }
+
+            var calories = csv.GetDouble(trackerCalories);
+            if (calories is null or 0)
+            {
+                calories = csv.GetDouble(manualCalories);
+            }
+
+            var steps = csv.GetDouble(trackerSteps);
+            if (steps is null or 0)
+            {
+                steps = csv.GetDouble(manualSteps);
+            }
+
+            var workout = new Workout
+            {
+                Id = exerciseId,
+                StartUtc = startUtc,
+                EndUtc = endUtc,
+                ActivityName = csv.GetString(activityName) is { Length: > 0 } name ? name : "Workout",
+                LogType = csv.GetString(logType),
+                DistanceMeters = distanceMm is > 0 ? distanceMm / 1000.0 : null,
+                Calories = calories is > 0 ? calories : null,
+                Steps = steps is > 0 ? (int)steps : null,
+                AvgHeartRate = NullIfZero(csv.GetDouble(avgHr)),
+                PeakHeartRate = NullIfZero(csv.GetDouble(peakHr)),
+                AvgSpeedKmh = avgSpeedKmh,
+                PeakSpeedKmh = peakSpeedMmS is > 0 ? peakSpeedMmS * 0.0036 : null,
+                AvgPaceSecPerKm = avgSpeedKmh is > 0 ? 3600.0 / avgSpeedKmh : null,
+                ElevationGainMeters = NullIfZero(csv.GetDouble(altitude) / 1000.0),
+                CardioLoad = csv.GetDouble(cardioLoad),
+                HasGps = false,
+            };
+
+            if (workout.AvgSpeedKmh is null && workout.DistanceMeters is > 0 && workout.DurationSeconds > 0)
+            {
+                workout.AvgSpeedKmh = (workout.DistanceMeters.Value / 1000.0) / (workout.DurationSeconds / 3600.0);
+                workout.AvgPaceSecPerKm = 3600.0 / workout.AvgSpeedKmh;
+            }
+
+            workouts[exerciseId] = workout;
+            splits[exerciseId] = ParseEvents(csv.GetString(events), exerciseId);
+        }
+
+        return new UserExercisesResult(workouts, splits);
     }
 
     [GeneratedRegex(@"\[([^\]]*)\]")]
@@ -253,37 +293,38 @@ public partial class WorkoutsImporter : IDomainImporter
     private static void ParseWorkoutSummariesAndRounds(string folder, Dictionary<long, Workout> workouts)
     {
         var path = Path.Combine(folder, "WorkoutSummariesAndRounds.csv");
-        if (!File.Exists(path))
+        using var csv = CsvCursor.Open(path);
+        if (csv is null)
         {
             return;
         }
 
+        var startCol = csv.Column("interval_start");
+        var endCol = csv.Column("interval_end");
+        var cadenceCol = csv.Column("avg_cadence_spm");
+        var vertOscCol = csv.Column("avg_vertical_oscillation_mm");
+        var vertRatioCol = csv.Column("avg_vertical_ratio");
+        var gctCol = csv.Column("avg_ground_contact_time_duration_micro_sec");
+        var rpeCol = csv.Column("rate_perceived_exertion");
+
         var intervals = new Dictionary<(DateTime start, DateTime end), (double? cadence, double? vertOsc, double? vertRatio, double? gct, double? rpe)>();
 
-        using (var reader = new StreamReader(path))
-        using (var csv = new CsvReader(reader, CultureInfo.InvariantCulture))
+        while (csv.NextRow())
         {
-            csv.Read();
-            csv.ReadHeader();
-            while (csv.Read())
+            if (csv.GetUtc(startCol) is not { } start || csv.GetUtc(endCol) is not { } end)
             {
-                var start = ParseUtc(csv.GetField("interval_start"));
-                var end = ParseUtc(csv.GetField("interval_end"));
-                if (start is null || end is null)
-                {
-                    continue;
-                }
+                continue;
+            }
 
-                var key = (start.Value, end.Value);
-                if (!intervals.ContainsKey(key))
-                {
-                    intervals[key] = (
-                        ParseNullableDouble(csv.GetField("avg_cadence_spm")),
-                        ParseNullableDouble(csv.GetField("avg_vertical_oscillation_mm")),
-                        ParseNullableDouble(csv.GetField("avg_vertical_ratio")),
-                        ParseNullableDouble(csv.GetField("avg_ground_contact_time_duration_micro_sec")) is { } us ? us / 1000.0 : null,
-                        ParseNullableDouble(csv.GetField("rate_perceived_exertion")));
-                }
+            var key = (start, end);
+            if (!intervals.ContainsKey(key))
+            {
+                intervals[key] = (
+                    csv.GetDouble(cadenceCol),
+                    csv.GetDouble(vertOscCol),
+                    csv.GetDouble(vertRatioCol),
+                    csv.GetDouble(gctCol) is { } us ? us / 1000.0 : null,
+                    csv.GetDouble(rpeCol));
             }
         }
 
@@ -311,37 +352,41 @@ public partial class WorkoutsImporter : IDomainImporter
     private static void ParsePersonalRecords(string folder, Dictionary<long, Workout> workouts, List<PersonalRecord> records)
     {
         var path = Path.Combine(folder, "PersonalRecords.csv");
-        if (!File.Exists(path))
+        using var csv = CsvCursor.Open(path);
+        if (csv is null)
         {
             return;
         }
 
-        using var reader = new StreamReader(path);
-        using var csv = new CsvReader(reader, CultureInfo.InvariantCulture);
-        csv.Read();
-        csv.ReadHeader();
-        while (csv.Read())
+        var achieveCol = csv.Column("achieve_time");
+        var exerciseIdCol = csv.Column("exercise_id");
+        var extentCol = csv.Column("extent_value");
+        var nameCol = csv.Column("name_localization_id");
+        var stateCol = csv.Column("state");
+        var valueCol = csv.Column("record_value");
+        var typeCol = csv.Column("personal_record_type");
+
+        while (csv.NextRow())
         {
-            var achieve = ParseUtc(csv.GetField("achieve_time"));
-            if (achieve is null)
+            if (csv.GetUtc(achieveCol) is not { } achieve)
             {
                 continue;
             }
 
-            var exerciseId = long.TryParse(csv.GetField("exercise_id"), out var eid) ? eid : (long?)null;
-            var extentRaw = csv.GetField("extent_value");
-            double? extentMeters = extentRaw is not null && extentRaw != "N/A" && double.TryParse(extentRaw, NumberStyles.Float, CultureInfo.InvariantCulture, out var extentMm)
+            var exerciseId = csv.GetInt64(exerciseIdCol);
+            var extentField = csv.Field(extentCol);
+            double? extentMeters = !extentField.IsEmpty && !extentField.SequenceEqual("N/A") && csv.TryGetDouble(extentCol, out var extentMm)
                 ? extentMm / 1000.0
                 : null;
 
             records.Add(new PersonalRecord
             {
                 WorkoutId = exerciseId is not null && workouts.ContainsKey(exerciseId.Value) ? exerciseId : null,
-                NameLocalizationId = csv.GetField("name_localization_id") ?? "",
-                State = csv.GetField("state") ?? "",
-                AchieveTimeUtc = achieve.Value,
-                RecordValue = ParseNullableDouble(csv.GetField("record_value")) ?? 0,
-                RecordType = csv.GetField("personal_record_type") ?? "",
+                NameLocalizationId = csv.GetString(nameCol),
+                State = csv.GetString(stateCol),
+                AchieveTimeUtc = achieve,
+                RecordValue = csv.GetDoubleOrZero(valueCol),
+                RecordType = csv.GetString(typeCol),
                 ExtentValueMeters = extentMeters,
             });
         }
@@ -354,15 +399,5 @@ public partial class WorkoutsImporter : IDomainImporter
 
     private static double? NullIfZero(double? v) => v is null or 0 ? null : v;
 
-    private static DateTime? ParseUtc(string? raw)
-    {
-        if (string.IsNullOrWhiteSpace(raw))
-        {
-            return null;
-        }
-
-        return DateTime.TryParse(raw, CultureInfo.InvariantCulture, DateTimeStyles.AdjustToUniversal | DateTimeStyles.AssumeUniversal, out var dt)
-            ? dt
-            : null;
-    }
+    private static DateTime? ParseUtc(string? raw) => Timestamps.TryParseUtc(raw, out var value) ? value : null;
 }

@@ -1,13 +1,11 @@
 using System.Globalization;
-using CsvHelper;
 using HealthLens.Api.Models;
+using HealthLens.Api.Services.Csv;
 
 namespace HealthLens.Api.Services.Importers;
 
 public partial class WorkoutsImporter
 {
-    private static readonly TimeSpan MatchBuffer = TimeSpan.FromMinutes(5);
-
     private static void ImportPerSecondStreams(string folder, Dictionary<long, Workout> workouts, Dictionary<long, Dictionary<DateTime, WorkoutSample>> samples)
     {
         var workoutsByDate = new Dictionary<DateOnly, List<Workout>>();
@@ -29,50 +27,50 @@ public partial class WorkoutsImporter
         {
             var ds = date.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture);
 
-            MergeFile(folder, $"gps_location_{ds}.csv", dateWorkouts, samples, (csv, s) =>
+            MergeFile(folder, $"gps_location_{ds}.csv", dateWorkouts, samples, (csv, latCol, lonCol, altCol, s) =>
             {
-                s.Latitude = ParseNullableDouble(csv.GetField("latitude"));
-                s.Longitude = ParseNullableDouble(csv.GetField("longitude"));
-                s.AltitudeMeters = ParseNullableDouble(csv.GetField("altitude"));
+                s.Latitude = csv.GetDouble(latCol);
+                s.Longitude = csv.GetDouble(lonCol);
+                s.AltitudeMeters = csv.GetDouble(altCol);
                 workouts[s.WorkoutId].HasGps = true;
-            });
+            }, "latitude", "longitude", "altitude");
 
-            MergeFile(folder, $"cadence_{ds}.csv", dateWorkouts, samples, (csv, s) =>
+            MergeFile(folder, $"cadence_{ds}.csv", dateWorkouts, samples, (csv, col, _, _, s) =>
             {
-                s.CadenceSpm = ParseNullableDouble(csv.GetField("steps per minute"));
-            });
+                s.CadenceSpm = csv.GetDouble(col);
+            }, "steps per minute");
 
-            MergeFile(folder, $"speed_{ds}.csv", dateWorkouts, samples, (csv, s) =>
+            MergeFile(folder, $"speed_{ds}.csv", dateWorkouts, samples, (csv, col, _, _, s) =>
             {
-                var speed = ParseNullableDouble(csv.GetField("speed"));
+                var speed = csv.GetDouble(col);
                 s.SpeedKmh = speed;
                 s.PaceSecPerKm = speed is > 0 ? 3600.0 / speed : null;
-            });
+            }, "speed");
 
-            MergeFile(folder, $"stride_length_{ds}.csv", dateWorkouts, samples, (csv, s) =>
+            MergeFile(folder, $"stride_length_{ds}.csv", dateWorkouts, samples, (csv, col, _, _, s) =>
             {
-                s.StrideLengthCm = ParseNullableDouble(csv.GetField("stride length"));
-            });
+                s.StrideLengthCm = csv.GetDouble(col);
+            }, "stride length");
 
-            MergeFile(folder, $"vertical_oscillation_{ds}.csv", dateWorkouts, samples, (csv, s) =>
+            MergeFile(folder, $"vertical_oscillation_{ds}.csv", dateWorkouts, samples, (csv, col, _, _, s) =>
             {
-                s.VerticalOscillationCm = ParseNullableDouble(csv.GetField("vertical oscillation"));
-            });
+                s.VerticalOscillationCm = csv.GetDouble(col);
+            }, "vertical oscillation");
 
-            MergeFile(folder, $"vertical_ratio_{ds}.csv", dateWorkouts, samples, (csv, s) =>
+            MergeFile(folder, $"vertical_ratio_{ds}.csv", dateWorkouts, samples, (csv, col, _, _, s) =>
             {
-                s.VerticalRatioPercent = ParseNullableDouble(csv.GetField("vertical ratio"));
-            });
+                s.VerticalRatioPercent = csv.GetDouble(col);
+            }, "vertical ratio");
 
-            MergeFile(folder, $"ground_contact_time_{ds}.csv", dateWorkouts, samples, (csv, s) =>
+            MergeFile(folder, $"ground_contact_time_{ds}.csv", dateWorkouts, samples, (csv, col, _, _, s) =>
             {
-                s.GroundContactTimeMs = ParseNullableDouble(csv.GetField("ground contact time"));
-            });
+                s.GroundContactTimeMs = csv.GetDouble(col);
+            }, "ground contact time");
 
-            MergeFile(folder, $"heart_rate_{ds}.csv", dateWorkouts, samples, (csv, s) =>
+            MergeFile(folder, $"heart_rate_{ds}.csv", dateWorkouts, samples, (csv, col, _, _, s) =>
             {
-                s.HeartRateBpm = ParseNullableDouble(csv.GetField("beats per minute"));
-            });
+                s.HeartRateBpm = csv.GetDouble(col);
+            }, "beats per minute");
         }
     }
 
@@ -81,28 +79,35 @@ public partial class WorkoutsImporter
         string fileName,
         List<Workout> dateWorkouts,
         Dictionary<long, Dictionary<DateTime, WorkoutSample>> samples,
-        Action<CsvReader, WorkoutSample> apply)
+        Action<CsvCursor, int, int, int, WorkoutSample> apply,
+        string column1,
+        string column2 = "",
+        string column3 = "")
     {
-        var path = Path.Combine(folder, fileName);
-        if (!File.Exists(path))
+        using var csv = CsvCursor.Open(Path.Combine(folder, fileName));
+        if (csv is null)
         {
             return;
         }
 
-        using var reader = new StreamReader(path);
-        using var csv = new CsvReader(reader, CultureInfo.InvariantCulture);
-        csv.Read();
-        csv.ReadHeader();
-
-        while (csv.Read())
+        var timestampCol = csv.Column("timestamp");
+        if (timestampCol < 0)
         {
-            var ts = ParseUtc(csv.GetField("timestamp"));
-            if (ts is null)
+            return;
+        }
+
+        var col1 = csv.Column(column1);
+        var col2 = column2.Length > 0 ? csv.Column(column2) : -1;
+        var col3 = column3.Length > 0 ? csv.Column(column3) : -1;
+
+        while (csv.NextRow())
+        {
+            if (csv.GetUtc(timestampCol) is not { } ts)
             {
                 continue;
             }
 
-            var rounded = new DateTime(ts.Value.Ticks - (ts.Value.Ticks % TimeSpan.TicksPerSecond), DateTimeKind.Utc);
+            var rounded = new DateTime(ts.Ticks - (ts.Ticks % TimeSpan.TicksPerSecond), DateTimeKind.Utc);
 
             foreach (var w in dateWorkouts)
             {
@@ -123,7 +128,7 @@ public partial class WorkoutsImporter
                     byTime[rounded] = sample;
                 }
 
-                apply(csv, sample);
+                apply(csv, col1, col2, col3, sample);
             }
         }
     }
