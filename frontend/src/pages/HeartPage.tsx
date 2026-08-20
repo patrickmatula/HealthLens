@@ -8,13 +8,13 @@ import { SegmentedButton } from '../components/SegmentedButton'
 import { Surface } from '../components/Surface'
 import { TopAppBar } from '../components/TopAppBar'
 import { useLanguage } from '../i18n/LanguageContext'
-import { RESTING_HR_DOMAIN, RESTING_HR_SOURCE, RESTING_HR_SOURCE_URL, RESTING_HR_ZONES, restingHrAssessment } from '../utils/references'
+import { RESTING_HR_DOMAIN, RESTING_HR_SOURCE, RESTING_HR_SOURCE_URL, getRestingHrZones, restingHrAssessment } from '../utils/references'
 import './DashboardPage.css'
 
 const tooltipStyle = { background: 'var(--md-sys-color-surface-container-high)', border: 'none', borderRadius: 8 }
 
 export function HeartPage() {
-  const { t } = useLanguage()
+  const { language, t } = useLanguage()
   const [preset, setPreset] = useState<TimeframePreset>('1y')
 
   const PRESETS: { value: TimeframePreset; label: string }[] = [
@@ -60,9 +60,9 @@ export function HeartPage() {
             {data.avgRestingHeartRate != null && (
               <Surface tone="low" className="ghl-chart-card">
                 <h2 className="ghl-chart-card__title">{t('heart.restingHrAssessmentTitle')}</h2>
-                <ReferenceRangeGauge value={data.avgRestingHeartRate} domain={RESTING_HR_DOMAIN} zones={RESTING_HR_ZONES} unit="bpm" />
+                <ReferenceRangeGauge value={data.avgRestingHeartRate} domain={RESTING_HR_DOMAIN} zones={getRestingHrZones(language)} unit="bpm" />
                 <p className="ghl-chart-card__hint">
-                  {restingHrAssessment(data.avgRestingHeartRate)} {t('heart.sourcePrefix')}{' '}
+                  {restingHrAssessment(data.avgRestingHeartRate, language)} {t('heart.sourcePrefix')}{' '}
                   <a href={RESTING_HR_SOURCE_URL} target="_blank" rel="noreferrer">
                     {RESTING_HR_SOURCE}
                   </a>

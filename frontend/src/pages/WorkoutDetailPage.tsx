@@ -13,18 +13,18 @@ import { useLanguage } from '../i18n/LanguageContext'
 import { formatDateTime, formatDistanceKm, formatDuration, formatPace, formatRecordValue, recordLabel } from '../utils/format'
 import {
   CADENCE_DOMAIN,
-  CADENCE_ZONES,
   GCT_DOMAIN,
-  GCT_ZONES,
   RUNNING_DYNAMICS_SOURCE,
   RUNNING_DYNAMICS_SOURCE_URL,
   VERTICAL_OSC_DOMAIN,
-  VERTICAL_OSC_ZONES,
+  getCadenceZones,
+  getGctZones,
+  getVerticalOscZones,
 } from '../utils/references'
 import './WorkoutDetailPage.css'
 
 export function WorkoutDetailPage() {
-  const { t } = useLanguage()
+  const { language, t } = useLanguage()
   const { id } = useParams<{ id: string }>()
   const [workout, setWorkout] = useState<WorkoutDetailDto | null>(null)
   const [loading, setLoading] = useState(true)
@@ -109,19 +109,19 @@ export function WorkoutDetailPage() {
             {workout.cadenceAvgSpm != null && (
               <div>
                 <div className="ghl-metric-name">{t('detail.cadence')}</div>
-                <ReferenceRangeGauge value={workout.cadenceAvgSpm} domain={CADENCE_DOMAIN} zones={CADENCE_ZONES} unit="spm" />
+                <ReferenceRangeGauge value={workout.cadenceAvgSpm} domain={CADENCE_DOMAIN} zones={getCadenceZones(language)} unit="spm" />
               </div>
             )}
             {workout.groundContactTimeMs != null && (
               <div>
                 <div className="ghl-metric-name">{t('detail.groundContactTime')}</div>
-                <ReferenceRangeGauge value={workout.groundContactTimeMs} domain={GCT_DOMAIN} zones={GCT_ZONES} unit="ms" />
+                <ReferenceRangeGauge value={workout.groundContactTimeMs} domain={GCT_DOMAIN} zones={getGctZones(language)} unit="ms" />
               </div>
             )}
             {workout.verticalOscillationMm != null && (
               <div>
                 <div className="ghl-metric-name">{t('detail.verticalOscillation')}</div>
-                <ReferenceRangeGauge value={workout.verticalOscillationMm / 10} domain={VERTICAL_OSC_DOMAIN} zones={VERTICAL_OSC_ZONES} unit="cm" />
+                <ReferenceRangeGauge value={workout.verticalOscillationMm / 10} domain={VERTICAL_OSC_DOMAIN} zones={getVerticalOscZones(language)} unit="cm" />
               </div>
             )}
             <p className="ghl-chart-card__hint">
