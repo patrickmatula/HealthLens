@@ -26,6 +26,7 @@ public class Workout
     public double? RatePerceivedExertion { get; set; }
     public bool IsLegacy { get; set; }
     public bool HasGps { get; set; }
+    public int? ShoeId { get; set; }
 
     public double DurationSeconds => (EndUtc - StartUtc).TotalSeconds;
 

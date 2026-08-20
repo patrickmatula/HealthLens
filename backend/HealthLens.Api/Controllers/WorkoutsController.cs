@@ -12,7 +12,7 @@ namespace HealthLens.Api.Controllers;
 public class WorkoutsController(DataSessionService session) : ControllerBase
 {
     [HttpGet]
-    public async Task<ActionResult<IReadOnlyList<WorkoutListItemDto>>> List(string? preset, DateOnly? from, DateOnly? to, string? activity, CancellationToken ct)
+    public async Task<ActionResult<IReadOnlyList<WorkoutListItemDto>>> List(string? preset, DateOnly? from, DateOnly? to, string? activity, int? shoeId, CancellationToken ct)
     {
         await using var db = session.CreateContext();
 
@@ -31,11 +31,18 @@ public class WorkoutsController(DataSessionService session) : ControllerBase
             query = query.Where(w => w.ActivityName == activity);
         }
 
+        if (shoeId is not null)
+        {
+            query = query.Where(w => w.ShoeId == shoeId);
+        }
+
         var workouts = await query.OrderByDescending(w => w.StartUtc).ToListAsync(ct);
+        var shoeNames = await db.Shoes.ToDictionaryAsync(s => s.Id, s => s.Name, ct);
 
         return Ok(workouts.Select(w => new WorkoutListItemDto(
             w.Id.ToString(), w.StartUtc, w.EndUtc, w.DurationSeconds, w.ActivityName, w.DistanceMeters, w.Calories,
-            w.AvgHeartRate, w.AvgPaceSecPerKm, w.HasGps, w.IsLegacy)).ToList());
+            w.AvgHeartRate, w.AvgPaceSecPerKm, w.HasGps, w.IsLegacy,
+            w.ShoeId, w.ShoeId is { } sid && shoeNames.TryGetValue(sid, out var name) ? name : null)).ToList());
     }
 
     [HttpGet("personal-records")]
@@ -158,6 +165,7 @@ public class WorkoutsController(DataSessionService session) : ControllerBase
             .OrderBy(s => s.Timestamp)
             .ToListAsync(ct);
         var records = await db.PersonalRecords.Where(r => r.WorkoutId == id).ToListAsync(ct);
+        var shoeName = workout.ShoeId is { } sid ? await db.Shoes.Where(s => s.Id == sid).Select(s => s.Name).FirstOrDefaultAsync(ct) : null;
 
         // Merge in any reconciled "best" records this exact workout holds (see ComputeBestRecords) that
         // aren't already present in its raw Fitbit-linked records — otherwise a workout whose PR Fitbit's
@@ -174,7 +182,7 @@ public class WorkoutsController(DataSessionService session) : ControllerBase
             workout.DistanceMeters, workout.Calories, workout.Steps, workout.AvgHeartRate, workout.PeakHeartRate,
             workout.AvgPaceSecPerKm, workout.AvgSpeedKmh, workout.PeakSpeedKmh, workout.ElevationGainMeters, workout.CardioLoad,
             workout.CadenceAvgSpm, workout.GroundContactTimeMs, workout.VerticalOscillationMm, workout.VerticalRatioPercent,
-            workout.RatePerceivedExertion, workout.HasGps, workout.IsLegacy,
+            workout.RatePerceivedExertion, workout.HasGps, workout.IsLegacy, workout.ShoeId, shoeName,
             splits.Select(s => new WorkoutSplitDto(s.SplitIndex, s.Type, s.Timestamp, s.ElapsedMs, s.DistanceMeters, s.Calories, s.Steps, s.AvgHeartRate, s.ElevationGainMeters, s.AvgSpeedKmh)).ToList(),
             ComputeKmSplits(samples),
             samples.Select(s => new WorkoutSampleDto(s.Timestamp, s.Latitude, s.Longitude, s.AltitudeMeters, s.HeartRateBpm, s.PaceSecPerKm, s.CadenceSpm, s.SpeedKmh, s.StrideLengthCm, s.VerticalOscillationCm, s.VerticalRatioPercent, s.GroundContactTimeMs)).ToList(),

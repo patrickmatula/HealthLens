@@ -24,6 +24,7 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
     public DbSet<DailyReadiness> DailyReadinesses => Set<DailyReadiness>();
     public DbSet<SpO2Daily> SpO2Dailies => Set<SpO2Daily>();
     public DbSet<TemperatureNightly> TemperatureNightlies => Set<TemperatureNightly>();
+    public DbSet<Shoe> Shoes => Set<Shoe>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -36,6 +37,7 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
         {
             e.HasIndex(x => x.StartUtc);
             e.HasMany(x => x.Splits).WithOne().HasForeignKey(s => s.WorkoutId).OnDelete(DeleteBehavior.Cascade);
+            e.HasOne<Shoe>().WithMany().HasForeignKey(x => x.ShoeId).OnDelete(DeleteBehavior.SetNull);
         });
 
         modelBuilder.Entity<WorkoutSplit>(e =>

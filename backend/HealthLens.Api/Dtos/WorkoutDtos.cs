@@ -13,7 +13,9 @@ public record WorkoutListItemDto(
     double? AvgHeartRate,
     double? AvgPaceSecPerKm,
     bool HasGps,
-    bool IsLegacy);
+    bool IsLegacy,
+    int? ShoeId,
+    string? ShoeName);
 
 public record WorkoutSplitDto(
     int SplitIndex,
@@ -68,6 +70,8 @@ public record WorkoutDetailDto(
     double? RatePerceivedExertion,
     bool HasGps,
     bool IsLegacy,
+    int? ShoeId,
+    string? ShoeName,
     IReadOnlyList<WorkoutSplitDto> Splits,
     IReadOnlyList<KmSplitDto> KmSplits,
     IReadOnlyList<WorkoutSampleDto> Samples,
