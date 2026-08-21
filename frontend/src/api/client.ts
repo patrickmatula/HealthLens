@@ -5,6 +5,8 @@ import type {
   BodySideKey,
   CorrelationPointDto,
   DashboardOverviewDto,
+  GoogleHealthStatusDto,
+  GoogleHealthSyncResultDto,
   ImportCurrentDto,
   ImportScope,
   ImportStartedDto,
@@ -137,4 +139,15 @@ export const api = {
     send<void>('POST', '/api/body/entry', { date, values }),
 
   deleteBodyEntry: (date: string) => send<void>('DELETE', `/api/body/entry/${date}`),
+
+  googleHealthStatus: () => get<GoogleHealthStatusDto>('/api/googlehealth/status'),
+
+  saveGoogleHealthConfig: (clientId: string, clientSecret: string) =>
+    send<GoogleHealthStatusDto>('POST', '/api/googlehealth/config', { clientId, clientSecret }),
+
+  disconnectGoogleHealth: () => send<void>('DELETE', '/api/googlehealth/config'),
+
+  googleHealthAuthorizeUrl: () => get<{ url: string }>('/api/googlehealth/authorize'),
+
+  syncGoogleHealth: () => send<GoogleHealthSyncResultDto>('POST', '/api/googlehealth/sync'),
 }

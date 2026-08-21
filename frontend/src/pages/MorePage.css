@@ -98,6 +98,53 @@
   font: var(--md-sys-typescale-body-small-weight) var(--md-sys-typescale-body-small-size)/var(--md-sys-typescale-body-small-line-height) var(--md-sys-typescale-body-small-font);
 }
 
+.ghl-google-health__steps {
+  margin: 0;
+  padding-left: var(--md-space-5);
+  color: var(--md-sys-color-on-surface-variant);
+  font: var(--md-sys-typescale-body-medium-weight) var(--md-sys-typescale-body-medium-size)/var(--md-sys-typescale-body-medium-line-height) var(--md-sys-typescale-body-medium-font);
+  display: flex;
+  flex-direction: column;
+  gap: var(--md-space-1);
+}
+
+.ghl-google-health__steps code {
+  background: var(--md-sys-color-surface-container-highest);
+  border-radius: var(--md-sys-shape-corner-small);
+  padding: 2px 6px;
+  font-size: 0.85em;
+  word-break: break-all;
+}
+
+.ghl-google-health__config {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--md-space-3);
+  width: 100%;
+}
+
+.ghl-google-health__config .ghl-body-entry__input-wrap {
+  min-width: 220px;
+  flex: 1;
+}
+
+.ghl-google-health__connected {
+  display: flex;
+  flex-direction: column;
+  gap: var(--md-space-3);
+  width: 100%;
+}
+
+.ghl-google-health__actions {
+  display: flex;
+  gap: var(--md-space-3);
+}
+
+.ghl-google-health__error {
+  color: var(--md-sys-color-error);
+}
+
 .ghl-more-nav-link {
   display: flex;
   align-items: center;

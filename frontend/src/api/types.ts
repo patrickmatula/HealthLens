@@ -308,3 +308,19 @@ export interface WorkoutDetailDto extends WorkoutListItemDto {
   samples: WorkoutSampleDto[]
   personalRecords: PersonalRecordDto[]
 }
+
+export interface GoogleHealthStatusDto {
+  configured: boolean
+  connected: boolean
+  lastSyncUtc: string | null
+  lastSyncSummary: string | null
+  lastError: string | null
+  redirectUri: string
+}
+
+export interface GoogleHealthSyncResultDto {
+  activityDaysSynced: number
+  restingHeartRateDaysSynced: number
+  weightEntriesSynced: number
+  warnings: string[]
+}

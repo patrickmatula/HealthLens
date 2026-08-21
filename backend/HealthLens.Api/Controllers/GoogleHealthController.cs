@@ -25,7 +25,7 @@ public class GoogleHealthController(
         var creds = store.Load();
         var configured = !string.IsNullOrEmpty(creds.ClientId) && !string.IsNullOrEmpty(creds.ClientSecret);
         var connected = configured && !string.IsNullOrEmpty(creds.RefreshToken);
-        return Ok(new GoogleHealthStatusDto(configured, connected, creds.LastSyncUtc, creds.LastSyncSummary, creds.LastError));
+        return Ok(new GoogleHealthStatusDto(configured, connected, creds.LastSyncUtc, creds.LastSyncSummary, creds.LastError, BuildCallbackUri()));
     }
 
     [HttpPost("config")]

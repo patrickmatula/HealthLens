@@ -1,7 +1,7 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { api } from '../api/client'
-import type { ImportCurrentDto } from '../api/types'
+import type { GoogleHealthStatusDto, ImportCurrentDto } from '../api/types'
 import { Icon } from '../components/Icon'
 import { SegmentedButton } from '../components/SegmentedButton'
 import { Surface } from '../components/Surface'
@@ -26,6 +26,15 @@ export function MorePage() {
   const { enabled: shoesEnabled, setEnabled: setShoesEnabled } = useShoesFeature()
   const { enabled: bodyEnabled, setEnabled: setBodyEnabled } = useBodyFeature()
 
+  const [googleHealth, setGoogleHealth] = useState<GoogleHealthStatusDto | null>(null)
+  const [clientId, setClientId] = useState('')
+  const [clientSecret, setClientSecret] = useState('')
+  const [savingConfig, setSavingConfig] = useState(false)
+  const [connecting, setConnecting] = useState(false)
+  const [syncing, setSyncing] = useState(false)
+  const [syncMessage, setSyncMessage] = useState<string | null>(null)
+  const pollRef = useRef<number | null>(null)
+
   const unitOptions = [
     { value: 'metric' as const, label: t('more.unitMetric') },
     { value: 'imperial' as const, label: t('more.unitImperial') },
@@ -37,7 +46,69 @@ export function MorePage() {
 
   useEffect(() => {
     api.importCurrent().then(setStatus)
+    api.googleHealthStatus().then(setGoogleHealth)
   }, [])
+
+  useEffect(() => {
+    return () => {
+      if (pollRef.current != null) window.clearInterval(pollRef.current)
+    }
+  }, [])
+
+  async function saveGoogleHealthConfig() {
+    if (!clientId.trim() || !clientSecret.trim()) return
+    setSavingConfig(true)
+    try {
+      const result = await api.saveGoogleHealthConfig(clientId.trim(), clientSecret.trim())
+      setGoogleHealth(result)
+      setClientId('')
+      setClientSecret('')
+    } finally {
+      setSavingConfig(false)
+    }
+  }
+
+  async function connectGoogleHealth() {
+    setConnecting(true)
+    try {
+      const { url } = await api.googleHealthAuthorizeUrl()
+      window.open(url, 'ghl-google-health-auth', 'width=520,height=680')
+
+      let attempts = 0
+      pollRef.current = window.setInterval(async () => {
+        attempts += 1
+        const latest = await api.googleHealthStatus()
+        setGoogleHealth(latest)
+        if (latest.connected || attempts >= 40) {
+          if (pollRef.current != null) window.clearInterval(pollRef.current)
+          pollRef.current = null
+          setConnecting(false)
+        }
+      }, 3000)
+    } catch {
+      setConnecting(false)
+    }
+  }
+
+  async function disconnectGoogleHealth() {
+    await api.disconnectGoogleHealth()
+    setGoogleHealth(await api.googleHealthStatus())
+    setSyncMessage(null)
+  }
+
+  async function syncGoogleHealth() {
+    setSyncing(true)
+    setSyncMessage(null)
+    try {
+      const result = await api.syncGoogleHealth()
+      setSyncMessage(t('more.googleHealthSyncDone', { count: String(result.activityDaysSynced + result.weightEntriesSynced) }))
+      setGoogleHealth(await api.googleHealthStatus())
+    } catch (err) {
+      setSyncMessage(err instanceof Error ? err.message : String(err))
+    } finally {
+      setSyncing(false)
+    }
+  }
 
   if (showImport) {
     return <UploadPage onImported={() => window.location.reload()} onCancel={() => setShowImport(false)} />
@@ -139,6 +210,85 @@ export function MorePage() {
             </dl>
           )}
           <md-outlined-button onClick={() => setShowImport(true)}>{t('more.reimportButton')}</md-outlined-button>
+        </Surface>
+
+        <Surface tone="low" className="ghl-more-card">
+          <div className="ghl-feature-row__header">
+            <Icon name="sync" size={20} />
+            <div className="ghl-feature-row__title">{t('more.googleHealthTitle')}</div>
+          </div>
+          <p className="ghl-more-text">{t('more.googleHealthIntro')}</p>
+
+          {status?.mode !== 'Persistent' ? (
+            <p className="ghl-more-text">{t('more.googleHealthNeedsPersistent')}</p>
+          ) : (
+            <>
+              <ol className="ghl-google-health__steps">
+                <li>{t('more.googleHealthStep1')}</li>
+                <li>{t('more.googleHealthStep2')}</li>
+                <li>
+                  {t('more.googleHealthStep3')} <code>{googleHealth?.redirectUri ?? '…'}</code>
+                </li>
+                <li>{t('more.googleHealthStep4')}</li>
+              </ol>
+
+              {!googleHealth?.configured && (
+                <div className="ghl-google-health__config">
+                  <div className="ghl-body-entry__input-wrap">
+                    <input
+                      type="text"
+                      placeholder={t('more.googleHealthClientIdLabel')}
+                      value={clientId}
+                      onChange={(e) => setClientId(e.target.value)}
+                    />
+                  </div>
+                  <div className="ghl-body-entry__input-wrap">
+                    <input
+                      type="password"
+                      placeholder={t('more.googleHealthClientSecretLabel')}
+                      value={clientSecret}
+                      onChange={(e) => setClientSecret(e.target.value)}
+                    />
+                  </div>
+                  <md-filled-button disabled={savingConfig || !clientId.trim() || !clientSecret.trim() || undefined} onClick={saveGoogleHealthConfig}>
+                    {t('more.googleHealthSaveConfig')}
+                  </md-filled-button>
+                </div>
+              )}
+
+              {googleHealth?.configured && !googleHealth.connected && (
+                <div className="ghl-google-health__connected">
+                  {googleHealth.lastError && <p className="ghl-more-text ghl-google-health__error">{googleHealth.lastError}</p>}
+                  <md-filled-button disabled={connecting || undefined} onClick={connectGoogleHealth}>
+                    {connecting ? t('more.googleHealthConnecting') : t('more.googleHealthConnect')}
+                  </md-filled-button>
+                </div>
+              )}
+
+              {googleHealth?.connected && (
+                <div className="ghl-google-health__connected">
+                  <dl className="ghl-more-list">
+                    <dt>{t('more.googleHealthLastSyncLabel')}</dt>
+                    <dd>{googleHealth.lastSyncUtc ? formatDateTime(googleHealth.lastSyncUtc) : t('more.googleHealthNeverSynced')}</dd>
+                    {googleHealth.lastSyncSummary && (
+                      <>
+                        <dt>{t('more.googleHealthLastSyncSummaryLabel')}</dt>
+                        <dd>{googleHealth.lastSyncSummary}</dd>
+                      </>
+                    )}
+                  </dl>
+                  {googleHealth.lastError && <p className="ghl-more-text ghl-google-health__error">{googleHealth.lastError}</p>}
+                  {syncMessage && <p className="ghl-more-text">{syncMessage}</p>}
+                  <div className="ghl-google-health__actions">
+                    <md-filled-button disabled={syncing || undefined} onClick={syncGoogleHealth}>
+                      {syncing ? t('more.googleHealthSyncing') : t('more.googleHealthSyncNow')}
+                    </md-filled-button>
+                    <md-outlined-button onClick={disconnectGoogleHealth}>{t('more.googleHealthDisconnect')}</md-outlined-button>
+                  </div>
+                </div>
+              )}
+            </>
+          )}
         </Surface>
 
         <Surface tone="low" className="ghl-more-card">
