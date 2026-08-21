@@ -50,7 +50,7 @@ const RESTING_HR_LABELS: Record<Language, [string, string, string]> = {
 export function getRestingHrZones(language: Language): RangeZone[] {
   const [athletic, normal, elevated] = RESTING_HR_LABELS[language]
   return [
-    { label: athletic, from: 40, to: 60, color: '#26a69a' },
+    { label: athletic, from: 40, to: 60, color: '#1e88e5' },
     { label: normal, from: 60, to: 100, color: '#43a047' },
     { label: elevated, from: 100, to: 110, color: '#e53935' },
   ]
