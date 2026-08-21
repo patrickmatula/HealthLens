@@ -2,6 +2,7 @@ import type {
   BodyMeasurementTypeKey,
   BodyOverviewDto,
   BodyProfileDto,
+  BodySideKey,
   CorrelationPointDto,
   DashboardOverviewDto,
   ImportCurrentDto,
@@ -132,7 +133,7 @@ export const api = {
     return get<BodyOverviewDto>(`/api/body/overview?${qs.toString()}`)
   },
 
-  submitBodyEntry: (date: string, values: Partial<Record<BodyMeasurementTypeKey, number>>) =>
+  submitBodyEntry: (date: string, values: { type: BodyMeasurementTypeKey; side: BodySideKey; value: number }[]) =>
     send<void>('POST', '/api/body/entry', { date, values }),
 
   deleteBodyEntry: (date: string) => send<void>('DELETE', `/api/body/entry/${date}`),

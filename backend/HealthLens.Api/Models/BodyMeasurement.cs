@@ -18,11 +18,25 @@ public enum BodyMeasurementType
     CalfCm,
 }
 
-/// <summary>One measurement, one day. Optional feature — the table exists whether or not it's ever used.</summary>
+/// <summary>
+/// Bicep/thigh/calf come in pairs, so those three types carry a side; everything else is always
+/// <see cref="None"/>. Kept as a real enum value rather than a nullable column — SQLite's PRIMARY KEY
+/// handling of NULL columns in a composite key is inconsistent, and "None" is exactly the right default
+/// for the six unpaired types anyway.
+/// </summary>
+public enum BodySide
+{
+    None,
+    Left,
+    Right,
+}
+
+/// <summary>One measurement, one day (one side, for the paired types). Optional feature — the table exists whether or not it's ever used.</summary>
 public class BodyMeasurement
 {
     public DateOnly Date { get; set; }
     public BodyMeasurementType Type { get; set; }
+    public BodySide Side { get; set; }
     public double Value { get; set; }
 }
 

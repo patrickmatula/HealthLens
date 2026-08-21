@@ -149,3 +149,58 @@ export function getBodyFatZones(sex: BodySex, language: Language): RangeZone[] {
     { label: obese, from: c4, to: max, color: '#e53935' },
   ]
 }
+
+// ---------------------------------------------------------------------------
+// Estimated body fat % — U.S. Navy circumference method (Hodgdon & Beckett,
+// 1984), for when neck+waist(+hip)+height are tracked but a direct body-fat
+// reading isn't. Deliberately a separate value from a directly-measured
+// BodyFatPercent entry — it's an estimate (published accuracy ~1-3 percentage
+// points for most people, less reliable at the extremes), so it's kept
+// visibly labelled as such rather than silently substituted. Reuses the same
+// ACE zones/domain as the directly-measured gauge once computed.
+// Source: Naval Health Research Center, San Diego (Hodgdon & Beckett 1984).
+// ---------------------------------------------------------------------------
+export const NAVY_BF_SOURCE = 'U.S. Navy method (Hodgdon & Beckett, 1984)'
+export const NAVY_BF_SOURCE_URL =
+  'https://med.libretexts.org/Courses/Irvine_Valley_College/Physiology_Labs_at_Home/03:_Anthropometrics/3.02:_Part_B-_Circumference_Measures/3.2.04:_Part_B4-_The_U.S._Navy_body_fat_estimation_formula'
+
+/** Requires hipCm for women; returns null if the inputs needed for that sex aren't all present or are physically inconsistent (e.g. waist smaller than neck). */
+export function computeNavyBodyFat(sex: BodySex, neckCm: number, waistCm: number, heightCm: number, hipCm?: number | null): number | null {
+  if (sex === 'male') {
+    const diff = waistCm - neckCm
+    if (diff <= 0) return null
+    const density = 1.0324 - 0.19077 * Math.log10(diff) + 0.15456 * Math.log10(heightCm)
+    return 495 / density - 450
+  }
+
+  if (hipCm == null) return null
+  const diff = waistCm + hipCm - neckCm
+  if (diff <= 0) return null
+  const density = 1.29579 - 0.35004 * Math.log10(diff) + 0.221 * Math.log10(heightCm)
+  return 495 / density - 450
+}
+
+// ---------------------------------------------------------------------------
+// Waist-to-height ratio — "keep your waist to less than half your height".
+// Sex-neutral, unlike plain waist circumference or waist-to-hip ratio.
+// Source: Ashwell & Gibson; endorsed by NICE guideline NG7 as a simple
+// cardiometabolic-risk screening tool.
+// ---------------------------------------------------------------------------
+export const WHTR_SOURCE = 'Ashwell / NICE guideline NG7'
+export const WHTR_SOURCE_URL = 'https://www.ncbi.nlm.nih.gov/pmc/articles/PMC10562721/'
+export const WHTR_DOMAIN: [number, number] = [0.35, 0.75]
+
+const WHTR_LABELS: Record<Language, [string, string, string]> = {
+  de: ['Niedrig', 'Erhöht', 'Hoch'],
+  en: ['Low', 'Elevated', 'High'],
+}
+
+export function getWhtrZones(language: Language): RangeZone[] {
+  const [low, elevated, high] = WHTR_LABELS[language]
+  const [min, max] = WHTR_DOMAIN
+  return [
+    { label: low, from: min, to: 0.5, color: '#43a047' },
+    { label: elevated, from: 0.5, to: 0.6, color: '#fb8c00' },
+    { label: high, from: 0.6, to: max, color: '#e53935' },
+  ]
+}

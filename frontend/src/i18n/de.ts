@@ -231,6 +231,17 @@ const de = {
   'body.type.bicepCm': 'Bizeps',
   'body.type.thighCm': 'Oberschenkel',
   'body.type.calfCm': 'Wade',
+  'body.sideLeft': 'Links',
+  'body.sideRight': 'Rechts',
+  'body.pairedHint': '(links/rechts)',
+  'body.whtrTitle': 'Taille-Größe-Verhältnis',
+  'body.whtrHint': 'Die Taille sollte unter der Hälfte der Körpergröße liegen. Quelle:',
+  'body.navyBfTitle': 'Geschätzter Körperfettanteil (US-Navy-Methode)',
+  'body.navyBfHint': 'Schätzung aus Nacken-, Taillen(- und Hüft-)umfang sowie Körpergröße — kein direkt gemessener Wert. Quelle:',
+  'body.historyTitle': 'Verlauf aller Einträge',
+  'body.historyEmpty': 'Noch keine Einträge vorhanden.',
+  'body.historyMeasurementCol': 'Maß',
+  'body.historyValueCol': 'Wert',
 } as const
 
 export default de

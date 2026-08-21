@@ -64,30 +64,37 @@ public class BodyController(DataSessionService session) : ControllerBase
             .OrderBy(m => m.Date)
             .ToListAsync(ct);
 
-        return Ok(new BodyOverviewDto(profileDto, measurements.Select(m => new BodyMeasurementPointDto(m.Date, m.Type.ToString(), m.Value)).ToList()));
+        return Ok(new BodyOverviewDto(
+            profileDto,
+            measurements.Select(m => new BodyMeasurementPointDto(m.Date, m.Type.ToString(), m.Side.ToString(), m.Value)).ToList()));
     }
 
-    /// <summary>Upserts one day's worth of entries — a re-submitted date overwrites, so correcting a mistake is just entering it again.</summary>
+    /// <summary>Upserts one day's worth of entries — a re-submitted date+type+side overwrites, so correcting a mistake is just entering it again.</summary>
     [HttpPost("entry")]
     public async Task<IActionResult> SubmitEntry(BodyEntryDto dto, CancellationToken ct)
     {
         await using var db = session.CreateContext();
 
-        foreach (var (typeName, value) in dto.Values)
+        foreach (var entry in dto.Values)
         {
-            if (!Enum.TryParse<BodyMeasurementType>(typeName, out var type))
+            if (!Enum.TryParse<BodyMeasurementType>(entry.Type, out var type))
             {
-                return BadRequest($"Unbekannter Messwert-Typ: {typeName}");
+                return BadRequest($"Unbekannter Messwert-Typ: {entry.Type}");
             }
 
-            var existing = await db.BodyMeasurements.FindAsync([dto.Date, type], ct);
+            if (!Enum.TryParse<BodySide>(entry.Side, out var side))
+            {
+                return BadRequest($"Unbekannte Seite: {entry.Side}");
+            }
+
+            var existing = await db.BodyMeasurements.FindAsync([dto.Date, type, side], ct);
             if (existing is null)
             {
-                db.BodyMeasurements.Add(new BodyMeasurement { Date = dto.Date, Type = type, Value = value });
+                db.BodyMeasurements.Add(new BodyMeasurement { Date = dto.Date, Type = type, Side = side, Value = entry.Value });
             }
             else
             {
-                existing.Value = value;
+                existing.Value = entry.Value;
             }
         }
 

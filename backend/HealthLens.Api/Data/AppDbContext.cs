@@ -81,7 +81,7 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
         modelBuilder.Entity<RespiratoryRateDaily>(e => e.HasKey(x => x.Date));
         modelBuilder.Entity<HeartRateMinutely>(e => e.HasKey(x => x.MinuteUtc));
 
-        modelBuilder.Entity<BodyMeasurement>(e => e.HasKey(x => new { x.Date, x.Type }));
+        modelBuilder.Entity<BodyMeasurement>(e => e.HasKey(x => new { x.Date, x.Type, x.Side }));
 
         modelBuilder.Entity<StressScoreDaily>(e => e.HasKey(x => x.Date));
         modelBuilder.Entity<DailyReadiness>(e => e.HasKey(x => x.Date));

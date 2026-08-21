@@ -88,6 +88,10 @@ export const BODY_MEASUREMENT_TYPES = [
 
 export type BodyMeasurementTypeKey = (typeof BODY_MEASUREMENT_TYPES)[number]
 
+// Bicep/thigh/calf come in pairs; everything else is always 'None'.
+export const BODY_PAIRED_TYPES: readonly BodyMeasurementTypeKey[] = ['BicepCm', 'ThighCm', 'CalfCm']
+export type BodySideKey = 'None' | 'Left' | 'Right'
+
 export interface BodyProfileDto {
   heightCm: number | null
   sex: 'male' | 'female' | null
@@ -96,6 +100,7 @@ export interface BodyProfileDto {
 export interface BodyMeasurementPointDto {
   date: string
   type: BodyMeasurementTypeKey
+  side: BodySideKey
   value: number
 }
 

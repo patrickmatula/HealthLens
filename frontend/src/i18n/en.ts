@@ -229,6 +229,17 @@ const en: Record<TranslationKey, string> = {
   'body.type.bicepCm': 'Bicep',
   'body.type.thighCm': 'Thigh',
   'body.type.calfCm': 'Calf',
+  'body.sideLeft': 'Left',
+  'body.sideRight': 'Right',
+  'body.pairedHint': '(left/right)',
+  'body.whtrTitle': 'Waist-to-Height Ratio',
+  'body.whtrHint': 'Waist should stay under half your height. Source:',
+  'body.navyBfTitle': 'Estimated body fat (US Navy method)',
+  'body.navyBfHint': 'Estimated from neck, waist(, hip) circumference and height — not a directly measured value. Source:',
+  'body.historyTitle': 'All entries',
+  'body.historyEmpty': 'No entries yet.',
+  'body.historyMeasurementCol': 'Measurement',
+  'body.historyValueCol': 'Value',
 }
 
 export default en

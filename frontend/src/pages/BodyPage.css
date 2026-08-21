@@ -106,3 +106,73 @@
   height: 18px;
   accent-color: var(--md-sys-color-primary);
 }
+
+.ghl-body-type-checklist__paired-hint {
+  color: var(--md-sys-color-on-surface-variant);
+  font: var(--md-sys-typescale-label-small-weight) var(--md-sys-typescale-label-small-size)/var(--md-sys-typescale-label-small-line-height) var(--md-sys-typescale-label-small-font);
+}
+
+.ghl-body-entry__paired-field {
+  display: flex;
+  flex-direction: column;
+  gap: var(--md-space-1);
+  grid-column: span 2;
+}
+
+.ghl-body-entry__paired-field > span:first-child {
+  color: var(--md-sys-color-on-surface-variant);
+  font: var(--md-sys-typescale-label-medium-weight) var(--md-sys-typescale-label-medium-size)/var(--md-sys-typescale-label-medium-line-height) var(--md-sys-typescale-label-medium-font);
+}
+
+.ghl-body-entry__paired-inputs {
+  display: flex;
+  gap: var(--md-space-3);
+}
+
+.ghl-body-entry__paired-inputs .ghl-body-entry__input-wrap {
+  flex: 1;
+}
+
+.ghl-body-entry__side-label {
+  color: var(--md-sys-color-on-surface-variant);
+  font: var(--md-sys-typescale-label-small-weight) var(--md-sys-typescale-label-small-size)/var(--md-sys-typescale-label-small-line-height) var(--md-sys-typescale-label-small-font);
+  flex-shrink: 0;
+}
+
+@media (max-width: 480px) {
+  .ghl-body-entry__grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .ghl-body-entry__paired-field {
+    grid-column: span 1;
+  }
+
+  .ghl-body-entry__paired-inputs,
+  .ghl-body-entry__paired-inputs .ghl-body-entry__input-wrap {
+    min-width: 0;
+  }
+}
+
+.ghl-table-scroll {
+  overflow-x: auto;
+}
+
+.ghl-splits-table {
+  width: 100%;
+  border-collapse: collapse;
+  font: var(--md-sys-typescale-body-medium-weight) var(--md-sys-typescale-body-medium-size)/var(--md-sys-typescale-body-medium-line-height) var(--md-sys-typescale-body-medium-font);
+}
+
+.ghl-splits-table th {
+  text-align: left;
+  color: var(--md-sys-color-on-surface-variant);
+  font: var(--md-sys-typescale-label-medium-weight) var(--md-sys-typescale-label-medium-size)/var(--md-sys-typescale-label-medium-line-height) var(--md-sys-typescale-label-medium-font);
+  padding: var(--md-space-2);
+  border-bottom: 1px solid var(--md-sys-color-outline-variant);
+}
+
+.ghl-splits-table td {
+  padding: var(--md-space-2);
+  border-bottom: 1px solid var(--md-sys-color-outline-variant);
+}
