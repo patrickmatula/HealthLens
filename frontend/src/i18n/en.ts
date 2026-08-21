@@ -238,8 +238,11 @@ const en: Record<TranslationKey, string> = {
   'body.navyBfHint': 'Estimated from neck, waist(, hip) circumference and height — not a directly measured value. Source:',
   'body.historyTitle': 'All entries',
   'body.historyEmpty': 'No entries yet.',
+  'body.historyEmptyFiltered': 'No entries for this category.',
   'body.historyMeasurementCol': 'Measurement',
   'body.historyValueCol': 'Value',
+  'body.historyFilterLabel': 'Category',
+  'body.historyFilterAll': 'All categories',
 }
 
 export default en

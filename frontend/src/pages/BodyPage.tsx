@@ -88,6 +88,7 @@ export function BodyPage() {
   const [saving, setSaving] = useState(false)
   const [heightInput, setHeightInput] = useState('')
   const [sex, setSex] = useState<BodySex | ''>('')
+  const [historyFilter, setHistoryFilter] = useState<'all' | BodyMeasurementTypeKey>('all')
 
   const PRESETS: { value: TimeframePreset; label: string }[] = [
     { value: '30d', label: t('preset.30d') },
@@ -172,10 +173,20 @@ export function BodyPage() {
       : null
   const hasAssessments = showBmi || showWaist || showWaistHip || showBodyFat || showWhtr || navyEstimate != null
 
-  // History table: every entry, newest first.
-  const historyRows = useMemo(() => {
+  // History table: every entry, newest first, optionally filtered to a single measurement category.
+  const allHistoryRows = useMemo(() => {
     return [...(overview?.measurements ?? [])].sort((a, b) => (a.date < b.date ? 1 : a.date > b.date ? -1 : 0))
   }, [overview])
+
+  const historyTypesPresent = useMemo(() => {
+    const present = new Set(allHistoryRows.map((r) => r.type))
+    return BODY_MEASUREMENT_TYPES.filter((type) => present.has(type))
+  }, [allHistoryRows])
+
+  const historyRows = useMemo(
+    () => (historyFilter === 'all' ? allHistoryRows : allHistoryRows.filter((r) => r.type === historyFilter)),
+    [allHistoryRows, historyFilter],
+  )
 
   function rowLabel(type: BodyMeasurementTypeKey, side: BodySideKey): string {
     const base = t(TYPE_META[type].labelKey)
@@ -418,9 +429,28 @@ export function BodyPage() {
         )}
 
         <Surface tone="low">
-          <h2 className="ghl-section-title">{t('body.historyTitle')}</h2>
+          <div className="ghl-body-history__header">
+            <h2 className="ghl-section-title">{t('body.historyTitle')}</h2>
+            {historyTypesPresent.length > 0 && (
+              <label className="ghl-body-history__filter-label">
+                {t('body.historyFilterLabel')}
+                <select
+                  className="ghl-body-history__filter"
+                  value={historyFilter}
+                  onChange={(e) => setHistoryFilter(e.target.value as 'all' | BodyMeasurementTypeKey)}
+                >
+                  <option value="all">{t('body.historyFilterAll')}</option>
+                  {historyTypesPresent.map((type) => (
+                    <option key={type} value={type}>
+                      {t(TYPE_META[type].labelKey)}
+                    </option>
+                  ))}
+                </select>
+              </label>
+            )}
+          </div>
           {historyRows.length === 0 ? (
-            <p className="ghl-more-text">{t('body.historyEmpty')}</p>
+            <p className="ghl-more-text">{t(historyFilter === 'all' ? 'body.historyEmpty' : 'body.historyEmptyFiltered')}</p>
           ) : (
             <div className="ghl-table-scroll">
               <table className="ghl-splits-table">

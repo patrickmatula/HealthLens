@@ -240,8 +240,11 @@ const de = {
   'body.navyBfHint': 'Schätzung aus Nacken-, Taillen(- und Hüft-)umfang sowie Körpergröße — kein direkt gemessener Wert. Quelle:',
   'body.historyTitle': 'Verlauf aller Einträge',
   'body.historyEmpty': 'Noch keine Einträge vorhanden.',
+  'body.historyEmptyFiltered': 'Keine Einträge für diese Kategorie.',
   'body.historyMeasurementCol': 'Maß',
   'body.historyValueCol': 'Wert',
+  'body.historyFilterLabel': 'Kategorie',
+  'body.historyFilterAll': 'Alle Kategorien',
 } as const
 
 export default de
