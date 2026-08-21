@@ -1,6 +1,7 @@
 using System.Text.Json.Serialization;
 using HealthLens.Api.Data;
 using HealthLens.Api.Services;
+using HealthLens.Api.Services.GoogleHealth;
 using Microsoft.AspNetCore.Http.Features;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -10,6 +11,11 @@ builder.Services.AddOpenApi();
 
 builder.Services.AddSingleton<DataSessionService>();
 builder.Services.AddSingleton<ImportJobRunner>();
+
+builder.Services.AddSingleton<GoogleHealthCredentialStore>();
+builder.Services.AddSingleton<GoogleHealthOAuthService>();
+builder.Services.AddScoped<GoogleHealthSyncService>();
+builder.Services.AddHttpClient<GoogleHealthApiClient>(c => c.BaseAddress = new Uri("https://health.googleapis.com/"));
 
 // Takeout exports with years of intraday data can be large; raise the default multipart limits.
 builder.Services.Configure<FormOptions>(o => o.MultipartBodyLengthLimit = 4L * 1024 * 1024 * 1024);
