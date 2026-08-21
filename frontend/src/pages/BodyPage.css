@@ -117,6 +117,7 @@
   flex-direction: column;
   gap: var(--md-space-1);
   grid-column: span 2;
+  min-width: 0;
 }
 
 .ghl-body-entry__paired-field > span:first-child {
@@ -127,10 +128,12 @@
 .ghl-body-entry__paired-inputs {
   display: flex;
   gap: var(--md-space-3);
+  min-width: 0;
 }
 
 .ghl-body-entry__paired-inputs .ghl-body-entry__input-wrap {
   flex: 1;
+  min-width: 0;
 }
 
 .ghl-body-entry__side-label {
