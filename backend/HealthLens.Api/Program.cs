@@ -42,13 +42,27 @@ if (app.Environment.IsDevelopment())
     app.UseCors(DevCorsPolicy);
 }
 
+// Vite content-hashes every file under /assets/, so those can be cached "forever" — a changed file is
+// a new URL. index.html (and anything else outside /assets/) has a stable name and must always be
+// revalidated, or a browser can sit on a stale SPA shell pointing at deleted hashed asset files
+// indefinitely, silently missing every subsequent deploy until a hard refresh.
+var staticFileOptions = new StaticFileOptions
+{
+    OnPrepareResponse = ctx =>
+    {
+        ctx.Context.Response.Headers.CacheControl = ctx.Context.Request.Path.StartsWithSegments("/assets")
+            ? "public, max-age=31536000, immutable"
+            : "no-cache";
+    },
+};
+
 app.UseDefaultFiles();
-app.UseStaticFiles();
+app.UseStaticFiles(staticFileOptions);
 
 app.UseAuthorization();
 
 app.MapControllers();
 app.MapFallback("/api/{**path}", () => Results.NotFound());
-app.MapFallbackToFile("index.html");
+app.MapFallbackToFile("index.html", staticFileOptions);
 
 app.Run();
