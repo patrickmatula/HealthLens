@@ -136,13 +136,18 @@ export function MorePage() {
                 <button
                   key={ct.key}
                   type="button"
-                  className={`ghl-theme-swatch ${colorTheme === ct.key ? 'ghl-theme-swatch--selected' : ''}`}
-                  style={{ background: ct.seed }}
+                  className="ghl-theme-swatch-item"
                   onClick={() => setColorTheme(ct.key)}
                   aria-label={ct.label}
-                  title={ct.label}
+                  aria-pressed={colorTheme === ct.key}
                 >
-                  {colorTheme === ct.key && <Icon name="check" size={16} />}
+                  <span
+                    className={`ghl-theme-swatch ${colorTheme === ct.key ? 'ghl-theme-swatch--selected' : ''}`}
+                    style={{ background: ct.seed }}
+                  >
+                    {colorTheme === ct.key && <Icon name="check" size={16} />}
+                  </span>
+                  <span className="ghl-theme-swatch-label">{ct.label}</span>
                 </button>
               ))}
             </div>

@@ -10,12 +10,18 @@ import { writeFileSync } from 'node:fs'
 // the point of Expressive). "sand" opts into "neutral" instead: SchemeNeutral keeps accent colors close
 // to the seed's own low-chroma hue rather than shifting them, which is what makes it read as a calm,
 // neutral/beige theme instead of just another vivid accent color with beige-ish surfaces.
+// "white" uses a fully achromatic seed (#787878, R=G=B) with the default Expressive variant: M3's
+// "neutral"/"neutral-variant" palettes always carry a small fixed chroma regardless of the source's own
+// chroma, so surfaces still land a hair off pure white (e.g. #f3fbff) rather than literally #ffffff --
+// but primary/secondary/tertiary stay properly colorful (Expressive doesn't inherit the source's low
+// chroma the way SchemeNeutral does), so charts and accents keep their color against a near-white canvas.
 const THEMES = [
   { key: 'teal', label: 'Teal', seed: '#12876F', isDefault: true },
   { key: 'blue', label: 'Blau', seed: '#1565C0' },
   { key: 'purple', label: 'Violett', seed: '#7B1FA2' },
   { key: 'amber', label: 'Bernstein', seed: '#E65100' },
   { key: 'sand', label: 'Sand', seed: '#9C8B73', variant: 'neutral' },
+  { key: 'white', label: 'Weiß', seed: '#787878' },
 ]
 
 const ROLES = [
