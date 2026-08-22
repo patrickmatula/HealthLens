@@ -17,9 +17,6 @@ A self-hosted dashboard for your Google Takeout health export (Fitbit/Google Hea
 
 Every feature beyond the core dashboard is off by default and lives under "More" in the app.
 
-> [!TIP]
-> Google requires https for the sync feature's OAuth redirect. The container generates a self-signed certificate on first run and serves it on port 8443 for that one redirect only — the rest of the app keeps using plain http, and your browser will show a one-time certificate warning inside the sign-in popup, which is expected.
-
 ## Run it with Docker
 
 You need Docker and Docker Compose. From the repository root:
@@ -28,7 +25,10 @@ You need Docker and Docker Compose. From the repository root:
 docker compose up -d
 ```
 
-This pulls the published image (`ghcr.io/patrickmatula/healthlens`) — no local build, no .NET or Node SDK needed. Open http://localhost:8080.
+This pulls the published image (`ghcr.io/patrickmatula/healthlens`) — no local build, no .NET or Node SDK needed. Open **https://localhost:8443** (recommended) or http://localhost:8080.
+
+> [!TIP]
+> The container generates a self-signed certificate on first run for the https port — your browser will show a one-time certificate warning there, which is expected for a local, self-signed certificate; accept it and you're set for future visits from that browser. https is also required for the optional Google Health sync's OAuth redirect, and it encrypts traffic if you ever open HealthLens from another device on your network (e.g. your phone). Prefer zero warnings for local-only use? http://localhost:8080 works identically, just unencrypted.
 
 To build from source instead, edit `docker-compose.yml`: comment out `image:`, uncomment `build: .`, then run `docker compose up -d --build`.
 
