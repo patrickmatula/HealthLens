@@ -70,6 +70,8 @@ Export your data from [Google Takeout](https://takeout.google.com) under "Google
 
 You can also import without saving anything to disk ("session only") to try the app on a one-off export.
 
+Don't have a Takeout export handy? [`demo-data/HealthLens-demo-data.zip`](demo-data/HealthLens-demo-data.zip) is a synthetic 18-month dataset covering every feature (workouts with GPS routes in New York, Sydney, and Hong Kong, sleep, heart, recovery) — import it with "session only" to explore the app risk-free.
+
 ## Local development
 
 Requires .NET 10 SDK and Node 20.19+ (or 22.12+).
