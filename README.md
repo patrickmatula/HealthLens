@@ -61,6 +61,8 @@ docker run --rm -v healthlens-data:/data -v "$PWD":/backup alpine tar czf /backu
 
 A weekly GitHub Actions workflow rebuilds and republishes the image (`.github/workflows/docker-publish.yml`), so it picks up security patches to the base images even between code changes. [Dependabot](.github/dependabot.yml) checks npm, NuGet, Docker base images, and GitHub Actions weekly and opens a pull request for anything outdated.
 
+Every push to `master` bumps a patch version tag (e.g. `v1.4.2`) and publishes the image under that version alongside `latest` — pin to a specific version with `image: ghcr.io/patrickmatula/healthlens:v1.4.2` in `docker-compose.yml` if you don't want to move automatically. The weekly rebuild and manual runs republish the current version instead of minting a new one, since no code actually changed.
+
 Patch and minor updates merge themselves once the build check passes (`.github/workflows/dependabot-auto-merge.yml`), which then triggers a rebuild and republish. Major version bumps stay open for manual review, since those are the ones most likely to break something.
 
 This needs two one-time repository settings, since neither is available through a workflow file:

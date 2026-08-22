@@ -12,7 +12,7 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: read
+  contents: write
   packages: write
 
 jobs:
@@ -20,6 +20,20 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      # Only a real push to master is a new version - the weekly rebuild and manual runs just
+      # republish whatever version already exists (e.g. to pick up a base-image security patch),
+      # and PRs only get a build check, so none of those should mint a new version number.
+      - name: Bump version tag
+        id: version
+        if: github.event_name == 'push'
+        uses: anothrNick/github-tag-action@1.75.0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          DEFAULT_BUMP: patch
+          WITH_V: true
 
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v4
@@ -44,6 +58,7 @@ jobs:
           images: ghcr.io/${{ github.repository }}
           tags: |
             type=raw,value=latest,enable={{is_default_branch}}
+            type=raw,value=${{ steps.version.outputs.new_tag }},enable=${{ steps.version.outputs.new_tag != '' }}
             type=sha,format=short
 
       - name: Build and push
