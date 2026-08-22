@@ -8,7 +8,25 @@ import { SegmentedButton } from '../components/SegmentedButton'
 import { Surface } from '../components/Surface'
 import { TopAppBar } from '../components/TopAppBar'
 import { useLanguage } from '../i18n/LanguageContext'
-import { RESTING_HR_DOMAIN, RESTING_HR_SOURCE, RESTING_HR_SOURCE_URL, getRestingHrZones, restingHrAssessment } from '../utils/references'
+import {
+  AZM_SOURCE,
+  AZM_SOURCE_URL,
+  AZM_WEEKLY_TARGET,
+  HRV_DOMAIN,
+  HRV_SOURCE,
+  HRV_SOURCE_URL,
+  RESPIRATORY_RATE_DOMAIN,
+  RESPIRATORY_RATE_SOURCE,
+  RESPIRATORY_RATE_SOURCE_URL,
+  RESTING_HR_DOMAIN,
+  RESTING_HR_SOURCE,
+  RESTING_HR_SOURCE_URL,
+  getHrvZones,
+  getRespiratoryRateZones,
+  getRestingHrZones,
+  hrvAssessment,
+  restingHrAssessment,
+} from '../utils/references'
 import './DashboardPage.css'
 
 const tooltipStyle = { background: 'var(--md-sys-color-surface-container-high)', border: 'none', borderRadius: 8 }
@@ -85,6 +103,20 @@ export function HeartPage() {
               </Surface>
             )}
 
+            {data.avgHrv != null && (
+              <Surface tone="low" className="ghl-chart-card">
+                <h2 className="ghl-chart-card__title">{t('heart.hrvAssessmentTitle')}</h2>
+                <ReferenceRangeGauge value={data.avgHrv} domain={HRV_DOMAIN} zones={getHrvZones(language)} unit="ms" />
+                <p className="ghl-chart-card__hint">
+                  {hrvAssessment(data.avgHrv, language)} {t('heart.sourcePrefix')}{' '}
+                  <a href={HRV_SOURCE_URL} target="_blank" rel="noreferrer">
+                    {HRV_SOURCE}
+                  </a>
+                  {t('heart.medicalDisclaimer')}
+                </p>
+              </Surface>
+            )}
+
             {data.hrv.length > 0 && (
               <Surface tone="low" className="ghl-chart-card">
                 <h2 className="ghl-chart-card__title">{t('heart.hrvTitle')}</h2>
@@ -102,6 +134,13 @@ export function HeartPage() {
             {data.activeZoneMinutes.length > 0 && (
               <Surface tone="low" className="ghl-chart-card">
                 <h2 className="ghl-chart-card__title">{t('heart.azmTitle')}</h2>
+                <p className="ghl-chart-card__hint">
+                  {t('heart.azmHint', { target: AZM_WEEKLY_TARGET })} {t('heart.sourcePrefix')}{' '}
+                  <a href={AZM_SOURCE_URL} target="_blank" rel="noreferrer">
+                    {AZM_SOURCE}
+                  </a>
+                  {t('heart.medicalDisclaimer')}
+                </p>
                 <ResponsiveContainer width="100%" height={220}>
                   <BarChart data={data.activeZoneMinutes}>
                     <XAxis dataKey="date" tick={{ fontSize: 11 }} tickFormatter={(d: string) => d.slice(5)} stroke="var(--md-sys-color-outline)" />
@@ -112,6 +151,25 @@ export function HeartPage() {
                     <Bar dataKey="peakMinutes" stackId="azm" fill="#e53935" name={t('heart.peak')} />
                   </BarChart>
                 </ResponsiveContainer>
+              </Surface>
+            )}
+
+            {data.respiratoryRate.length > 0 && (
+              <Surface tone="low" className="ghl-chart-card">
+                <h2 className="ghl-chart-card__title">{t('heart.respiratoryRateAssessmentTitle')}</h2>
+                <ReferenceRangeGauge
+                  value={data.respiratoryRate[data.respiratoryRate.length - 1].breathsPerMinute}
+                  domain={RESPIRATORY_RATE_DOMAIN}
+                  zones={getRespiratoryRateZones(language)}
+                  unit="/min"
+                />
+                <p className="ghl-chart-card__hint">
+                  {t('heart.sourcePrefix')}{' '}
+                  <a href={RESPIRATORY_RATE_SOURCE_URL} target="_blank" rel="noreferrer">
+                    {RESPIRATORY_RATE_SOURCE}
+                  </a>
+                  {t('heart.medicalDisclaimer')}
+                </p>
               </Surface>
             )}
 

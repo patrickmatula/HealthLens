@@ -2,16 +2,33 @@ import { useEffect, useState } from 'react'
 import { Area, AreaChart, CartesianGrid, Line, LineChart, ResponsiveContainer, Scatter, ScatterChart, Tooltip, XAxis, YAxis, ZAxis } from 'recharts'
 import { api } from '../api/client'
 import type { CorrelationPointDto, RecoveryOverviewDto, TimeframePreset } from '../api/types'
+import { ReferenceRangeGauge } from '../components/ReferenceRangeGauge'
 import { SegmentedButton } from '../components/SegmentedButton'
 import { Surface } from '../components/Surface'
 import { TopAppBar } from '../components/TopAppBar'
 import { useLanguage } from '../i18n/LanguageContext'
+import {
+  READINESS_DOMAIN,
+  READINESS_SOURCE,
+  READINESS_SOURCE_URL,
+  SPO2_DOMAIN,
+  SPO2_SOURCE,
+  SPO2_SOURCE_URL,
+  STRESS_SCORE_DOMAIN,
+  STRESS_SCORE_SOURCE,
+  STRESS_SCORE_SOURCE_URL,
+  TEMPERATURE_SOURCE,
+  TEMPERATURE_SOURCE_URL,
+  getReadinessZones,
+  getSpo2Zones,
+  getStressScoreZones,
+} from '../utils/references'
 import './DashboardPage.css'
 
 const tooltipStyle = { background: 'var(--md-sys-color-surface-container-high)', border: 'none', borderRadius: 8 }
 
 export function RecoveryPage() {
-  const { t } = useLanguage()
+  const { t, language } = useLanguage()
   const [preset, setPreset] = useState<TimeframePreset>('all')
 
   const PRESETS: { value: TimeframePreset; label: string }[] = [
@@ -70,6 +87,25 @@ export function RecoveryPage() {
 
         {data && data.stressScore.length > 0 && (
           <Surface tone="low" className="ghl-chart-card">
+            <h2 className="ghl-chart-card__title">{t('recovery.stressScoreAssessmentTitle')}</h2>
+            <ReferenceRangeGauge
+              value={data.stressScore[data.stressScore.length - 1].score}
+              domain={STRESS_SCORE_DOMAIN}
+              zones={getStressScoreZones(language)}
+              unit=""
+            />
+            <p className="ghl-chart-card__hint">
+              {t('heart.sourcePrefix')}{' '}
+              <a href={STRESS_SCORE_SOURCE_URL} target="_blank" rel="noreferrer">
+                {STRESS_SCORE_SOURCE}
+              </a>
+              {t('heart.medicalDisclaimer')}
+            </p>
+          </Surface>
+        )}
+
+        {data && data.stressScore.length > 0 && (
+          <Surface tone="low" className="ghl-chart-card">
             <h2 className="ghl-chart-card__title">{t('recovery.stressScore')}</h2>
             <ResponsiveContainer width="100%" height={200}>
               <LineChart data={data.stressScore}>
@@ -84,6 +120,25 @@ export function RecoveryPage() {
 
         {data && data.readiness.length > 0 && (
           <Surface tone="low" className="ghl-chart-card">
+            <h2 className="ghl-chart-card__title">{t('recovery.readinessAssessmentTitle')}</h2>
+            <ReferenceRangeGauge
+              value={data.readiness[data.readiness.length - 1].score}
+              domain={READINESS_DOMAIN}
+              zones={getReadinessZones(language)}
+              unit=""
+            />
+            <p className="ghl-chart-card__hint">
+              {t('heart.sourcePrefix')}{' '}
+              <a href={READINESS_SOURCE_URL} target="_blank" rel="noreferrer">
+                {READINESS_SOURCE}
+              </a>
+              {t('heart.medicalDisclaimer')}
+            </p>
+          </Surface>
+        )}
+
+        {data && data.readiness.length > 0 && (
+          <Surface tone="low" className="ghl-chart-card">
             <h2 className="ghl-chart-card__title">{t('recovery.readiness')}</h2>
             <ResponsiveContainer width="100%" height={200}>
               <LineChart data={data.readiness}>
@@ -93,6 +148,25 @@ export function RecoveryPage() {
                 <Line type="monotone" dataKey="score" stroke="#43a047" dot={{ r: 3 }} strokeWidth={2} />
               </LineChart>
             </ResponsiveContainer>
+          </Surface>
+        )}
+
+        {data && data.spO2.length > 0 && (
+          <Surface tone="low" className="ghl-chart-card">
+            <h2 className="ghl-chart-card__title">{t('recovery.spo2AssessmentTitle')}</h2>
+            <ReferenceRangeGauge
+              value={data.spO2[data.spO2.length - 1].averagePercent}
+              domain={SPO2_DOMAIN}
+              zones={getSpo2Zones(language)}
+              unit="%"
+            />
+            <p className="ghl-chart-card__hint">
+              {t('heart.sourcePrefix')}{' '}
+              <a href={SPO2_SOURCE_URL} target="_blank" rel="noreferrer">
+                {SPO2_SOURCE}
+              </a>
+              {t('heart.medicalDisclaimer')}
+            </p>
           </Surface>
         )}
 
@@ -113,6 +187,13 @@ export function RecoveryPage() {
         {data && data.temperature.length > 0 && (
           <Surface tone="low" className="ghl-chart-card">
             <h2 className="ghl-chart-card__title">{t('recovery.temperature')}</h2>
+            <p className="ghl-chart-card__hint">
+              {t('recovery.temperatureHint')} {t('heart.sourcePrefix')}{' '}
+              <a href={TEMPERATURE_SOURCE_URL} target="_blank" rel="noreferrer">
+                {TEMPERATURE_SOURCE}
+              </a>
+              {t('heart.medicalDisclaimer')}
+            </p>
             <ResponsiveContainer width="100%" height={200}>
               <LineChart data={data.temperature}>
                 <XAxis dataKey="date" tick={{ fontSize: 11 }} tickFormatter={(d: string) => d.slice(5, 10)} stroke="var(--md-sys-color-outline)" />
