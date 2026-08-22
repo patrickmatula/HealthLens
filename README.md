@@ -1,6 +1,6 @@
 # HealthLens
 
-A self-hosted dashboard for your Google Takeout health export (Fitbit/Google Health data). You import a Takeout zip once, and HealthLens turns it into workout, sleep, heart, and recovery views with long-term trends and personal records. All data stays on your own server.
+A self-hosted dashboard for your Google Takeout health export (Fitbit/Google Health data). You import a Takeout zip once, and HealthLens turns it into workout, sleep, heart, and recovery views with long-term trends and personal records. All data stays on your own server. The UI is built with Material Design 3, so it looks and feels like a native Google app.
 
 > [!NOTE]
 > HealthLens is a private, personal project. Claude wrote nearly all of the code from prompts, commonly called "vibe coding." It exists to explore one person's own Takeout export, not as a maintained open-source product — expect rough edges and no support guarantees.
@@ -61,8 +61,7 @@ docker run --rm -v healthlens-data:/data -v "$PWD":/backup alpine tar czf /backu
 
 ## Automated builds
 
-> [!NOTE]
-> The published image updates itself: dependency and base-image patches are checked weekly, safe updates merge and republish automatically, and every code change gets its own version tag (e.g. `v1.4.2`) alongside `latest`. Pin `docker-compose.yml` to a specific tag if you'd rather update on your own schedule. Details for maintainers are in the `.github/workflows/` files.
+The published image updates itself: dependency and base-image patches are checked weekly, safe updates merge and republish automatically, and every code change gets its own version tag (e.g. `v1.4.2`) alongside `latest`. Pin `docker-compose.yml` to a specific tag if you'd rather update on your own schedule. Details for maintainers are in the `.github/workflows/` files.
 
 ## First import
 
