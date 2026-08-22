@@ -59,7 +59,14 @@ docker run --rm -v healthlens-data:/data -v "$PWD":/backup alpine tar czf /backu
 
 ## Automated builds
 
-A weekly GitHub Actions workflow rebuilds and republishes the image (`.github/workflows/docker-publish.yml`), so it picks up security patches to the base images even between code changes. [Dependabot](.github/dependabot.yml) checks npm, NuGet, Docker base images, and GitHub Actions weekly and opens a pull request for anything outdated; merging one triggers an immediate rebuild and republish.
+A weekly GitHub Actions workflow rebuilds and republishes the image (`.github/workflows/docker-publish.yml`), so it picks up security patches to the base images even between code changes. [Dependabot](.github/dependabot.yml) checks npm, NuGet, Docker base images, and GitHub Actions weekly and opens a pull request for anything outdated.
+
+Patch and minor updates merge themselves once the build check passes (`.github/workflows/dependabot-auto-merge.yml`), which then triggers a rebuild and republish. Major version bumps stay open for manual review, since those are the ones most likely to break something.
+
+This needs two one-time repository settings, since neither is available through a workflow file:
+
+- **Settings → General → Pull Requests → "Allow auto-merge"** — required or the auto-merge step has nothing to enable.
+- **Settings → Branches → add a rule for `master` requiring the "build" status check** — without this, GitHub has nothing to wait for and merges immediately instead of after the build passes.
 
 ## First import
 
