@@ -5,16 +5,15 @@ using HealthLens.Api.Models;
 namespace HealthLens.Api.Services.GoogleHealth;
 
 /// <summary>
-/// Pulls the last month of a few core, unambiguous data types from the Google Health API and upserts
-/// them into the same tables the Takeout importer writes to — so every existing chart/gauge just sees
-/// fresher data, with no separate "synced" code path in the frontend.
+/// Pulls the last month of a few core data types from the Google Health API and upserts them into the
+/// same tables the Takeout importer writes to — so every existing chart/gauge just sees fresher data,
+/// with no separate "synced" code path in the frontend.
 ///
-/// Deliberately narrow: only data types whose Google Health API field names are unambiguous (steps,
-/// distance, active-energy-burned, weight, body-fat) are synced. Resting heart rate, sleep stages and
-/// workouts are left for a follow-up once a real account has confirmed the exact response shape — this
-/// app has no way to test against the live API without the user's own OAuth credentials, and getting a
-/// medically-labeled gauge (resting heart rate) or a hypnogram wrong from a guessed field mapping would
-/// be worse than not syncing it at all.
+/// Field names and nesting are taken from the official REST reference
+/// (developers.google.com/health/reference/rest/v4/users.dataTypes.dataPoints): every field lives nested
+/// under the data type's own union object, e.g. a "distance" data point is
+/// { "distance": { "interval": {...}, "millimeters": "1000000" } }, not a top-level "meters"/"value" as
+/// earlier guesses assumed. Resting heart rate, sleep stages and workouts are left for a follow-up.
 /// </summary>
 public sealed class GoogleHealthSyncService(
     GoogleHealthCredentialStore store,
@@ -52,9 +51,10 @@ public sealed class GoogleHealthSyncService(
 
     private async Task<int> SyncActivityAsync(AppDbContext db, string accessToken, DateTimeOffset from, DateTimeOffset to, List<string> warnings, CancellationToken ct)
     {
-        var stepsByDay = await SumPerDayAsync(accessToken, "steps", "steps", ["count", "value"], from, to, warnings, ct);
-        var distanceByDay = await SumPerDayAsync(accessToken, "distance", "distance", ["meters", "value"], from, to, warnings, ct);
-        var caloriesByDay = await SumPerDayAsync(accessToken, "active-energy-burned", "activeEnergyBurned", ["kilocalories", "value"], from, to, warnings, ct);
+        // "count" and "millimeters" are int64 fields, JSON-encoded as strings by the API.
+        var stepsByDay = await SumPerDayAsync(accessToken, "steps", "steps", ["count"], unitDivisor: 1, from, to, warnings, ct);
+        var distanceByDay = await SumPerDayAsync(accessToken, "distance", "distance", ["millimeters"], unitDivisor: 1000, from, to, warnings, ct);
+        var caloriesByDay = await SumPerDayAsync(accessToken, "active-energy-burned", "activeEnergyBurned", ["caloriesKcal"], unitDivisor: 1, from, to, warnings, ct);
 
         var days = new HashSet<DateOnly>(stepsByDay.Keys);
         days.UnionWith(distanceByDay.Keys);
@@ -91,16 +91,17 @@ public sealed class GoogleHealthSyncService(
     private async Task<int> SyncWeightAsync(AppDbContext db, string accessToken, DateTimeOffset from, DateTimeOffset to, List<string> warnings, CancellationToken ct)
     {
         var count = 0;
-        count += await UpsertBodyMeasurementAsync(db, accessToken, "weight", "weight", ["kilograms", "value"], BodyMeasurementType.WeightKg, from, to, warnings, ct);
-        count += await UpsertBodyMeasurementAsync(db, accessToken, "body-fat", "bodyFat", ["percentage", "value"], BodyMeasurementType.BodyFatPercent, from, to, warnings, ct);
+        // "weightGrams" is grams, converted to the app's kilogram convention; "percentage" needs no conversion.
+        count += await UpsertBodyMeasurementAsync(db, accessToken, "weight", "weight", ["weightGrams"], unitDivisor: 1000, BodyMeasurementType.WeightKg, from, to, warnings, ct);
+        count += await UpsertBodyMeasurementAsync(db, accessToken, "body-fat", "bodyFat", ["percentage"], unitDivisor: 1, BodyMeasurementType.BodyFatPercent, from, to, warnings, ct);
         return count;
     }
 
     private async Task<int> UpsertBodyMeasurementAsync(
-        AppDbContext db, string accessToken, string dataTypeId, string unionField, string[] candidates,
+        AppDbContext db, string accessToken, string dataTypeId, string unionField, string[] candidates, double unitDivisor,
         BodyMeasurementType type, DateTimeOffset from, DateTimeOffset to, List<string> warnings, CancellationToken ct)
     {
-        var points = await FetchAsync(accessToken, dataTypeId, from, to, warnings, ct);
+        var points = await FetchAsync(accessToken, dataTypeId, unionField, isSampleType: true, from, to, warnings, ct);
         var count = 0;
 
         // Last measurement of each day wins, matching the "re-entering a value overwrites it" convention
@@ -114,14 +115,15 @@ public sealed class GoogleHealthSyncService(
                 continue;
             }
 
+            var converted = value.Value / unitDivisor;
             var existing = await db.BodyMeasurements.FindAsync([group.Key, type, BodySide.None], ct);
             if (existing is null)
             {
-                db.BodyMeasurements.Add(new BodyMeasurement { Date = group.Key, Type = type, Side = BodySide.None, Value = value.Value });
+                db.BodyMeasurements.Add(new BodyMeasurement { Date = group.Key, Type = type, Side = BodySide.None, Value = converted });
             }
             else
             {
-                existing.Value = value.Value;
+                existing.Value = converted;
             }
 
             count++;
@@ -131,10 +133,10 @@ public sealed class GoogleHealthSyncService(
     }
 
     private async Task<Dictionary<DateOnly, double>> SumPerDayAsync(
-        string accessToken, string dataTypeId, string unionField, string[] candidates,
+        string accessToken, string dataTypeId, string unionField, string[] candidates, double unitDivisor,
         DateTimeOffset from, DateTimeOffset to, List<string> warnings, CancellationToken ct)
     {
-        var points = await FetchAsync(accessToken, dataTypeId, from, to, warnings, ct);
+        var points = await FetchAsync(accessToken, dataTypeId, unionField, isSampleType: false, from, to, warnings, ct);
         var byDay = new Dictionary<DateOnly, double>();
 
         foreach (var point in points)
@@ -146,18 +148,18 @@ public sealed class GoogleHealthSyncService(
             }
 
             var day = DateOnly.FromDateTime(point.StartUtc.UtcDateTime);
-            byDay[day] = byDay.GetValueOrDefault(day) + value.Value;
+            byDay[day] = byDay.GetValueOrDefault(day) + value.Value / unitDivisor;
         }
 
         return byDay;
     }
 
     private async Task<IReadOnlyList<GoogleHealthDataPoint>> FetchAsync(
-        string accessToken, string dataTypeId, DateTimeOffset from, DateTimeOffset to, List<string> warnings, CancellationToken ct)
+        string accessToken, string dataTypeId, string unionField, bool isSampleType, DateTimeOffset from, DateTimeOffset to, List<string> warnings, CancellationToken ct)
     {
         try
         {
-            return await api.ListDataPointsAsync(accessToken, dataTypeId, from, to, ct);
+            return await api.ListDataPointsAsync(accessToken, dataTypeId, unionField, isSampleType, from, to, ct);
         }
         catch (Exception ex) when (ex is not OperationCanceledException)
         {

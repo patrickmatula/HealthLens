@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.Net.Http.Headers;
 using System.Text.Json;
 
@@ -6,19 +7,31 @@ namespace HealthLens.Api.Services.GoogleHealth;
 public sealed record GoogleHealthDataPoint(DateTimeOffset StartUtc, DateTimeOffset EndUtc, JsonElement Raw);
 
 /// <summary>
-/// Thin wrapper around the Google Health API's users.dataTypes.dataPoints.list endpoint. The exact
-/// per-data-type field names inside each DataPoint are not fully documented publicly, so callers get
-/// the raw JsonElement back and pick values out defensively (see GoogleHealthFieldReader) instead of
-/// this client asserting a schema it can't be certain of.
+/// Thin wrapper around the Google Health API's users.dataTypes.dataPoints.list endpoint. Per the official
+/// REST reference (developers.google.com/health/reference/rest/v4/users.dataTypes.dataPoints), every field
+/// — the time interval/sample time and the value itself — lives nested under the data type's own union
+/// object (e.g. a "steps" data point is shaped { "steps": { "interval": { "startTime": ... }, "count": "1250" } }),
+/// not at the top level. int64-typed values (step counts, millimeter distances) are JSON-encoded as strings
+/// to avoid precision loss, not as JSON numbers.
 /// </summary>
 public sealed class GoogleHealthApiClient(HttpClient http, ILogger<GoogleHealthApiClient> logger)
 {
     public async Task<IReadOnlyList<GoogleHealthDataPoint>> ListDataPointsAsync(
-        string accessToken, string dataTypeId, DateTimeOffset fromUtc, DateTimeOffset toUtc, CancellationToken ct)
+        string accessToken, string dataTypeId, string unionFieldName, bool isSampleType,
+        DateTimeOffset fromUtc, DateTimeOffset toUtc, CancellationToken ct)
     {
         var results = new List<GoogleHealthDataPoint>();
         string? pageToken = null;
-        var filter = $"startTime>=\"{fromUtc:O}\" AND startTime<=\"{toUtc:O}\"";
+
+        // Filter fields must be qualified with the data type's filter identifier (underscore form of the
+        // URL's hyphenated dataTypeId, e.g. "active-energy-burned" -> "active_energy_burned") followed by
+        // the field path for that type's time kind -- interval types (steps, distance, ...) expose
+        // "interval.start_time", sample types (weight, body-fat, ...) expose "sample_time.physical_time".
+        // A bare "startTime" is rejected outright with a 400 INVALID_DATA_POINT_FILTER_RESTRICTION_COMPARABLE.
+        // The API also only accepts GREATER_THAN_EQUALS/LESS_THAN on these fields -- "<=" on the upper
+        // bound is rejected too (INVALID_DATA_POINT_FILTER_RESTRICTION_COMPARATOR).
+        var filterField = dataTypeId.Replace('-', '_') + (isSampleType ? ".sample_time.physical_time" : ".interval.start_time");
+        var filter = $"{filterField}>=\"{fromUtc:O}\" AND {filterField}<\"{toUtc:O}\"";
 
         do
         {
@@ -41,7 +54,7 @@ public sealed class GoogleHealthApiClient(HttpClient http, ILogger<GoogleHealthA
             {
                 foreach (var point in points.EnumerateArray())
                 {
-                    if (TryReadInterval(point, out var start, out var end))
+                    if (TryReadInterval(point, unionFieldName, isSampleType, out var start, out var end))
                     {
                         results.Add(new GoogleHealthDataPoint(start, end, point.Clone()));
                     }
@@ -56,21 +69,39 @@ public sealed class GoogleHealthApiClient(HttpClient http, ILogger<GoogleHealthA
         return results;
     }
 
-    private static bool TryReadInterval(JsonElement point, out DateTimeOffset start, out DateTimeOffset end)
+    private static bool TryReadInterval(JsonElement point, string unionFieldName, bool isSampleType, out DateTimeOffset start, out DateTimeOffset end)
     {
         start = default;
         end = default;
 
-        // The interval has shown up either at the top level or nested under "interval" in different
-        // Google API generations — try both rather than betting on one.
-        var container = point.TryGetProperty("interval", out var interval) ? interval : point;
-
-        if (!container.TryGetProperty("startTime", out var startProp) || !DateTimeOffset.TryParse(startProp.GetString(), out start))
+        if (!point.TryGetProperty(unionFieldName, out var union))
         {
             return false;
         }
 
-        if (container.TryGetProperty("endTime", out var endProp) && DateTimeOffset.TryParse(endProp.GetString(), out var parsedEnd))
+        if (isSampleType)
+        {
+            // Sample types (weight, body-fat) are a single instant: union.sampleTime.physicalTime.
+            if (!union.TryGetProperty("sampleTime", out var sampleTime)
+                || !sampleTime.TryGetProperty("physicalTime", out var physicalTimeProp)
+                || !DateTimeOffset.TryParse(physicalTimeProp.GetString(), out var physicalTime))
+            {
+                return false;
+            }
+
+            start = end = physicalTime;
+            return true;
+        }
+
+        // Interval types (steps, distance, active-energy-burned) are a range: union.interval.{startTime,endTime}.
+        if (!union.TryGetProperty("interval", out var interval)
+            || !interval.TryGetProperty("startTime", out var startProp)
+            || !DateTimeOffset.TryParse(startProp.GetString(), out start))
+        {
+            return false;
+        }
+
+        if (interval.TryGetProperty("endTime", out var endProp) && DateTimeOffset.TryParse(endProp.GetString(), out var parsedEnd))
         {
             end = parsedEnd;
         }
@@ -84,10 +115,8 @@ public sealed class GoogleHealthApiClient(HttpClient http, ILogger<GoogleHealthA
 }
 
 /// <summary>
-/// Picks a numeric value out of a DataPoint's data union by trying every plausible field name for that
-/// data type, since the exact field names aren't publicly documented in detail. Logs the keys actually
-/// present the first time none of the candidates match, so a follow-up fix is a one-line change instead
-/// of another guessing round.
+/// Picks a numeric value out of a DataPoint's data union by field name. int64-typed fields (step counts,
+/// millimeter distances) arrive JSON-encoded as strings rather than numbers, so both kinds are accepted.
 /// </summary>
 public static class GoogleHealthFieldReader
 {
@@ -100,17 +129,19 @@ public static class GoogleHealthFieldReader
 
         foreach (var field in candidateFields)
         {
-            if (union.TryGetProperty(field, out var value))
+            if (!union.TryGetProperty(field, out var value))
             {
-                if (value.ValueKind == JsonValueKind.Number && value.TryGetDouble(out var d))
-                {
-                    return d;
-                }
+                continue;
+            }
 
-                if (value.ValueKind == JsonValueKind.Object && value.TryGetProperty("value", out var nested) && nested.TryGetDouble(out var nd))
-                {
-                    return nd;
-                }
+            if (value.ValueKind == JsonValueKind.Number && value.TryGetDouble(out var d))
+            {
+                return d;
+            }
+
+            if (value.ValueKind == JsonValueKind.String && double.TryParse(value.GetString(), NumberStyles.Float, CultureInfo.InvariantCulture, out var sd))
+            {
+                return sd;
             }
         }
 
