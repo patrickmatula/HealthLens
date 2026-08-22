@@ -1,0 +1,11 @@
+**/bin
+**/obj
+**/node_modules
+**/dist
+backend/HealthLens.Api/wwwroot
+backend/HealthLens.Api/App_Data
+backend/HealthLens.Tests
+.git
+.claude
+.vs
+.vscode

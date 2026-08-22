@@ -1,0 +1,12 @@
+services:
+  healthlens:
+    build: .
+    image: healthlens:latest
+    ports:
+      - "${HEALTHLENS_PORT:-8080}:8080"
+    volumes:
+      - healthlens-data:/app/App_Data
+    restart: unless-stopped
+
+volumes:
+  healthlens-data:
