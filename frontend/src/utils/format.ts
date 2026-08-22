@@ -107,16 +107,21 @@ export type WorkoutCategory = 'Lauf' | 'Spaziergang' | 'Rad' | 'Kraft' | 'Sonsti
 
 /**
  * Fitbit's own activityName is inconsistent (generic "Workout"/"Structured Workout"/"Sport" entries are
- * common), so name keywords alone under-classify. Fall back to pace for those generic names: sustained
- * paces faster than ~8:00/km are essentially never walking, matching typical running-vs-walking pace
- * thresholds used by fitness apps.
+ * common), so name keywords alone under-classify. Fall back to cadence first when available: running
+ * gait is reliably ~140+ spm regardless of speed, while average pace alone can dip into "walking"
+ * territory for a genuine run whose average includes interval rest breaks (e.g. a "Structured Workout"
+ * of run intervals with walking recovery, which drags the whole-session average pace down even though
+ * every running segment was run at running cadence). Pace is the fallback for entries with no cadence.
  */
-export function categorizeWorkout(w: { activityName: string; avgPaceSecPerKm: number | null }): WorkoutCategory {
+export function categorizeWorkout(w: { activityName: string; avgPaceSecPerKm: number | null; cadenceAvgSpm?: number | null }): WorkoutCategory {
   const name = w.activityName.toLowerCase()
   if (/(run|laufen|hike|wander)/.test(name)) return 'Lauf'
   if (/(walk|geh)/.test(name)) return 'Spaziergang'
   if (/(bike|cycl|rad)/.test(name)) return 'Rad'
   if (/(strength|hiit|aerobic|kraft|gym)/.test(name)) return 'Kraft'
+  if (w.cadenceAvgSpm != null) {
+    return w.cadenceAvgSpm >= 140 ? 'Lauf' : 'Spaziergang'
+  }
   if (w.avgPaceSecPerKm != null) {
     return w.avgPaceSecPerKm < 480 ? 'Lauf' : 'Spaziergang'
   }

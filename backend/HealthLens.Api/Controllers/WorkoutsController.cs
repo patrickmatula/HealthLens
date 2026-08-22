@@ -41,7 +41,7 @@ public class WorkoutsController(DataSessionService session) : ControllerBase
 
         return Ok(workouts.Select(w => new WorkoutListItemDto(
             w.Id.ToString(), w.StartUtc, w.EndUtc, w.DurationSeconds, w.ActivityName, w.DistanceMeters, w.Calories,
-            w.AvgHeartRate, w.AvgPaceSecPerKm, w.HasGps, w.IsLegacy,
+            w.AvgHeartRate, w.AvgPaceSecPerKm, w.CadenceAvgSpm, w.HasGps, w.IsLegacy,
             w.ShoeId, w.ShoeId is { } sid && shoeNames.TryGetValue(sid, out var name) ? name : null)).ToList());
     }
 

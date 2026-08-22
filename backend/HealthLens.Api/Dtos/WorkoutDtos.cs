@@ -12,6 +12,7 @@ public record WorkoutListItemDto(
     double? Calories,
     double? AvgHeartRate,
     double? AvgPaceSecPerKm,
+    double? CadenceAvgSpm,
     bool HasGps,
     bool IsLegacy,
     int? ShoeId,

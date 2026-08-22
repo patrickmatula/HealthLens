@@ -58,6 +58,7 @@ export interface WorkoutListItemDto {
   calories: number | null
   avgHeartRate: number | null
   avgPaceSecPerKm: number | null
+  cadenceAvgSpm: number | null
   hasGps: boolean
   isLegacy: boolean
   shoeId: number | null
