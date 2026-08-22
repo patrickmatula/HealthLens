@@ -26,14 +26,15 @@ You need Docker and Docker Compose. From the repository root:
 docker compose up -d
 ```
 
-Open http://localhost:8080. The container builds on first run, so expect a minute or two before it's ready.
+This pulls the published image (`ghcr.io/patrickmatula/healthlens`) — no local build, no .NET or Node SDK needed. Open http://localhost:8080.
 
-Podman works too — `podman compose up -d` if you have `podman-compose` installed, or build and run it directly:
+To build from source instead, edit `docker-compose.yml`: comment out `image:`, uncomment `build: .`, then run `docker compose up -d --build`.
+
+Podman works too — `podman compose up -d` if you have `podman-compose` installed, or run the published image directly:
 
 ```bash
-podman build -t healthlens .
 podman volume create healthlens-data
-podman run -d --name healthlens -p 8080:8080 -v healthlens-data:/app/App_Data healthlens
+podman run -d --name healthlens -p 8080:8080 -v healthlens-data:/app/App_Data ghcr.io/patrickmatula/healthlens:latest
 ```
 
 Your data lives in a named Docker volume (`healthlens-data`), independent of the container. Removing or rebuilding the container leaves your data intact; `docker compose down -v` deletes it.
@@ -44,10 +45,10 @@ To use a different host port, set `HEALTHLENS_PORT` before starting:
 HEALTHLENS_PORT=9000 docker compose up -d
 ```
 
-To pick up code changes, rebuild the image:
+To update to the latest published image:
 
 ```bash
-docker compose up -d --build
+docker compose pull && docker compose up -d
 ```
 
 To back up your data:
@@ -55,6 +56,10 @@ To back up your data:
 ```bash
 docker run --rm -v healthlens-data:/data -v "$PWD":/backup alpine tar czf /backup/healthlens-backup.tar.gz -C /data .
 ```
+
+## Automated builds
+
+A weekly GitHub Actions workflow rebuilds and republishes the image (`.github/workflows/docker-publish.yml`), so it picks up security patches to the base images even between code changes. [Dependabot](.github/dependabot.yml) checks npm, NuGet, Docker base images, and GitHub Actions weekly and opens a pull request for anything outdated; merging one triggers an immediate rebuild and republish.
 
 ## First import
 
