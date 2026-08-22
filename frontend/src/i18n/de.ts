@@ -75,6 +75,7 @@ const de = {
   'more.googleHealthSyncing': 'Synchronisiere…',
   'more.googleHealthSyncDone': '{count} Werte synchronisiert.',
   'more.googleHealthDisconnect': 'Trennen',
+  'more.googleHealthReset': 'Zurücksetzen',
   'more.aboutTitle': 'Über HealthLens',
   'more.aboutText':
     'Eine lokale Auswertungs-App für deinen Google-Takeout-Export (Google Health/Fitbit). Alle Daten bleiben auf diesem Rechner — es wird nichts an einen Server außerhalb deines eigenen Backends gesendet.',

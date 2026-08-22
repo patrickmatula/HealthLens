@@ -265,9 +265,12 @@ export function MorePage() {
                 <div className="ghl-google-health__connected">
                   {googleHealth.lastError && <p className="ghl-more-text ghl-google-health__error">{googleHealth.lastError}</p>}
                   <p className="ghl-more-text">{t('more.googleHealthHttpsNote')}</p>
-                  <md-filled-button disabled={connecting || undefined} onClick={connectGoogleHealth}>
-                    {connecting ? t('more.googleHealthConnecting') : t('more.googleHealthConnect')}
-                  </md-filled-button>
+                  <div className="ghl-google-health__actions">
+                    <md-filled-button disabled={connecting || undefined} onClick={connectGoogleHealth}>
+                      {connecting ? t('more.googleHealthConnecting') : t('more.googleHealthConnect')}
+                    </md-filled-button>
+                    <md-outlined-button onClick={disconnectGoogleHealth}>{t('more.googleHealthReset')}</md-outlined-button>
+                  </div>
                 </div>
               )}
 
