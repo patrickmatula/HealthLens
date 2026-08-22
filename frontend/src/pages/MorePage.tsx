@@ -224,7 +224,12 @@ export function MorePage() {
           ) : (
             <>
               <ol className="ghl-google-health__steps">
-                <li>{t('more.googleHealthStep1')}</li>
+                <li>
+                  {t('more.googleHealthStep1')}{' '}
+                  <a href="https://developers.google.com/health/setup" target="_blank" rel="noreferrer">
+                    {t('more.googleHealthStep1Link')}
+                  </a>
+                </li>
                 <li>{t('more.googleHealthStep2')}</li>
                 <li>
                   {t('more.googleHealthStep3')} <code>{googleHealth?.redirectUri ?? '…'}</code>
@@ -259,6 +264,7 @@ export function MorePage() {
               {googleHealth?.configured && !googleHealth.connected && (
                 <div className="ghl-google-health__connected">
                   {googleHealth.lastError && <p className="ghl-more-text ghl-google-health__error">{googleHealth.lastError}</p>}
+                  <p className="ghl-more-text">{t('more.googleHealthHttpsNote')}</p>
                   <md-filled-button disabled={connecting || undefined} onClick={connectGoogleHealth}>
                     {connecting ? t('more.googleHealthConnecting') : t('more.googleHealthConnect')}
                   </md-filled-button>

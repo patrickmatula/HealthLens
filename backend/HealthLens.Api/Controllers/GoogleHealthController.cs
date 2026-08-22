@@ -17,7 +17,8 @@ public class GoogleHealthController(
     GoogleHealthCredentialStore store,
     GoogleHealthOAuthService oauth,
     GoogleHealthSyncService sync,
-    DataSessionService session) : ControllerBase
+    DataSessionService session,
+    IWebHostEnvironment env) : ControllerBase
 {
     [HttpGet("status")]
     public ActionResult<GoogleHealthStatusDto> Status()
@@ -102,7 +103,14 @@ public class GoogleHealthController(
         }
     }
 
-    private string BuildCallbackUri() => $"{Request.Scheme}://{Request.Host}/api/googlehealth/callback";
+    // Google requires https for the redirect URI. The container listens on 8443 for exactly this
+    // (see Program.cs) with a self-signed cert generated on first run, so this is forced to https+8443
+    // regardless of which port the current page happens to be loaded from — only the OAuth popup ever
+    // touches it, so the rest of the app keeps using plain http day to day.
+    private string BuildCallbackUri() =>
+        env.IsProduction()
+            ? $"https://{Request.Host.Host}:8443/api/googlehealth/callback"
+            : $"{Request.Scheme}://{Request.Host}/api/googlehealth/callback";
 
     private static string CallbackHtml(string message) =>
         $"""

@@ -24,8 +24,10 @@ RUN dotnet publish backend/HealthLens.Api/HealthLens.Api.csproj -c Release -o /a
 FROM mcr.microsoft.com/dotnet/aspnet:10.0-noble-chiseled-extra AS final
 WORKDIR /app
 COPY --from=backend --chown=app:app /app/publish .
-ENV ASPNETCORE_URLS=http://+:8080 \
-    ASPNETCORE_ENVIRONMENT=Production
-EXPOSE 8080
+ENV ASPNETCORE_ENVIRONMENT=Production
+# Program.cs binds both ports explicitly in Production; 8443 serves the Google Health OAuth callback
+# on a self-signed cert generated on first run (see LocalHttpsCertificate.cs) and persisted into
+# App_Data, so it survives restarts without a new browser warning every time.
+EXPOSE 8080 8443
 VOLUME /app/App_Data
 ENTRYPOINT ["dotnet", "HealthLens.Api.dll"]

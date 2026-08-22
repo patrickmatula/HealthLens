@@ -54,10 +54,13 @@ const en: Record<TranslationKey, string> = {
   'more.googleHealthIntro':
     'Optional: pull activity (steps, distance, calories) and weight/body fat from Google Health automatically, without redoing a full Takeout export every time.',
   'more.googleHealthNeedsPersistent': 'Only available in permanent storage mode (see "Data source" above).',
-  'more.googleHealthStep1': '1. Create a free Google Cloud project, enable the "Google Health API".',
-  'more.googleHealthStep2': '2. Set up the OAuth consent screen (testing mode is fine) and add yourself as a test user.',
-  'more.googleHealthStep3': '3. Create an OAuth client (type "Web application"), set the redirect URI to exactly:',
-  'more.googleHealthStep4': '4. Enter the Client ID and Client Secret below and connect.',
+  'more.googleHealthStep1': 'Create a free Google Cloud project, enable the "Google Health API".',
+  'more.googleHealthStep1Link': 'Open the guide',
+  'more.googleHealthStep2': 'Set up the OAuth consent screen (testing mode is fine) and add yourself as a test user.',
+  'more.googleHealthStep3': 'Create an OAuth client (type "Web application"), set the redirect URI to exactly:',
+  'more.googleHealthStep4': 'Enter the Client ID and Client Secret below and connect.',
+  'more.googleHealthHttpsNote':
+    "A window opens for Google sign-in. At the end, Google redirects to a locally secured address (https, Google's requirement) — your browser shows a one-time certificate warning there (self-signed, only for this machine). Just accept it and continue.",
   'more.googleHealthClientIdLabel': 'Client ID',
   'more.googleHealthClientSecretLabel': 'Client secret',
   'more.googleHealthSaveConfig': 'Save',

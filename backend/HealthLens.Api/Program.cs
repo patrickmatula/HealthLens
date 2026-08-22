@@ -21,6 +21,21 @@ builder.Services.AddHttpClient<GoogleHealthApiClient>(c => c.BaseAddress = new U
 builder.Services.Configure<FormOptions>(o => o.MultipartBodyLengthLimit = 4L * 1024 * 1024 * 1024);
 builder.WebHost.ConfigureKestrel(o => o.Limits.MaxRequestBodySize = 4L * 1024 * 1024 * 1024);
 
+// The container only: bind both the usual http port and an https one on a self-signed certificate
+// generated on first run and persisted alongside the database. Nothing in the app requires https day
+// to day — only the Google Health OAuth redirect does, and only that one popup ever touches this port
+// (see GoogleHealthController.BuildCallbackUri). Local `dotnet run` keeps using launchSettings.json.
+if (builder.Environment.IsProduction())
+{
+    var httpsCertPath = Path.Combine(builder.Environment.ContentRootPath, "App_Data", "https-cert.pfx");
+    var httpsCertificate = LocalHttpsCertificate.GetOrCreate(httpsCertPath);
+    builder.WebHost.ConfigureKestrel(o =>
+    {
+        o.ListenAnyIP(8080);
+        o.ListenAnyIP(8443, lo => lo.UseHttps(httpsCertificate));
+    });
+}
+
 const string DevCorsPolicy = "DevCors";
 if (builder.Environment.IsDevelopment())
 {

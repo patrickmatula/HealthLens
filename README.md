@@ -2,9 +2,8 @@
 
 A self-hosted dashboard for your Google Takeout health export (Fitbit/Google Health data). You import a Takeout zip once, and HealthLens turns it into workout, sleep, heart, and recovery views with long-term trends and personal records. All data stays on your own server.
 
-## About this project
-
-HealthLens is a private, personal project. Claude wrote nearly all of the code from prompts, commonly called "vibe coding." It exists to explore one person's own Takeout export, not as a maintained open-source product — expect rough edges and no support guarantees.
+> [!NOTE]
+> HealthLens is a private, personal project. Claude wrote nearly all of the code from prompts, commonly called "vibe coding." It exists to explore one person's own Takeout export, not as a maintained open-source product — expect rough edges and no support guarantees.
 
 ## Features
 
@@ -14,9 +13,12 @@ HealthLens is a private, personal project. Claude wrote nearly all of the code f
 - **Heart & recovery** — resting heart rate, HRV, stress, SpO2, temperature, readiness, all with medically sourced reference ranges.
 - **Shoe tracking** (optional) — assign runs to a shoe, track mileage per pair.
 - **Body measurements** (optional) — weight, body fat, and circumference tracking with BMI/WHtR/body-fat assessments.
-- **Google Health sync** (optional) — pulls recent activity and weight data from the Google Health API between Takeout exports. See the setup steps under "More" in the app.
+- **Google Health sync** (optional) — pulls recent activity and weight data from the Google Health API between Takeout exports. Setup steps are in the app under "More."
 
 Every feature beyond the core dashboard is off by default and lives under "More" in the app.
+
+> [!TIP]
+> Google requires https for the sync feature's OAuth redirect. The container generates a self-signed certificate on first run and serves it on port 8443 for that one redirect only — the rest of the app keeps using plain http, and your browser will show a one-time certificate warning inside the sign-in popup, which is expected.
 
 ## Run it with Docker
 
@@ -34,15 +36,15 @@ Podman works too — `podman compose up -d` if you have `podman-compose` install
 
 ```bash
 podman volume create healthlens-data
-podman run -d --name healthlens -p 8080:8080 -v healthlens-data:/app/App_Data ghcr.io/patrickmatula/healthlens:latest
+podman run -d --name healthlens -p 8080:8080 -p 8443:8443 -v healthlens-data:/app/App_Data ghcr.io/patrickmatula/healthlens:latest
 ```
 
 Your data lives in a named Docker volume (`healthlens-data`), independent of the container. Removing or rebuilding the container leaves your data intact; `docker compose down -v` deletes it.
 
-To use a different host port, set `HEALTHLENS_PORT` before starting:
+To use different host ports, set `HEALTHLENS_PORT` and/or `HEALTHLENS_HTTPS_PORT` before starting:
 
 ```bash
-HEALTHLENS_PORT=9000 docker compose up -d
+HEALTHLENS_PORT=9000 HEALTHLENS_HTTPS_PORT=9443 docker compose up -d
 ```
 
 To update to the latest published image:
@@ -59,16 +61,8 @@ docker run --rm -v healthlens-data:/data -v "$PWD":/backup alpine tar czf /backu
 
 ## Automated builds
 
-A weekly GitHub Actions workflow rebuilds and republishes the image (`.github/workflows/docker-publish.yml`), so it picks up security patches to the base images even between code changes. [Dependabot](.github/dependabot.yml) checks npm, NuGet, Docker base images, and GitHub Actions weekly and opens a pull request for anything outdated.
-
-Every push to `master` bumps a patch version tag (e.g. `v1.4.2`) and publishes the image under that version alongside `latest` — pin to a specific version with `image: ghcr.io/patrickmatula/healthlens:v1.4.2` in `docker-compose.yml` if you don't want to move automatically. The weekly rebuild and manual runs republish the current version instead of minting a new one, since no code actually changed.
-
-Patch and minor updates merge themselves once the build check passes (`.github/workflows/dependabot-auto-merge.yml`), which then triggers a rebuild and republish. Major version bumps stay open for manual review, since those are the ones most likely to break something.
-
-This needs two one-time repository settings, since neither is available through a workflow file:
-
-- **Settings → General → Pull Requests → "Allow auto-merge"** — required or the auto-merge step has nothing to enable.
-- **Settings → Branches → add a rule for `master` requiring the "build" status check** — without this, GitHub has nothing to wait for and merges immediately instead of after the build passes.
+> [!NOTE]
+> The published image updates itself: dependency and base-image patches are checked weekly, safe updates merge and republish automatically, and every code change gets its own version tag (e.g. `v1.4.2`) alongside `latest`. Pin `docker-compose.yml` to a specific tag if you'd rather update on your own schedule. Details for maintainers are in the `.github/workflows/` files.
 
 ## First import
 

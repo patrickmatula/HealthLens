@@ -5,6 +5,7 @@ services:
     # build: .
     ports:
       - "${HEALTHLENS_PORT:-8080}:8080"
+      - "${HEALTHLENS_HTTPS_PORT:-8443}:8443"
     volumes:
       - healthlens-data:/app/App_Data
     restart: unless-stopped

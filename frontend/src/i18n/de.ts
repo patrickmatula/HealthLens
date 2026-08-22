@@ -56,10 +56,13 @@ const de = {
   'more.googleHealthIntro':
     'Optional: Aktivität (Schritte, Distanz, Kalorien) und Gewicht/Körperfett automatisch von Google Health nachziehen, ohne jedes Mal neu einen Takeout-Export zu machen.',
   'more.googleHealthNeedsPersistent': 'Nur im dauerhaften Speichermodus verfügbar (siehe „Datenquelle" oben).',
-  'more.googleHealthStep1': '1. Kostenloses Google-Cloud-Projekt anlegen, „Google Health API" aktivieren.',
-  'more.googleHealthStep2': '2. OAuth-Zustimmungsbildschirm einrichten (Testmodus reicht) und dich selbst als Testnutzer hinzufügen.',
-  'more.googleHealthStep3': '3. OAuth-Client (Typ „Web-Anwendung") erstellen, als Redirect-URI genau eintragen:',
-  'more.googleHealthStep4': '4. Client-ID und Client-Secret unten eintragen und verbinden.',
+  'more.googleHealthStep1': 'Kostenloses Google-Cloud-Projekt anlegen, „Google Health API" aktivieren.',
+  'more.googleHealthStep1Link': 'Anleitung öffnen',
+  'more.googleHealthStep2': 'OAuth-Zustimmungsbildschirm einrichten (Testmodus reicht) und dich selbst als Testnutzer hinzufügen.',
+  'more.googleHealthStep3': 'OAuth-Client (Typ „Web-Anwendung") erstellen, als Redirect-URI genau eintragen:',
+  'more.googleHealthStep4': 'Client-ID und Client-Secret unten eintragen und verbinden.',
+  'more.googleHealthHttpsNote':
+    'Beim Verbinden öffnet sich ein Fenster für die Google-Anmeldung. Am Ende leitet Google dich zu einer lokal gesicherten Adresse zurück (https, von Google verlangt) — dein Browser zeigt dabei einmalig eine Zertifikatswarnung (selbstsigniert, nur für diesen Rechner). Einfach bestätigen und fortfahren.',
   'more.googleHealthClientIdLabel': 'Client-ID',
   'more.googleHealthClientSecretLabel': 'Client-Secret',
   'more.googleHealthSaveConfig': 'Speichern',
