@@ -10,19 +10,29 @@ import { writeFileSync } from 'node:fs'
 // the point of Expressive). "sand" opts into "neutral" instead: SchemeNeutral keeps accent colors close
 // to the seed's own low-chroma hue rather than shifting them, which is what makes it read as a calm,
 // neutral/beige theme instead of just another vivid accent color with beige-ish surfaces.
-// "white" uses a fully achromatic seed (#787878, R=G=B) with the default Expressive variant: M3's
-// "neutral"/"neutral-variant" palettes always carry a small fixed chroma regardless of the source's own
-// chroma, so surfaces still land a hair off pure white (e.g. #f3fbff) rather than literally #ffffff --
-// but primary/secondary/tertiary stay properly colorful (Expressive doesn't inherit the source's low
-// chroma the way SchemeNeutral does), so charts and accents keep their color against a near-white canvas.
+// "white" additionally sets trueNeutralSurfaces: SchemeExpressive's own "neutral"/"neutral-variant"
+// palettes always carry a small fixed chroma no matter how gray the seed is (a plain achromatic seed
+// still produced a visibly tinted #f3fbff background), so surface-ish roles are recomputed at chroma 0
+// directly via Hct.from(0, 0, tone) instead -- same tone each role would have gotten, just genuinely
+// R=G=B this time -- while primary/secondary/tertiary are left as the normal Expressive derivation, so
+// charts and accents stay colorful against the now truly neutral surface.
 const THEMES = [
   { key: 'teal', label: 'Teal', seed: '#12876F', isDefault: true },
   { key: 'blue', label: 'Blau', seed: '#1565C0' },
   { key: 'purple', label: 'Violett', seed: '#7B1FA2' },
   { key: 'amber', label: 'Bernstein', seed: '#E65100' },
   { key: 'sand', label: 'Sand', seed: '#9C8B73', variant: 'neutral' },
-  { key: 'white', label: 'Weiß', seed: '#787878' },
+  { key: 'white', label: 'Weiß', seed: '#787878', trueNeutralSurfaces: true },
 ]
+
+const NEUTRAL_ROLES = new Set([
+  'background', 'onBackground',
+  'surface', 'onSurface', 'surfaceVariant', 'onSurfaceVariant',
+  'surfaceDim', 'surfaceBright',
+  'surfaceContainerLowest', 'surfaceContainerLow', 'surfaceContainer', 'surfaceContainerHigh', 'surfaceContainerHighest',
+  'outline', 'outlineVariant',
+  'inverseSurface', 'inverseOnSurface',
+])
 
 const ROLES = [
   'primary', 'onPrimary', 'primaryContainer', 'onPrimaryContainer',
@@ -42,19 +52,26 @@ function kebab(role) {
   return role.replace(/([a-z0-9])([A-Z])/g, '$1-$2').toLowerCase()
 }
 
-function block(scheme) {
-  return ROLES.map((role) => `  --md-sys-color-${kebab(role)}: ${hexFromArgb(scheme[role])};`).join('\n')
+function block(scheme, { trueNeutralSurfaces } = {}) {
+  return ROLES.map((role) => {
+    let argb = scheme[role]
+    if (trueNeutralSurfaces && NEUTRAL_ROLES.has(role)) {
+      argb = Hct.from(0, 0, Hct.fromInt(argb).tone).toInt()
+    }
+    return `  --md-sys-color-${kebab(role)}: ${hexFromArgb(argb)};`
+  }).join('\n')
 }
 
 let css = `/* GENERATED FILE — do not hand-edit. Regenerate with: node scripts/generate-theme.mjs */
 /* Material 3 Expressive schemes via @material/material-color-utilities, one per named color theme. */
 `
 
-for (const { key, seed, isDefault, variant } of THEMES) {
+for (const { key, seed, isDefault, variant, trueNeutralSurfaces } of THEMES) {
   const sourceHct = Hct.fromInt(argbFromHex(seed))
   const SchemeClass = variant === 'neutral' ? SchemeNeutral : SchemeExpressive
   const light = new SchemeClass(sourceHct, false, 0)
   const dark = new SchemeClass(sourceHct, true, 0)
+  const blockOpts = { trueNeutralSurfaces }
 
   const lightSelector = isDefault ? `:root, :root[data-color-theme='${key}']` : `:root[data-color-theme='${key}']`
   const darkMediaSelector = isDefault
@@ -67,17 +84,17 @@ for (const { key, seed, isDefault, variant } of THEMES) {
   css += `
 /* Theme: ${key} (seed ${seed}) */
 ${lightSelector} {
-${block(light)}
+${block(light, blockOpts)}
 }
 
 @media (prefers-color-scheme: dark) {
   ${darkMediaSelector} {
-${block(dark)}
+${block(dark, blockOpts)}
   }
 }
 
 ${darkExplicitSelector} {
-${block(dark)}
+${block(dark, blockOpts)}
 }
 `
 }
