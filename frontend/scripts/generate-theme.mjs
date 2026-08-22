@@ -1,16 +1,21 @@
 // Regenerates src/theme/colors.generated.css from a set of named seed colors, using Google's own
 // material-color-utilities (the HCT color-science library behind Material Theme Builder).
 // Run with: node scripts/generate-theme.mjs
-import { argbFromHex, hexFromArgb, Hct, SchemeExpressive } from '@material/material-color-utilities'
+import { argbFromHex, hexFromArgb, Hct, SchemeExpressive, SchemeNeutral } from '@material/material-color-utilities'
 import { writeFileSync } from 'node:fs'
 
-// Each theme gets a full light+dark M3 Expressive palette. The default theme (isDefault: true) also
-// applies when no [data-color-theme] attribute is set yet (first paint, before ThemeContext mounts).
+// Each theme gets a full light+dark M3 palette. The default theme (isDefault: true) also applies when
+// no [data-color-theme] attribute is set yet (first paint, before ThemeContext mounts). Themes use the
+// "Expressive" scheme variant by default (vivid, hue-shifted accents even from a muted seed -- that's
+// the point of Expressive). "sand" opts into "neutral" instead: SchemeNeutral keeps accent colors close
+// to the seed's own low-chroma hue rather than shifting them, which is what makes it read as a calm,
+// neutral/beige theme instead of just another vivid accent color with beige-ish surfaces.
 const THEMES = [
   { key: 'teal', label: 'Teal', seed: '#12876F', isDefault: true },
   { key: 'blue', label: 'Blau', seed: '#1565C0' },
   { key: 'purple', label: 'Violett', seed: '#7B1FA2' },
   { key: 'amber', label: 'Bernstein', seed: '#E65100' },
+  { key: 'sand', label: 'Sand', seed: '#9C8B73', variant: 'neutral' },
 ]
 
 const ROLES = [
@@ -39,10 +44,11 @@ let css = `/* GENERATED FILE — do not hand-edit. Regenerate with: node scripts
 /* Material 3 Expressive schemes via @material/material-color-utilities, one per named color theme. */
 `
 
-for (const { key, seed, isDefault } of THEMES) {
+for (const { key, seed, isDefault, variant } of THEMES) {
   const sourceHct = Hct.fromInt(argbFromHex(seed))
-  const light = new SchemeExpressive(sourceHct, false, 0)
-  const dark = new SchemeExpressive(sourceHct, true, 0)
+  const SchemeClass = variant === 'neutral' ? SchemeNeutral : SchemeExpressive
+  const light = new SchemeClass(sourceHct, false, 0)
+  const dark = new SchemeClass(sourceHct, true, 0)
 
   const lightSelector = isDefault ? `:root, :root[data-color-theme='${key}']` : `:root[data-color-theme='${key}']`
   const darkMediaSelector = isDefault

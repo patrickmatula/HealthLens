@@ -35,7 +35,13 @@ public sealed class GoogleHealthApiClient(HttpClient http, ILogger<GoogleHealthA
 
         do
         {
-            var url = $"v4/users/me/dataTypes/{dataTypeId}/dataPoints?pageSize=1000&filter={Uri.EscapeDataString(filter)}"
+            // ":reconcile" (not plain ":list", i.e. the bare dataPoints collection) merges data points
+            // that multiple sources report for overlapping time ranges (e.g. phone pedometer AND watch
+            // both logging steps) into one deduplicated stream. Using plain :list left that dedup to the
+            // caller -- which this didn't do, so every sum was inflated by however many sources overlap.
+            // dataSourceFamily defaults to "users/me/dataSourceFamilies/all-sources" (that literal string
+            // is the parameter's required form, not a bare "all-sources" enum token), so it's left unset.
+            var url = $"v4/users/me/dataTypes/{dataTypeId}/dataPoints:reconcile?pageSize=1000&filter={Uri.EscapeDataString(filter)}"
                 + (pageToken is null ? "" : $"&pageToken={Uri.EscapeDataString(pageToken)}");
 
             using var request = new HttpRequestMessage(HttpMethod.Get, url);
