@@ -24,6 +24,14 @@ docker compose up -d
 
 Open http://localhost:8080. The container builds on first run, so expect a minute or two before it's ready.
 
+Podman works too — `podman compose up -d` if you have `podman-compose` installed, or build and run it directly:
+
+```bash
+podman build -t healthlens .
+podman volume create healthlens-data
+podman run -d --name healthlens -p 8080:8080 -v healthlens-data:/app/App_Data healthlens
+```
+
 Your data lives in a named Docker volume (`healthlens-data`), independent of the container. Removing or rebuilding the container leaves your data intact; `docker compose down -v` deletes it.
 
 To use a different host port, set `HEALTHLENS_PORT` before starting:
