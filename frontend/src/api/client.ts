@@ -21,6 +21,16 @@ import type {
   WorkoutListItemDto,
 } from './types'
 
+// HealthLens has no login by design (self-hosted, meant for your own trusted network only — see
+// README). That still leaves state-changing requests open to being blindly triggered by a malicious
+// page a browser on that network happens to visit (a classic CSRF pattern, just without a session to
+// steal). Since fetch/XHR can set arbitrary headers but a plain cross-site <form> submit cannot, this
+// header on every mutating request forces the browser into a CORS preflight; with no CORS policy
+// granting cross-origin access in production, that preflight fails and the browser blocks the actual
+// request before it ever reaches the server -- so this needs no verification at all beyond "does the
+// server require it," see the matching check in Program.cs.
+const ANTI_CSRF_HEADER = 'X-HealthLens-Client'
+
 async function get<T>(path: string): Promise<T> {
   const res = await fetch(path)
   if (!res.ok) {
@@ -32,7 +42,10 @@ async function get<T>(path: string): Promise<T> {
 async function send<T>(method: 'POST' | 'PUT' | 'DELETE', path: string, body?: unknown): Promise<T> {
   const res = await fetch(path, {
     method,
-    headers: body !== undefined ? { 'Content-Type': 'application/json' } : undefined,
+    headers: {
+      [ANTI_CSRF_HEADER]: '1',
+      ...(body !== undefined ? { 'Content-Type': 'application/json' } : {}),
+    },
     body: body !== undefined ? JSON.stringify(body) : undefined,
   })
   if (!res.ok) {
@@ -51,7 +64,7 @@ export const api = {
     form.append('file', file)
     form.append('persistent', String(persistent))
     form.append('scope', scope)
-    const res = await fetch('/api/import', { method: 'POST', body: form })
+    const res = await fetch('/api/import', { method: 'POST', headers: { [ANTI_CSRF_HEADER]: '1' }, body: form })
     if (!res.ok) {
       throw new Error(await res.text())
     }
