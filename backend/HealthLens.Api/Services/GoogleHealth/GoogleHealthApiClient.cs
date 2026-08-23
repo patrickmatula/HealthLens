@@ -31,12 +31,17 @@ public sealed class GoogleHealthApiClient(HttpClient http, ILogger<GoogleHealthA
         // The API also only accepts GREATER_THAN_EQUALS/LESS_THAN on these fields -- "<=" on the upper
         // bound is rejected too (INVALID_DATA_POINT_FILTER_RESTRICTION_COMPARATOR).
         // Session-type data (exercise, sleep) rejects "interval.start_time" outright ("not supported for
-        // filtering") and only accepts the date-only "interval.civil_start_time" instead.
+        // filtering") and only accepts the date-only "interval.civil_start_time" instead. Being date-only
+        // (no time-of-day) with a strict "<" upper bound, filtering "< today's date" excludes the entirety
+        // of today regardless of what time the sync runs -- a workout finished an hour ago would never
+        // match. Padding the upper bound 2 days past `to` covers that (plus timezone skew, since
+        // civil_start_time is the workout's local calendar date, not UTC) with no downside: Google simply
+        // returns nothing for dates that don't have data yet.
         string filter;
         if (useCivilDateFilter)
         {
             var filterField = dataTypeId.Replace('-', '_') + ".interval.civil_start_time";
-            filter = $"{filterField}>=\"{fromUtc:yyyy-MM-dd}\" AND {filterField}<\"{toUtc:yyyy-MM-dd}\"";
+            filter = $"{filterField}>=\"{fromUtc:yyyy-MM-dd}\" AND {filterField}<\"{toUtc.AddDays(2):yyyy-MM-dd}\"";
         }
         else
         {
