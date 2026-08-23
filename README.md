@@ -17,6 +17,56 @@ A self-hosted dashboard for your Google Takeout health export (Fitbit/Google Hea
 
 Every feature beyond the core dashboard is off by default and lives under "More" in the app.
 
+## Screenshots
+
+All screenshots below are from the synthetic [`demo-data`](demo-data/HealthLens-demo-data.zip) dataset (see [First import](#first-import)) — no real personal data, GPS routes included.
+
+**Dashboard** — cross-metric overview, in light and dark mode:
+
+<p>
+  <img src="docs/screenshots/01-dashboard-light.png" alt="Dashboard, light mode" width="49%" />
+  <img src="docs/screenshots/02-dashboard-dark.png" alt="Dashboard, dark mode" width="49%" />
+</p>
+
+**Workouts** — personal-record board and searchable/filterable workout list:
+
+![Workouts list with personal records](docs/screenshots/03-workouts-list.png)
+
+**Workout detail** — KPIs, running-dynamics reference gauges, and a GPS route map (this run is the synthetic New York/Central Park route from the demo data):
+
+![Workout detail with GPS route map](docs/screenshots/04-workout-detail-map.png)
+
+**Sleep** — nightly duration trend and a scrollable history of every night:
+
+![Sleep overview](docs/screenshots/05-sleep.png)
+
+**Heart** — resting heart rate, HRV, Active Zone Minutes, and respiratory rate, each with a medically sourced "what's good/bad" reference gauge:
+
+![Heart page with reference-range gauges](docs/screenshots/06-heart.png)
+
+**Recovery** — sleep/resting-HR correlation, stress score, readiness, SpO2, and skin temperature:
+
+![Recovery page with stress, readiness, and SpO2 gauges](docs/screenshots/07-recovery.png)
+
+**Body measurements** (optional) — weight/body-fat/waist trends with BMI, waist-to-height ratio, and body-fat-percentage assessments:
+
+![Body measurements page](docs/screenshots/08-body.png)
+
+**Shoe tracking** (optional) — mileage per pair, assignable from any workout:
+
+![Shoe tracking page](docs/screenshots/09-shoes.png)
+
+**Settings** — units, language, and 5 Material-3-derived color themes (4 accent colors plus a dedicated near-white/near-black neutral theme):
+
+![Settings page showing the color theme picker](docs/screenshots/10-more-settings.png)
+
+A couple of the color themes applied to the dashboard, for a sense of the range:
+
+<p>
+  <img src="docs/screenshots/11-dashboard-orange-theme.png" alt="Dashboard in the Orange theme" width="49%" />
+  <img src="docs/screenshots/12-dashboard-white-theme.png" alt="Dashboard in the neutral White theme" width="49%" />
+</p>
+
 ## Run it with Docker
 
 You need Docker and Docker Compose. From the repository root:
