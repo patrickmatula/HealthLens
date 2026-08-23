@@ -1,5 +1,6 @@
 using System.Security.Cryptography;
 using System.Security.Cryptography.X509Certificates;
+using Microsoft.AspNetCore.DataProtection;
 
 namespace HealthLens.Api.Services;
 
@@ -10,22 +11,28 @@ namespace HealthLens.Api.Services;
 /// OAuth popup only — the rest of the app keeps using plain http); there's no way around that warning
 /// for an arbitrary local hostname without installing a local CA tool, which this app deliberately
 /// avoids requiring.
+///
+/// The exported PKCS12 bytes (which embed the private key) are encrypted at rest with the same Data
+/// Protection key ring the OAuth credential store uses, instead of a PKCS12 password -- a per-app-secret
+/// password would still have to live somewhere readable by this process, and a fixed one is public
+/// knowledge the moment the source is: anyone who obtains the .pfx (a stray backup, a misdirected volume
+/// mount) wouldn't even need to find it, just look it up.
 /// </summary>
 public static class LocalHttpsCertificate
 {
-    private const string Password = "healthlens-local-https";
-
-    public static X509Certificate2 GetOrCreate(string pfxPath)
+    public static X509Certificate2 GetOrCreate(string pfxPath, IDataProtector protector)
     {
         if (File.Exists(pfxPath))
         {
             try
             {
-                return X509CertificateLoader.LoadPkcs12FromFile(pfxPath, Password, X509KeyStorageFlags.Exportable);
+                var pfxBytes = protector.Unprotect(File.ReadAllBytes(pfxPath));
+                return X509CertificateLoader.LoadPkcs12(pfxBytes, password: null, X509KeyStorageFlags.Exportable);
             }
             catch (CryptographicException)
             {
-                // Fall through and regenerate if the existing file is corrupt or unreadable.
+                // Fall through and regenerate if the existing file is corrupt, unreadable, or (from
+                // before this fix) password-protected plaintext this protector can't unwrap.
             }
         }
 
@@ -43,9 +50,10 @@ public static class LocalHttpsCertificate
 
         using var generated = request.CreateSelfSigned(DateTimeOffset.UtcNow.AddDays(-1), DateTimeOffset.UtcNow.AddYears(5));
 
+        var rawPfxBytes = generated.Export(X509ContentType.Pfx);
         Directory.CreateDirectory(Path.GetDirectoryName(pfxPath)!);
-        File.WriteAllBytes(pfxPath, generated.Export(X509ContentType.Pfx, Password));
+        File.WriteAllBytes(pfxPath, protector.Protect(rawPfxBytes));
 
-        return X509CertificateLoader.LoadPkcs12FromFile(pfxPath, Password, X509KeyStorageFlags.Exportable);
+        return X509CertificateLoader.LoadPkcs12(rawPfxBytes, password: null, X509KeyStorageFlags.Exportable);
     }
 }

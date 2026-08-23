@@ -1,4 +1,6 @@
+using System.Security.Cryptography;
 using System.Text.Json;
+using Microsoft.AspNetCore.DataProtection;
 
 namespace HealthLens.Api.Services.GoogleHealth;
 
@@ -21,9 +23,17 @@ public sealed class GoogleHealthCredentials
     public string? LastError { get; set; }
 }
 
-public sealed class GoogleHealthCredentialStore(IWebHostEnvironment env)
+/// <summary>
+/// The file holds an OAuth refresh token (durable access to the user's Google Health data), an access
+/// token, and the user's own OAuth client secret -- encrypted at rest with ASP.NET Core's Data Protection
+/// API rather than plain JSON, so a copy of just this file (a partial backup, a misdirected volume
+/// mount) doesn't hand over a working credential on its own; decrypting it also requires the key ring
+/// under App_Data/keys (see Program.cs).
+/// </summary>
+public sealed class GoogleHealthCredentialStore(IWebHostEnvironment env, IDataProtectionProvider dataProtectionProvider)
 {
     private readonly Lock _gate = new();
+    private readonly IDataProtector _protector = dataProtectionProvider.CreateProtector("HealthLens.GoogleHealthCredentials");
 
     private string FilePath => Path.Combine(env.ContentRootPath, "App_Data", "google-health.json");
 
@@ -36,7 +46,19 @@ public sealed class GoogleHealthCredentialStore(IWebHostEnvironment env)
                 return new GoogleHealthCredentials();
             }
 
-            var json = File.ReadAllText(FilePath);
+            var raw = File.ReadAllText(FilePath);
+            string json;
+            try
+            {
+                json = _protector.Unprotect(raw);
+            }
+            catch (CryptographicException)
+            {
+                // Plaintext file from before this file was encrypted -- read it as-is once; the next
+                // Save() (which happens on every connect/sync/config change) re-persists it encrypted.
+                json = raw;
+            }
+
             return JsonSerializer.Deserialize<GoogleHealthCredentials>(json) ?? new GoogleHealthCredentials();
         }
     }
@@ -46,7 +68,8 @@ public sealed class GoogleHealthCredentialStore(IWebHostEnvironment env)
         lock (_gate)
         {
             Directory.CreateDirectory(Path.GetDirectoryName(FilePath)!);
-            File.WriteAllText(FilePath, JsonSerializer.Serialize(credentials, new JsonSerializerOptions { WriteIndented = true }));
+            var json = JsonSerializer.Serialize(credentials, new JsonSerializerOptions { WriteIndented = true });
+            File.WriteAllText(FilePath, _protector.Protect(json));
         }
     }
 
