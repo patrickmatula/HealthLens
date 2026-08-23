@@ -1,30 +1,41 @@
 // Regenerates src/theme/colors.generated.css from a set of named seed colors, using Google's own
-// material-color-utilities (the HCT color-science library behind Material Theme Builder).
+// material-color-utilities (the HCT color-science library behind Material Theme Builder) per the
+// official Material 3 color system (m3.material.io/styles/color/system/overview).
 // Run with: node scripts/generate-theme.mjs
-import { argbFromHex, hexFromArgb, Hct, SchemeExpressive, SchemeNeutral } from '@material/material-color-utilities'
+import { argbFromHex, hexFromArgb, Hct, SchemeExpressive, SchemeFidelity } from '@material/material-color-utilities'
 import { writeFileSync } from 'node:fs'
 
-// Each theme gets a full light+dark M3 palette. The default theme (isDefault: true) also applies when
-// no [data-color-theme] attribute is set yet (first paint, before ThemeContext mounts). Themes use the
-// "Expressive" scheme variant by default (vivid, hue-shifted accents even from a muted seed -- that's
-// the point of Expressive). "sand" opts into "neutral" instead: SchemeNeutral keeps accent colors close
-// to the seed's own low-chroma hue rather than shifting them, which is what makes it read as a calm,
-// neutral/beige theme instead of just another vivid accent color with beige-ish surfaces.
-// "white" additionally sets trueNeutralSurfaces: SchemeExpressive's own "neutral"/"neutral-variant"
-// palettes always carry a small fixed chroma no matter how gray the seed is (a plain achromatic seed
-// still produced a visibly tinted #f3fbff background), so surface-ish roles are recomputed at chroma 0
-// directly via Hct.from(0, 0, tone) instead -- same tone each role would have gotten, just genuinely
-// R=G=B this time -- while primary/secondary/tertiary are left as the normal Expressive derivation, so
-// charts and accents stay colorful against the now truly neutral surface.
+// Each theme gets a full light+dark M3 palette (primary/secondary/tertiary/error, each with its own
+// container and "on" pairs, plus the neutral/neutral-variant surface roles). The default theme
+// (isDefault: true) also applies when no [data-color-theme] attribute is set yet (first paint, before
+// ThemeContext mounts).
+//
+// The 4 named color themes use the "Fidelity" scheme variant, not "Expressive": Fidelity keeps the
+// primary color close to the literal seed hue (M3 docs: "the resulting color palettes match the seed
+// color, even if the seed color is very bright"), whereas Expressive deliberately rotates the primary
+// hue away from the seed "for variety" -- which is exactly backwards for a theme picker where the name
+// ("Orange") needs to visibly match what you get. Verified empirically: the same 4 seeds under
+// Expressive previously produced an orange-brown teal, a purple-shifted sand, etc.; under Fidelity every
+// theme's primary now falls in the same hue family as its name.
+//
+// "white" is the deliberately neutral theme: light mode should read as white/near-white, dark mode as
+// black/near-black. It uses an achromatic seed (#787878, R=G=B) with Expressive (not Fidelity -- Fidelity
+// would keep accents as muted/gray as the seed itself, defeating the point) so primary/secondary/tertiary
+// stay clearly colorful, combined with trueNeutralSurfaces (see below) so the surfaces stay genuinely
+// gray rather than picking up a faint tint.
 const THEMES = [
-  { key: 'teal', label: 'Teal', seed: '#12876F', isDefault: true },
-  { key: 'blue', label: 'Blau', seed: '#1565C0' },
-  { key: 'purple', label: 'Violett', seed: '#7B1FA2' },
-  { key: 'amber', label: 'Bernstein', seed: '#E65100' },
-  { key: 'sand', label: 'Sand', seed: '#9C8B73', variant: 'neutral' },
+  { key: 'teal', label: 'Teal', seed: '#12876F', isDefault: true, variant: 'fidelity' },
+  { key: 'blue', label: 'Blau', seed: '#1565C0', variant: 'fidelity' },
+  { key: 'violet', label: 'Violett', seed: '#7B1FA2', variant: 'fidelity' },
+  { key: 'orange', label: 'Orange', seed: '#E65100', variant: 'fidelity' },
   { key: 'white', label: 'Weiß', seed: '#787878', trueNeutralSurfaces: true },
 ]
 
+// M3's "neutral" and "neutral-variant" tonal palettes (which back these roles) always carry a small
+// fixed chroma no matter how gray the seed is -- a plain achromatic seed under Expressive still produced
+// a visibly cyan-tinted #f3fbff background. For "white", these roles are recomputed at literal chroma 0
+// via Hct.from(0, 0, tone) instead, reusing each role's own tone from the normal scheme -- genuinely
+// R=G=B this time.
 const NEUTRAL_ROLES = new Set([
   'background', 'onBackground',
   'surface', 'onSurface', 'surfaceVariant', 'onSurfaceVariant',
@@ -63,12 +74,12 @@ function block(scheme, { trueNeutralSurfaces } = {}) {
 }
 
 let css = `/* GENERATED FILE — do not hand-edit. Regenerate with: node scripts/generate-theme.mjs */
-/* Material 3 Expressive schemes via @material/material-color-utilities, one per named color theme. */
+/* Material 3 color schemes via @material/material-color-utilities, one per named color theme. */
 `
 
 for (const { key, seed, isDefault, variant, trueNeutralSurfaces } of THEMES) {
   const sourceHct = Hct.fromInt(argbFromHex(seed))
-  const SchemeClass = variant === 'neutral' ? SchemeNeutral : SchemeExpressive
+  const SchemeClass = variant === 'fidelity' ? SchemeFidelity : SchemeExpressive
   const light = new SchemeClass(sourceHct, false, 0)
   const dark = new SchemeClass(sourceHct, true, 0)
   const blockOpts = { trueNeutralSurfaces }
