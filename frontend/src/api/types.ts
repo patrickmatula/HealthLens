@@ -323,5 +323,6 @@ export interface GoogleHealthSyncResultDto {
   activityDaysSynced: number
   restingHeartRateDaysSynced: number
   weightEntriesSynced: number
+  workoutsSynced: number
   warnings: string[]
 }

@@ -101,7 +101,7 @@ export function MorePage() {
     setSyncMessage(null)
     try {
       const result = await api.syncGoogleHealth()
-      setSyncMessage(t('more.googleHealthSyncDone', { count: String(result.activityDaysSynced + result.weightEntriesSynced) }))
+      setSyncMessage(t('more.googleHealthSyncDone', { count: String(result.activityDaysSynced + result.weightEntriesSynced + result.workoutsSynced) }))
       setGoogleHealth(await api.googleHealthStatus())
     } catch (err) {
       setSyncMessage(err instanceof Error ? err.message : String(err))

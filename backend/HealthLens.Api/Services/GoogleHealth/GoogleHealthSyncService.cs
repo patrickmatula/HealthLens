@@ -1,6 +1,10 @@
+using System.Security.Cryptography;
+using System.Text;
+using System.Text.Json;
 using HealthLens.Api.Data;
 using HealthLens.Api.Dtos;
 using HealthLens.Api.Models;
+using Microsoft.EntityFrameworkCore;
 
 namespace HealthLens.Api.Services.GoogleHealth;
 
@@ -13,7 +17,7 @@ namespace HealthLens.Api.Services.GoogleHealth;
 /// (developers.google.com/health/reference/rest/v4/users.dataTypes.dataPoints): every field lives nested
 /// under the data type's own union object, e.g. a "distance" data point is
 /// { "distance": { "interval": {...}, "millimeters": "1000000" } }, not a top-level "meters"/"value" as
-/// earlier guesses assumed. Resting heart rate, sleep stages and workouts are left for a follow-up.
+/// earlier guesses assumed. Resting heart rate and sleep stages are left for a follow-up.
 /// </summary>
 public sealed class GoogleHealthSyncService(
     GoogleHealthCredentialStore store,
@@ -23,6 +27,7 @@ public sealed class GoogleHealthSyncService(
     ILogger<GoogleHealthSyncService> logger)
 {
     private const int SyncWindowDays = 30;
+    private const string GoogleHealthWorkoutSource = "Google Health";
 
     public async Task<GoogleHealthSyncResultDto> SyncAsync(CancellationToken ct)
     {
@@ -37,16 +42,17 @@ public sealed class GoogleHealthSyncService(
 
         var activityDays = await SyncActivityAsync(db, accessToken, from, to, warnings, ct);
         var weightEntries = await SyncWeightAsync(db, accessToken, from, to, warnings, ct);
+        var workoutsSynced = await SyncWorkoutsAsync(db, accessToken, from, to, warnings, ct);
 
         await db.SaveChangesAsync(ct);
         session.MarkHasData();
 
         creds.LastSyncUtc = DateTime.UtcNow;
-        creds.LastSyncSummary = $"{activityDays} Tage Aktivität, {weightEntries} Gewichts-/Körperfettwerte";
+        creds.LastSyncSummary = $"{workoutsSynced} Workouts, {activityDays} Tage Aktivität, {weightEntries} Gewichts-/Körperfettwerte";
         creds.LastError = null;
         store.Save(creds);
 
-        return new GoogleHealthSyncResultDto(activityDays, 0, weightEntries, warnings);
+        return new GoogleHealthSyncResultDto(activityDays, 0, weightEntries, workoutsSynced, warnings);
     }
 
     private async Task<int> SyncActivityAsync(AppDbContext db, string accessToken, DateTimeOffset from, DateTimeOffset to, List<string> warnings, CancellationToken ct)
@@ -132,6 +138,120 @@ public sealed class GoogleHealthSyncService(
         return count;
     }
 
+    /// <summary>
+    /// Syncs workout sessions from the "exercise" data type (a Session-type record, distinct from the
+    /// interval/sample types above -- but it exposes the same interval.startTime/endTime shape, so the
+    /// existing interval fetch path works unchanged). Google Health's exercise sessions don't carry GPS
+    /// route points, per-second streams, or split data (those live in separate data types this app
+    /// doesn't sync), so a synced workout only ever gets the summary fields: distance, duration, calories,
+    /// average heart rate/pace/speed, elevation gain.
+    ///
+    /// Re-derives this sync window from scratch every run (delete all previously-synced workouts in
+    /// [from, to], then reinsert) rather than upserting by a stable id, since Google Health's own point
+    /// identifiers have no relationship to Fitbit's exercise_id the rest of the schema is keyed on. This
+    /// self-heals if a Takeout import later supersedes a synced entry for the same time range: the next
+    /// sync deletes the stale synced row and the overlap check below skips recreating it, since a
+    /// non-synced (Takeout-sourced) workout now already occupies that slot.
+    /// </summary>
+    private async Task<int> SyncWorkoutsAsync(AppDbContext db, string accessToken, DateTimeOffset from, DateTimeOffset to, List<string> warnings, CancellationToken ct)
+    {
+        var points = await FetchAsync(accessToken, "exercise", "exercise", isSampleType: false, from, to, warnings, ct, useCivilDateFilter: true);
+
+        var previouslySynced = await db.Workouts
+            .Where(w => w.Source == GoogleHealthWorkoutSource && w.StartUtc >= from.UtcDateTime && w.StartUtc < to.UtcDateTime)
+            .ToListAsync(ct);
+        db.Workouts.RemoveRange(previouslySynced);
+
+        var others = await db.Workouts
+            .Where(w => w.Source != GoogleHealthWorkoutSource)
+            .Select(w => new { w.StartUtc, w.EndUtc })
+            .ToListAsync(ct);
+
+        var count = 0;
+        foreach (var point in points)
+        {
+            if (!point.Raw.TryGetProperty("exercise", out var union))
+            {
+                continue;
+            }
+
+            var startUtc = point.StartUtc.UtcDateTime;
+            var endUtc = point.EndUtc.UtcDateTime;
+
+            // Prefer already-imported (Takeout) data for any time range it covers -- that data has GPS,
+            // splits, and per-second streams a synced entry never will.
+            if (others.Any(o => startUtc < o.EndUtc && o.StartUtc < endUtc))
+            {
+                continue;
+            }
+
+            var exerciseType = union.TryGetProperty("exerciseType", out var typeProp) ? typeProp.GetString() : null;
+            var metrics = union.TryGetProperty("metricsSummary", out var m) ? m : default;
+            var hasGps = union.TryGetProperty("exerciseMetadata", out var meta)
+                && meta.TryGetProperty("hasGps", out var gpsProp)
+                && gpsProp.ValueKind == JsonValueKind.True;
+
+            var distanceMm = GoogleHealthFieldReader.ReadNumericField(metrics, "distanceMillimeters");
+            var elevationMm = GoogleHealthFieldReader.ReadNumericField(metrics, "elevationGainMillimeters");
+            var avgPaceSecPerM = GoogleHealthFieldReader.ReadNumericField(metrics, "averagePaceSecondsPerMeter");
+            var avgSpeedMmPerSec = GoogleHealthFieldReader.ReadNumericField(metrics, "averageSpeedMillimetersPerSecond");
+            var steps = GoogleHealthFieldReader.ReadNumericField(metrics, "steps");
+
+            var identifier = point.Raw.TryGetProperty("dataPointName", out var dpn) ? dpn.GetString()
+                : point.Raw.TryGetProperty("name", out var np) ? np.GetString()
+                : null;
+            identifier ??= $"{point.StartUtc:O}|{exerciseType}";
+
+            db.Workouts.Add(new Workout
+            {
+                Id = StableWorkoutId(identifier),
+                StartUtc = startUtc,
+                EndUtc = endUtc,
+                ActivityName = HumanizeExerciseType(exerciseType),
+                LogType = "TRACKER",
+                Source = GoogleHealthWorkoutSource,
+                DistanceMeters = distanceMm / 1000,
+                Calories = GoogleHealthFieldReader.ReadNumericField(metrics, "caloriesKcal"),
+                Steps = steps is { } s ? (int)Math.Round(s) : null,
+                AvgHeartRate = GoogleHealthFieldReader.ReadNumericField(metrics, "averageHeartRateBeatsPerMinute"),
+                AvgPaceSecPerKm = avgPaceSecPerM * 1000,
+                AvgSpeedKmh = avgSpeedMmPerSec * 0.0036,
+                ElevationGainMeters = elevationMm / 1000,
+                HasGps = hasGps,
+                IsLegacy = false,
+            });
+            count++;
+        }
+
+        return count;
+    }
+
+    /// <summary>Converts a SCREAMING_SNAKE_CASE exerciseType enum value (e.g. "STRENGTH_TRAINING") into a
+    /// readable name ("Strength Training") -- deliberately generic rather than a lookup table, since the
+    /// API defines 200+ exercise types. This also happens to satisfy the app's existing keyword-based
+    /// run/walk/bike categorization (utils/format.ts categorizeWorkout) for the common cases (e.g.
+    /// "Running" contains "run") without needing exerciseType-specific handling there.</summary>
+    private static string HumanizeExerciseType(string? exerciseType)
+    {
+        if (string.IsNullOrEmpty(exerciseType))
+        {
+            return "Workout";
+        }
+
+        var words = exerciseType.Split('_', StringSplitOptions.RemoveEmptyEntries);
+        return string.Join(' ', words.Select(w => char.ToUpperInvariant(w[0]) + w[1..].ToLowerInvariant()));
+    }
+
+    /// <summary>Derives a stable 63-bit positive id from a Google Health data point identifier, for a
+    /// synced Workout row's primary key. Collision risk against Fitbit's own 64-bit exercise_id values or
+    /// between two synced workouts is negligible at this app's single-user data volume.</summary>
+    private static long StableWorkoutId(string identifier)
+    {
+        var hash = SHA256.HashData(Encoding.UTF8.GetBytes(identifier));
+        var value = BitConverter.ToInt64(hash, 0);
+        return value == long.MinValue ? long.MaxValue : Math.Abs(value);
+    }
+
     private async Task<Dictionary<DateOnly, double>> SumPerDayAsync(
         string accessToken, string dataTypeId, string unionField, string[] candidates, double unitDivisor,
         DateTimeOffset from, DateTimeOffset to, List<string> warnings, CancellationToken ct)
@@ -155,11 +275,11 @@ public sealed class GoogleHealthSyncService(
     }
 
     private async Task<IReadOnlyList<GoogleHealthDataPoint>> FetchAsync(
-        string accessToken, string dataTypeId, string unionField, bool isSampleType, DateTimeOffset from, DateTimeOffset to, List<string> warnings, CancellationToken ct)
+        string accessToken, string dataTypeId, string unionField, bool isSampleType, DateTimeOffset from, DateTimeOffset to, List<string> warnings, CancellationToken ct, bool useCivilDateFilter = false)
     {
         try
         {
-            return await api.ListDataPointsAsync(accessToken, dataTypeId, unionField, isSampleType, from, to, ct);
+            return await api.ListDataPointsAsync(accessToken, dataTypeId, unionField, isSampleType, from, to, ct, useCivilDateFilter);
         }
         catch (Exception ex) when (ex is not OperationCanceledException)
         {

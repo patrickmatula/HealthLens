@@ -18,7 +18,7 @@ public sealed class GoogleHealthApiClient(HttpClient http, ILogger<GoogleHealthA
 {
     public async Task<IReadOnlyList<GoogleHealthDataPoint>> ListDataPointsAsync(
         string accessToken, string dataTypeId, string unionFieldName, bool isSampleType,
-        DateTimeOffset fromUtc, DateTimeOffset toUtc, CancellationToken ct)
+        DateTimeOffset fromUtc, DateTimeOffset toUtc, CancellationToken ct, bool useCivilDateFilter = false)
     {
         var results = new List<GoogleHealthDataPoint>();
         string? pageToken = null;
@@ -30,8 +30,19 @@ public sealed class GoogleHealthApiClient(HttpClient http, ILogger<GoogleHealthA
         // A bare "startTime" is rejected outright with a 400 INVALID_DATA_POINT_FILTER_RESTRICTION_COMPARABLE.
         // The API also only accepts GREATER_THAN_EQUALS/LESS_THAN on these fields -- "<=" on the upper
         // bound is rejected too (INVALID_DATA_POINT_FILTER_RESTRICTION_COMPARATOR).
-        var filterField = dataTypeId.Replace('-', '_') + (isSampleType ? ".sample_time.physical_time" : ".interval.start_time");
-        var filter = $"{filterField}>=\"{fromUtc:O}\" AND {filterField}<\"{toUtc:O}\"";
+        // Session-type data (exercise, sleep) rejects "interval.start_time" outright ("not supported for
+        // filtering") and only accepts the date-only "interval.civil_start_time" instead.
+        string filter;
+        if (useCivilDateFilter)
+        {
+            var filterField = dataTypeId.Replace('-', '_') + ".interval.civil_start_time";
+            filter = $"{filterField}>=\"{fromUtc:yyyy-MM-dd}\" AND {filterField}<\"{toUtc:yyyy-MM-dd}\"";
+        }
+        else
+        {
+            var filterField = dataTypeId.Replace('-', '_') + (isSampleType ? ".sample_time.physical_time" : ".interval.start_time");
+            filter = $"{filterField}>=\"{fromUtc:O}\" AND {filterField}<\"{toUtc:O}\"";
+        }
 
         do
         {
@@ -135,19 +146,10 @@ public static class GoogleHealthFieldReader
 
         foreach (var field in candidateFields)
         {
-            if (!union.TryGetProperty(field, out var value))
+            var value = ReadNumericField(union, field);
+            if (value is not null)
             {
-                continue;
-            }
-
-            if (value.ValueKind == JsonValueKind.Number && value.TryGetDouble(out var d))
-            {
-                return d;
-            }
-
-            if (value.ValueKind == JsonValueKind.String && double.TryParse(value.GetString(), NumberStyles.Float, CultureInfo.InvariantCulture, out var sd))
-            {
-                return sd;
+                return value;
             }
         }
 
@@ -155,6 +157,28 @@ public static class GoogleHealthFieldReader
         logger.LogWarning(
             "Google Health data point '{Field}' had none of the expected sub-fields ({Candidates}); actual keys: {Keys}",
             unionFieldName, string.Join('/', candidateFields), seenKeys);
+        return null;
+    }
+
+    /// <summary>Reads a single field directly off a JSON object, accepting both JSON numbers and the
+    /// string-encoded int64 fields (step counts, millimeter distances) the API also uses.</summary>
+    public static double? ReadNumericField(JsonElement obj, string field)
+    {
+        if (obj.ValueKind != JsonValueKind.Object || !obj.TryGetProperty(field, out var value))
+        {
+            return null;
+        }
+
+        if (value.ValueKind == JsonValueKind.Number && value.TryGetDouble(out var d))
+        {
+            return d;
+        }
+
+        if (value.ValueKind == JsonValueKind.String && double.TryParse(value.GetString(), NumberStyles.Float, CultureInfo.InvariantCulture, out var sd))
+        {
+            return sd;
+        }
+
         return null;
     }
 }

@@ -10,4 +10,5 @@ public record GoogleHealthSyncResultDto(
     int ActivityDaysSynced,
     int RestingHeartRateDaysSynced,
     int WeightEntriesSynced,
+    int WorkoutsSynced,
     IReadOnlyList<string> Warnings);
