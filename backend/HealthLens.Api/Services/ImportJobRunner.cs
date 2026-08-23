@@ -29,6 +29,13 @@ public class ImportJobRunner(DataSessionService session, ILogger<ImportJobRunner
         new DailyActivityImporter(), new WorkoutsImporter(), new SleepImporter(), new HeartHealthImporter(), new RecoveryImporter(),
     ];
 
+    // Zip-bomb guard: a small, deeply-compressed zip can otherwise claim to expand to an arbitrary size
+    // on disk. Both caps are generous for even a "Full" scope, multi-year Takeout export (which tops out
+    // around a few GB decompressed and a few thousand per-day files in real exports) while still catching
+    // a deliberately malicious archive long before it can fill the disk.
+    private const long MaxUncompressedBytes = 50L * 1024 * 1024 * 1024;
+    private const int MaxEntries = 500_000;
+
     private readonly ConcurrentDictionary<int, ImportJobStatus> _jobs = new();
     private int _nextId;
     private int _running;
@@ -83,7 +90,7 @@ public class ImportJobRunner(DataSessionService session, ILogger<ImportJobRunner
             status.CurrentStep = "Zip wird entpackt...";
             workDir = Path.Combine(Path.GetTempPath(), "ghl-import-" + Guid.NewGuid().ToString("N"));
             Directory.CreateDirectory(workDir);
-            ZipFile.ExtractToDirectory(zipPath, workDir);
+            ExtractZipSafely(zipPath, workDir);
 
             var googleHealthRoot = FindGoogleHealthFolder(workDir)
                 ?? throw new InvalidOperationException("Im Zip wurde kein 'Google Health' Ordner gefunden. Bitte den originalen Google-Takeout-Export hochladen.");
@@ -148,5 +155,49 @@ public class ImportJobRunner(DataSessionService session, ILogger<ImportJobRunner
         }
 
         return Directory.EnumerateDirectories(root, "Google Health", SearchOption.AllDirectories).FirstOrDefault();
+    }
+
+    /// <summary>
+    /// Extracts entry-by-entry instead of the one-shot ZipFile.ExtractToDirectory, to enforce the
+    /// zip-bomb caps above (checked against each entry's declared uncompressed length before writing it,
+    /// so a bomb is caught before its oversized entry is written rather than after) while still rejecting
+    /// path traversal exactly like the convenience method does: resolve the destination path and require
+    /// it stay under destinationRoot.
+    /// </summary>
+    private static void ExtractZipSafely(string zipPath, string destinationDir)
+    {
+        using var archive = ZipFile.OpenRead(zipPath);
+        if (archive.Entries.Count > MaxEntries)
+        {
+            throw new InvalidOperationException($"Zip enthält zu viele Dateien ({archive.Entries.Count}).");
+        }
+
+        var destinationRoot = Path.GetFullPath(destinationDir + Path.DirectorySeparatorChar);
+        long totalUncompressedBytes = 0;
+
+        foreach (var entry in archive.Entries)
+        {
+            totalUncompressedBytes += entry.Length;
+            if (totalUncompressedBytes > MaxUncompressedBytes)
+            {
+                throw new InvalidOperationException("Zip enthält zu viele entpackte Daten (möglicherweise eine Zip-Bomb).");
+            }
+
+            var destinationPath = Path.GetFullPath(Path.Combine(destinationDir, entry.FullName));
+            if (!destinationPath.StartsWith(destinationRoot, StringComparison.Ordinal))
+            {
+                throw new InvalidOperationException("Ungültiger Zip-Eintrag außerhalb des Zielverzeichnisses.");
+            }
+
+            if (entry.Name.Length == 0)
+            {
+                // Directory entry.
+                Directory.CreateDirectory(destinationPath);
+                continue;
+            }
+
+            Directory.CreateDirectory(Path.GetDirectoryName(destinationPath)!);
+            entry.ExtractToFile(destinationPath, overwrite: true);
+        }
     }
 }
