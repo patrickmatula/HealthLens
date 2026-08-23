@@ -84,6 +84,13 @@ npm --prefix frontend run dev                  # Vite dev server, proxies /api t
 
 HealthLens sends nothing anywhere except what you explicitly connect: your own server stores your imported data, and the optional Google Health sync talks directly to Google's API using OAuth credentials you register yourself.
 
+## Security
+
+> [!WARNING]
+> HealthLens has **no login of any kind** — anyone who can reach the app over the network can see your health data (including GPS routes) and manage the Google Health connection. This is a deliberate choice for a single-user, self-hosted tool, not an oversight, but it means **you're responsible for the network boundary**: only run this on a network you trust (e.g. behind your home router, with no port forwarding), never expose it directly to the internet, and don't put it on a shared/public Wi-Fi without a firewall in front of it. `docker compose up -d` binds both ports to all network interfaces by default — restrict `docker-compose.yml`'s `ports:` to `127.0.0.1:8080:8080`/`127.0.0.1:8443:8443` if you want it reachable only from the machine it runs on.
+
+Within that trust model, sensitive data at rest is still protected: the Google OAuth tokens and your OAuth client secret are encrypted on disk (ASP.NET Core Data Protection, keyed from `App_Data/keys`), Takeout zip imports are checked against zip-bomb-style decompression before extraction, and state-changing requests require a header a plain cross-site form submission can't set, as a baseline defense against a malicious page on your network blindly triggering an import or reconfiguring the Google Health connection.
+
 ## License
 
 [CC BY-NC 4.0](https://creativecommons.org/licenses/by-nc/4.0/) — see [LICENSE](LICENSE). Use, modify, and share this for any non-commercial purpose, as long as you credit this repository. No commercial use.
