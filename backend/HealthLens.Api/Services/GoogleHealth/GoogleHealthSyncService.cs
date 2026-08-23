@@ -160,6 +160,10 @@ public sealed class GoogleHealthSyncService(
         var previouslySynced = await db.Workouts
             .Where(w => w.Source == GoogleHealthWorkoutSource && w.StartUtc >= from.UtcDateTime && w.StartUtc < to.UtcDateTime)
             .ToListAsync(ct);
+        // The synthetic id is a stable hash of Google's own data point identifier, so the same workout
+        // gets the same id on every sync -- carry over ShoeId (the only field a user can edit on a synced
+        // workout) by id before deleting, or re-assigning a shoe would get silently wiped on next sync.
+        var previousShoeIds = previouslySynced.Where(w => w.ShoeId != null).ToDictionary(w => w.Id, w => w.ShoeId);
         db.Workouts.RemoveRange(previouslySynced);
 
         var others = await db.Workouts
@@ -201,10 +205,11 @@ public sealed class GoogleHealthSyncService(
                 : point.Raw.TryGetProperty("name", out var np) ? np.GetString()
                 : null;
             identifier ??= $"{point.StartUtc:O}|{exerciseType}";
+            var id = StableWorkoutId(identifier);
 
             db.Workouts.Add(new Workout
             {
-                Id = StableWorkoutId(identifier),
+                Id = id,
                 StartUtc = startUtc,
                 EndUtc = endUtc,
                 ActivityName = HumanizeExerciseType(exerciseType),
@@ -219,6 +224,7 @@ public sealed class GoogleHealthSyncService(
                 ElevationGainMeters = elevationMm / 1000,
                 HasGps = hasGps,
                 IsLegacy = false,
+                ShoeId = previousShoeIds.GetValueOrDefault(id),
             });
             count++;
         }
