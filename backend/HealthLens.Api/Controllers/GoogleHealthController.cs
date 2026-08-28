@@ -26,7 +26,16 @@ public class GoogleHealthController(
         var creds = store.Load();
         var configured = !string.IsNullOrEmpty(creds.ClientId) && !string.IsNullOrEmpty(creds.ClientSecret);
         var connected = configured && !string.IsNullOrEmpty(creds.RefreshToken);
-        return Ok(new GoogleHealthStatusDto(configured, connected, creds.LastSyncUtc, creds.LastSyncSummary, creds.LastError, BuildCallbackUri()));
+        return Ok(new GoogleHealthStatusDto(configured, connected, creds.LastSyncUtc, creds.LastSyncSummary, creds.LastError, BuildCallbackUri(), creds.AutoSyncEnabled));
+    }
+
+    [HttpPut("autosync")]
+    public ActionResult<GoogleHealthStatusDto> SetAutoSync(GoogleHealthAutoSyncDto dto)
+    {
+        var creds = store.Load();
+        creds.AutoSyncEnabled = dto.Enabled;
+        store.Save(creds);
+        return Status();
     }
 
     [HttpPost("config")]

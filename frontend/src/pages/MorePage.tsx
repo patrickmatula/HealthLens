@@ -96,6 +96,10 @@ export function MorePage() {
     setSyncMessage(null)
   }
 
+  async function setAutoSync(enabled: boolean) {
+    setGoogleHealth(await api.setGoogleHealthAutoSync(enabled))
+  }
+
   async function syncGoogleHealth() {
     setSyncing(true)
     setSyncMessage(null)
@@ -299,6 +303,14 @@ export function MorePage() {
                     </md-filled-button>
                     <md-outlined-button onClick={disconnectGoogleHealth}>{t('more.googleHealthDisconnect')}</md-outlined-button>
                   </div>
+                  <div className="ghl-feature-row__header ghl-google-health__autosync">
+                    <div className="ghl-feature-row__title">{t('more.googleHealthAutoSyncTitle')}</div>
+                    <md-switch
+                      selected={googleHealth.autoSyncEnabled || undefined}
+                      onChange={(e) => setAutoSync((e.target as HTMLInputElement & { selected: boolean }).selected)}
+                    />
+                  </div>
+                  <div className="ghl-feature-row__hint">{t('more.googleHealthAutoSyncHint')}</div>
                 </div>
               )}
             </>

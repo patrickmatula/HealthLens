@@ -24,6 +24,7 @@ builder.Services.AddSingleton<GoogleHealthCredentialStore>();
 builder.Services.AddSingleton<GoogleHealthOAuthService>();
 builder.Services.AddScoped<GoogleHealthSyncService>();
 builder.Services.AddHttpClient<GoogleHealthApiClient>(c => c.BaseAddress = new Uri("https://health.googleapis.com/"));
+builder.Services.AddHostedService<GoogleHealthAutoSyncService>();
 
 // Takeout exports with years of intraday data can be large; raise the default multipart limits.
 builder.Services.Configure<FormOptions>(o => o.MultipartBodyLengthLimit = 4L * 1024 * 1024 * 1024);

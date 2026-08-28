@@ -21,6 +21,7 @@ public sealed class GoogleHealthCredentials
     public DateTime? LastSyncUtc { get; set; }
     public string? LastSyncSummary { get; set; }
     public string? LastError { get; set; }
+    public bool AutoSyncEnabled { get; set; }
 }
 
 /// <summary>

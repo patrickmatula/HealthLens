@@ -74,6 +74,8 @@ const en: Record<TranslationKey, string> = {
   'more.googleHealthSyncDone': '{count} values synced.',
   'more.googleHealthDisconnect': 'Disconnect',
   'more.googleHealthReset': 'Reset',
+  'more.googleHealthAutoSyncTitle': 'Sync automatically (once a day)',
+  'more.googleHealthAutoSyncHint': 'Syncs in the background once a day, without needing to tap "Sync now".',
   'more.aboutTitle': 'About HealthLens',
   'more.aboutText':
     'A local analytics app for your Google Takeout export (Google Health/Fitbit). All data stays on this machine — nothing is sent to any server outside your own backend.',

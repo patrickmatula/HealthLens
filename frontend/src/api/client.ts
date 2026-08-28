@@ -163,4 +163,7 @@ export const api = {
   googleHealthAuthorizeUrl: () => get<{ url: string }>('/api/googlehealth/authorize'),
 
   syncGoogleHealth: () => send<GoogleHealthSyncResultDto>('POST', '/api/googlehealth/sync'),
+
+  setGoogleHealthAutoSync: (enabled: boolean) =>
+    send<GoogleHealthStatusDto>('PUT', '/api/googlehealth/autosync', { enabled }),
 }

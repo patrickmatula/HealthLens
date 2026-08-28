@@ -317,6 +317,7 @@ export interface GoogleHealthStatusDto {
   lastSyncSummary: string | null
   lastError: string | null
   redirectUri: string
+  autoSyncEnabled: boolean
 }
 
 export interface GoogleHealthSyncResultDto {
