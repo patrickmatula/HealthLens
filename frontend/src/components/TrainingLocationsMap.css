@@ -1,0 +1,5 @@
+.ghl-locations-map {
+  height: 320px;
+  border-radius: var(--md-sys-shape-corner-large);
+  overflow: hidden;
+}

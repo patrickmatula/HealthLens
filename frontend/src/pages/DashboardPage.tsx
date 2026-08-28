@@ -1,17 +1,26 @@
 import { useEffect, useMemo, useState } from 'react'
-import { Area, AreaChart, Bar, BarChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
+import { Area, AreaChart, Bar, BarChart, ComposedChart, Legend, Line, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
 import { api } from '../api/client'
-import type { DailyActivityPointDto, DashboardOverviewDto, TimeframePreset } from '../api/types'
+import type { DailyActivityPointDto, DashboardOverviewDto, TimeframePreset, WorkoutLocationDto } from '../api/types'
 import { KpiTile } from '../components/KpiTile'
 import { SegmentedButton } from '../components/SegmentedButton'
 import { Surface } from '../components/Surface'
 import { TopAppBar } from '../components/TopAppBar'
 import { Icon } from '../components/Icon'
+import { TrainingLocationsMap } from '../components/TrainingLocationsMap'
 import { useLanguage } from '../i18n/LanguageContext'
 import { formatDistanceKm } from '../utils/format'
 import './DashboardPage.css'
 
 type ChartGranularity = 'daily' | 'week' | 'month'
+
+const CATEGORY_LABEL_KEYS: Record<string, 'category.run' | 'category.walk' | 'category.bike' | 'category.strength' | 'category.other'> = {
+  Lauf: 'category.run',
+  Spaziergang: 'category.walk',
+  Rad: 'category.bike',
+  Kraft: 'category.strength',
+  Sonstiges: 'category.other',
+}
 
 function bucketKey(dateStr: string, mode: 'week' | 'month'): string {
   if (mode === 'month') return dateStr.slice(0, 7)
@@ -22,14 +31,29 @@ function bucketKey(dateStr: string, mode: 'week' | 'month'): string {
 }
 
 function aggregateDays(days: DailyActivityPointDto[], mode: 'week' | 'month') {
-  const buckets = new Map<string, { date: string; steps: number }>()
+  const buckets = new Map<string, { date: string; steps: number; rhrSum: number; rhrCount: number; sleepSum: number; sleepCount: number }>()
   for (const d of days) {
     const key = bucketKey(d.date, mode)
-    const entry = buckets.get(key) ?? { date: key, steps: 0 }
+    const entry = buckets.get(key) ?? { date: key, steps: 0, rhrSum: 0, rhrCount: 0, sleepSum: 0, sleepCount: 0 }
     entry.steps += d.steps ?? 0
+    if (d.restingHeartRateBpm != null) {
+      entry.rhrSum += d.restingHeartRateBpm
+      entry.rhrCount += 1
+    }
+    if (d.sleepScore != null) {
+      entry.sleepSum += d.sleepScore
+      entry.sleepCount += 1
+    }
     buckets.set(key, entry)
   }
-  return [...buckets.values()].sort((a, b) => a.date.localeCompare(b.date))
+  return [...buckets.values()]
+    .sort((a, b) => a.date.localeCompare(b.date))
+    .map((b) => ({
+      date: b.date,
+      steps: b.steps,
+      restingHeartRateBpm: b.rhrCount > 0 ? b.rhrSum / b.rhrCount : null,
+      sleepScore: b.sleepCount > 0 ? b.sleepSum / b.sleepCount : null,
+    }))
 }
 
 function formatBucketLabel(date: string, mode: ChartGranularity): string {
@@ -44,6 +68,7 @@ export function DashboardPage() {
   const { language, t } = useLanguage()
   const [preset, setPreset] = useState<TimeframePreset>('30d')
   const [data, setData] = useState<DashboardOverviewDto | null>(null)
+  const [locations, setLocations] = useState<WorkoutLocationDto[]>([])
   const [loading, setLoading] = useState(true)
 
   const numberFmt = useMemo(() => new Intl.NumberFormat(language === 'de' ? 'de-AT' : 'en-US', { maximumFractionDigits: 0 }), [language])
@@ -63,13 +88,21 @@ export function DashboardPage() {
       .finally(() => setLoading(false))
   }, [preset, language])
 
+  useEffect(() => {
+    api.dashboardWorkoutLocations({ preset }).then(setLocations)
+  }, [preset])
+
   const hasData = data && data.daysWithData > 0
 
   const chartGranularity: ChartGranularity = preset === '1y' ? 'week' : preset === 'all' ? 'month' : 'daily'
   const chartData = useMemo(() => {
     if (!data) return []
-    return chartGranularity === 'daily' ? data.days.map((d) => ({ date: d.date, steps: d.steps ?? 0 })) : aggregateDays(data.days, chartGranularity)
+    return chartGranularity === 'daily'
+      ? data.days.map((d) => ({ date: d.date, steps: d.steps ?? 0, restingHeartRateBpm: d.restingHeartRateBpm, sleepScore: d.sleepScore }))
+      : aggregateDays(data.days, chartGranularity)
   }, [data, chartGranularity])
+
+  const hasCrossMetricData = useMemo(() => chartData.some((d) => d.restingHeartRateBpm != null || d.sleepScore != null), [chartData])
 
   return (
     <div>
@@ -103,7 +136,6 @@ export function DashboardPage() {
               <KpiTile label={t('dashboard.totalSteps')} value={numberFmt.format(data.totalSteps)} icon={<Icon name="workouts" size={20} />} />
               <KpiTile label={t('dashboard.avgStepsPerDay')} value={numberFmt.format(data.avgStepsPerDay)} icon={<Icon name="dashboard" size={20} />} />
               <KpiTile label={t('dashboard.totalDistance')} value={formatDistanceKm(data.totalDistanceMeters)} icon={<Icon name="route" size={20} />} />
-              <KpiTile label={t('dashboard.totalCalories')} value={numberFmt.format(data.totalCalories)} unit="kcal" icon={<Icon name="heart" size={20} />} />
               <KpiTile
                 label={t('dashboard.avgActiveMinutes')}
                 value={numberFmt.format(data.avgActiveMinutesPerDay)}
@@ -118,6 +150,25 @@ export function DashboardPage() {
                 <KpiTile label={t('dashboard.avgRestingHr')} value={Math.round(data.avgRestingHeartRate).toString()} unit="bpm" icon={<Icon name="heart" size={20} />} />
               )}
             </div>
+
+            {data.activityBreakdown.length > 0 && (
+              <Surface tone="low" className="ghl-chart-card">
+                <h2 className="ghl-chart-card__title">{t('dashboard.activityBreakdown')}</h2>
+                <div className="ghl-kpi-row">
+                  {data.activityBreakdown.map((c) => (
+                    <KpiTile key={c.category} label={t(CATEGORY_LABEL_KEYS[c.category] ?? 'category.other')} value={c.count.toString()} />
+                  ))}
+                </div>
+              </Surface>
+            )}
+
+            {locations.length > 0 && (
+              <Surface tone="low" className="ghl-chart-card">
+                <h2 className="ghl-chart-card__title">{t('dashboard.trainingLocations')}</h2>
+                <p className="ghl-chart-card__hint">{t('dashboard.trainingLocationsHint')}</p>
+                <TrainingLocationsMap locations={locations} countLabel={(count) => t('dashboard.locationTooltip', { count: String(count) })} />
+              </Surface>
+            )}
 
             <Surface tone="low" className="ghl-chart-card">
               <h2 className="ghl-chart-card__title">
@@ -153,6 +204,23 @@ export function DashboardPage() {
                 )}
               </ResponsiveContainer>
             </Surface>
+
+            {hasCrossMetricData && (
+              <Surface tone="low" className="ghl-chart-card">
+                <h2 className="ghl-chart-card__title">{t('dashboard.rhrSleepOverTime')}</h2>
+                <ResponsiveContainer width="100%" height={260}>
+                  <ComposedChart data={chartData}>
+                    <XAxis dataKey="date" tick={{ fontSize: 11 }} tickFormatter={(d) => formatBucketLabel(d, chartGranularity)} stroke="var(--md-sys-color-outline)" />
+                    <YAxis yAxisId="rhr" tick={{ fontSize: 11 }} stroke="var(--md-sys-color-outline)" width={36} domain={['auto', 'auto']} />
+                    <YAxis yAxisId="sleep" orientation="right" tick={{ fontSize: 11 }} stroke="var(--md-sys-color-outline)" width={36} domain={[0, 100]} />
+                    <Tooltip contentStyle={{ background: 'var(--md-sys-color-surface-container-high)', border: 'none', borderRadius: 8 }} />
+                    <Legend wrapperStyle={{ fontSize: 12 }} />
+                    <Line yAxisId="rhr" type="monotone" dataKey="restingHeartRateBpm" name={t('chart.restingHr')} stroke="#e53935" dot={false} strokeWidth={2} connectNulls />
+                    <Line yAxisId="sleep" type="monotone" dataKey="sleepScore" name={t('chart.sleepScore')} stroke="#3949ab" dot={false} strokeWidth={2} connectNulls />
+                  </ComposedChart>
+                </ResponsiveContainer>
+              </Surface>
+            )}
           </>
         )}
       </div>
