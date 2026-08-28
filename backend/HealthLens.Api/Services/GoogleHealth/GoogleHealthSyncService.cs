@@ -4,6 +4,7 @@ using System.Text.Json;
 using HealthLens.Api.Data;
 using HealthLens.Api.Dtos;
 using HealthLens.Api.Models;
+using HealthLens.Api.Services;
 using Microsoft.EntityFrameworkCore;
 
 namespace HealthLens.Api.Services.GoogleHealth;
@@ -24,6 +25,7 @@ public sealed class GoogleHealthSyncService(
     GoogleHealthOAuthService oauth,
     GoogleHealthApiClient api,
     DataSessionService session,
+    ShoeDefaultsStore shoeDefaults,
     ILogger<GoogleHealthSyncService> logger)
 {
     private const int SyncWindowDays = 30;
@@ -206,25 +208,32 @@ public sealed class GoogleHealthSyncService(
                 : null;
             identifier ??= $"{point.StartUtc:O}|{exerciseType}";
             var id = StableWorkoutId(identifier);
+            var activityName = HumanizeExerciseType(exerciseType);
+            var avgPaceSecPerKm = avgPaceSecPerM * 1000;
+
+            // Only fall back to the category default when this exact synced workout never had a manual
+            // shoe assignment to preserve — otherwise every sync would silently reset a user's override.
+            var shoeId = previousShoeIds.GetValueOrDefault(id)
+                ?? shoeDefaults.GetDefaultShoeId(WorkoutCategorizer.Categorize(activityName, avgPaceSecPerKm, null));
 
             db.Workouts.Add(new Workout
             {
                 Id = id,
                 StartUtc = startUtc,
                 EndUtc = endUtc,
-                ActivityName = HumanizeExerciseType(exerciseType),
+                ActivityName = activityName,
                 LogType = "TRACKER",
                 Source = GoogleHealthWorkoutSource,
                 DistanceMeters = distanceMm / 1000,
                 Calories = GoogleHealthFieldReader.ReadNumericField(metrics, "caloriesKcal"),
                 Steps = steps is { } s ? (int)Math.Round(s) : null,
                 AvgHeartRate = GoogleHealthFieldReader.ReadNumericField(metrics, "averageHeartRateBeatsPerMinute"),
-                AvgPaceSecPerKm = avgPaceSecPerM * 1000,
+                AvgPaceSecPerKm = avgPaceSecPerKm,
                 AvgSpeedKmh = avgSpeedMmPerSec * 0.0036,
                 ElevationGainMeters = elevationMm / 1000,
                 HasGps = hasGps,
                 IsLegacy = false,
-                ShoeId = previousShoeIds.GetValueOrDefault(id),
+                ShoeId = shoeId,
             });
             count++;
         }

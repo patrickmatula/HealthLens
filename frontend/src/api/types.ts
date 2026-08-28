@@ -28,6 +28,19 @@ export interface DailyActivityPointDto {
   caloriesTotal: number | null
   activeMinutes: number | null
   sedentaryMinutes: number | null
+  restingHeartRateBpm: number | null
+  sleepScore: number | null
+}
+
+export interface ActivityCategoryCountDto {
+  category: string
+  count: number
+}
+
+export interface WorkoutLocationDto {
+  workoutId: string
+  latitude: number
+  longitude: number
 }
 
 export interface DashboardOverviewDto {
@@ -44,6 +57,7 @@ export interface DashboardOverviewDto {
   avgSleepScore: number | null
   avgRestingHeartRate: number | null
   insights: string[]
+  activityBreakdown: ActivityCategoryCountDto[]
 }
 
 export type TimeframePreset = '1d' | '7d' | '30d' | '1y' | 'all' | 'custom'
@@ -73,6 +87,11 @@ export interface ShoeDto {
   createdAtUtc: string
   workoutCount: number
   totalDistanceMeters: number
+}
+
+export interface ShoeDefaultDto {
+  category: string
+  shoeId: number | null
 }
 
 export const BODY_MEASUREMENT_TYPES = [

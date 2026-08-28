@@ -3,6 +3,7 @@ using System.Text.RegularExpressions;
 using HealthLens.Api.Models;
 using HealthLens.Api.Services.Csv;
 using HealthLens.Api.Services.Import;
+using HealthLens.Api.Services;
 using Microsoft.EntityFrameworkCore;
 
 namespace HealthLens.Api.Services.Importers;
@@ -13,7 +14,7 @@ namespace HealthLens.Api.Services.Importers;
 /// join against the per-second running-dynamics/GPS/heart-rate streams, then gap-fills pre-2025
 /// history from the legacy Fitbit exercise-*.json export.
 /// </summary>
-public partial class WorkoutsImporter : IDomainImporter
+public partial class WorkoutsImporter(ShoeDefaultsStore? shoeDefaults = null) : IDomainImporter
 {
     public string Name => "Workouts";
 
@@ -60,11 +61,18 @@ public partial class WorkoutsImporter : IDomainImporter
             var existing = await db.Workouts.FindAsync([workout.Id], ct);
             if (existing is null)
             {
+                workout.ShoeId = shoeDefaults?.GetDefaultShoeId(WorkoutCategorizer.Categorize(workout.ActivityName, workout.AvgPaceSecPerKm, workout.CadenceAvgSpm));
                 db.Workouts.Add(workout);
             }
             else
             {
+                // CurrentValues.SetValues copies every scalar property from the freshly-parsed `workout`,
+                // which never carries a ShoeId (that's only ever set by the user or the default-shoe logic
+                // above) — without preserving it here, every re-import would silently wipe every shoe
+                // assignment. Same bug class already fixed for GoogleHealthSyncService's resync path.
+                var preservedShoeId = existing.ShoeId;
                 db.Entry(existing).CurrentValues.SetValues(workout);
+                existing.ShoeId = preservedShoeId;
             }
         }
 

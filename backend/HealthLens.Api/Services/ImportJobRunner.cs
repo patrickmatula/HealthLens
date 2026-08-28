@@ -22,11 +22,11 @@ public class ImportJobStatus
 /// DataSessionService to the requested mode, and dispatches every registered <see cref="IDomainImporter"/>
 /// over the extracted "Google Health" folder while reporting progress that the frontend polls for.
 /// </summary>
-public class ImportJobRunner(DataSessionService session, ILogger<ImportJobRunner> logger)
+public class ImportJobRunner(DataSessionService session, ILogger<ImportJobRunner> logger, ShoeDefaultsStore shoeDefaults)
 {
-    private static readonly IDomainImporter[] Importers =
+    private readonly IDomainImporter[] _importers =
     [
-        new DailyActivityImporter(), new WorkoutsImporter(), new SleepImporter(), new HeartHealthImporter(), new RecoveryImporter(),
+        new DailyActivityImporter(), new WorkoutsImporter(shoeDefaults), new SleepImporter(), new HeartHealthImporter(), new RecoveryImporter(),
     ];
 
     // Zip-bomb guard: a small, deeply-compressed zip can otherwise claim to expand to an arbitrary size
@@ -105,10 +105,10 @@ public class ImportJobRunner(DataSessionService session, ILogger<ImportJobRunner
                     status.ProgressPercent = pct;
                 });
 
-            var perImporter = 100 / Importers.Length;
-            for (var i = 0; i < Importers.Length; i++)
+            var perImporter = 100 / _importers.Length;
+            for (var i = 0; i < _importers.Length; i++)
             {
-                var importer = Importers[i];
+                var importer = _importers[i];
                 status.CurrentStep = $"{importer.Name}...";
                 await importer.ImportAsync(context, CancellationToken.None);
                 status.ProgressPercent = (i + 1) * perImporter;

@@ -15,7 +15,7 @@ namespace HealthLens.Api.Controllers;
 /// </summary>
 [ApiController]
 [Route("api/shoes")]
-public class ShoesController(DataSessionService session) : ControllerBase
+public class ShoesController(DataSessionService session, ShoeDefaultsStore shoeDefaults) : ControllerBase
 {
     [HttpGet]
     public async Task<ActionResult<IReadOnlyList<ShoeDto>>> List(CancellationToken ct)
@@ -92,6 +92,43 @@ public class ShoesController(DataSessionService session) : ControllerBase
         await db.Workouts.Where(w => w.ShoeId == id).ExecuteUpdateAsync(s => s.SetProperty(w => w.ShoeId, (int?)null), ct);
         await db.Shoes.Where(s => s.Id == id).ExecuteDeleteAsync(ct);
         return NoContent();
+    }
+
+    /// <summary>The per-category default shoe ("every new run gets Shoe X"), applied automatically to
+    /// genuinely new workouts by the Takeout importer and Google Health sync — see ShoeDefaultsStore.</summary>
+    [HttpGet("defaults")]
+    public ActionResult<IReadOnlyList<ShoeDefaultDto>> GetDefaults()
+    {
+        var defaults = shoeDefaults.Load();
+        return Ok(WorkoutCategorizer.Categories.Select(c => new ShoeDefaultDto(c, defaults.TryGetValue(c, out var id) ? id : null)).ToList());
+    }
+
+    [HttpPut("defaults/{category}")]
+    public async Task<ActionResult<IReadOnlyList<ShoeDefaultDto>>> SetDefault(string category, SetShoeDefaultDto dto, CancellationToken ct)
+    {
+        if (!WorkoutCategorizer.Categories.Contains(category))
+        {
+            return BadRequest("Unbekannte Workout-Art.");
+        }
+
+        await using var db = session.CreateContext();
+        if (dto.ShoeId is { } shoeId && !await db.Shoes.AnyAsync(s => s.Id == shoeId, ct))
+        {
+            return NotFound("Schuh nicht gefunden.");
+        }
+
+        var defaults = shoeDefaults.Load();
+        if (dto.ShoeId is null)
+        {
+            defaults.Remove(category);
+        }
+        else
+        {
+            defaults[category] = dto.ShoeId.Value;
+        }
+
+        shoeDefaults.Save(defaults);
+        return GetDefaults();
     }
 
     /// <summary>Assigns (or, with ShoeId null, clears) a shoe across any set of workout ids — the frontend's "bulk assign" is just this called with every currently filtered/selected workout.</summary>

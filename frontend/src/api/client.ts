@@ -14,11 +14,13 @@ import type {
   HeartOverviewDto,
   PersonalRecordDto,
   RecoveryOverviewDto,
+  ShoeDefaultDto,
   ShoeDto,
   SleepSessionDetailDto,
   SleepSummaryDto,
   WorkoutDetailDto,
   WorkoutListItemDto,
+  WorkoutLocationDto,
 } from './types'
 
 // HealthLens has no login by design (self-hosted, meant for your own trusted network only — see
@@ -80,6 +82,14 @@ export const api = {
     return get<DashboardOverviewDto>(`/api/dashboard/overview?${qs.toString()}`)
   },
 
+  dashboardWorkoutLocations: (params: { preset?: string; from?: string; to?: string }) => {
+    const qs = new URLSearchParams()
+    if (params.preset) qs.set('preset', params.preset)
+    if (params.from) qs.set('from', params.from)
+    if (params.to) qs.set('to', params.to)
+    return get<WorkoutLocationDto[]>(`/api/dashboard/workout-locations?${qs.toString()}`)
+  },
+
   workouts: (params: { preset?: string; from?: string; to?: string; activity?: string; shoeId?: number }) => {
     const qs = new URLSearchParams()
     if (params.preset) qs.set('preset', params.preset)
@@ -134,6 +144,11 @@ export const api = {
   deleteShoe: (id: number) => send<void>('DELETE', `/api/shoes/${id}`),
 
   assignShoe: (shoeId: number | null, workoutIds: string[]) => send<void>('POST', '/api/shoes/assign', { shoeId, workoutIds }),
+
+  shoeDefaults: () => get<ShoeDefaultDto[]>('/api/shoes/defaults'),
+
+  setShoeDefault: (category: string, shoeId: number | null) =>
+    send<ShoeDefaultDto[]>('PUT', `/api/shoes/defaults/${category}`, { shoeId }),
 
   bodyProfile: () => get<BodyProfileDto>('/api/body/profile'),
 

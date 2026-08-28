@@ -11,6 +11,7 @@ builder.Services.AddControllers().AddJsonOptions(o => o.JsonSerializerOptions.Co
 builder.Services.AddOpenApi();
 
 builder.Services.AddSingleton<DataSessionService>();
+builder.Services.AddSingleton<ShoeDefaultsStore>();
 builder.Services.AddSingleton<ImportJobRunner>();
 
 // Persisted to App_Data (not the default OS-specific profile path) so the key ring survives container

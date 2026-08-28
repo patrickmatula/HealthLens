@@ -1,7 +1,8 @@
 import { useEffect, useState, type FormEvent } from 'react'
 import { Link } from 'react-router-dom'
 import { api } from '../api/client'
-import type { ShoeDto } from '../api/types'
+import type { ShoeDefaultDto, ShoeDto } from '../api/types'
+import type { WorkoutCategory } from '../utils/format'
 import { Icon } from '../components/Icon'
 import { Surface } from '../components/Surface'
 import { TopAppBar } from '../components/TopAppBar'
@@ -9,9 +10,18 @@ import { useLanguage } from '../i18n/LanguageContext'
 import { formatDistanceKm } from '../utils/format'
 import './ShoesPage.css'
 
+const DEFAULT_CATEGORIES: { value: WorkoutCategory; labelKey: 'category.run' | 'category.walk' | 'category.bike' | 'category.strength' | 'category.other' }[] = [
+  { value: 'Lauf', labelKey: 'category.run' },
+  { value: 'Spaziergang', labelKey: 'category.walk' },
+  { value: 'Rad', labelKey: 'category.bike' },
+  { value: 'Kraft', labelKey: 'category.strength' },
+  { value: 'Sonstiges', labelKey: 'category.other' },
+]
+
 export function ShoesPage() {
   const { t } = useLanguage()
   const [shoes, setShoes] = useState<ShoeDto[]>([])
+  const [defaults, setDefaults] = useState<ShoeDefaultDto[]>([])
   const [loading, setLoading] = useState(true)
   const [newName, setNewName] = useState('')
   const [newBrand, setNewBrand] = useState('')
@@ -22,13 +32,20 @@ export function ShoesPage() {
 
   function load() {
     setLoading(true)
-    api
-      .shoes()
-      .then(setShoes)
+    Promise.all([api.shoes(), api.shoeDefaults()])
+      .then(([s, d]) => {
+        setShoes(s)
+        setDefaults(d)
+      })
       .finally(() => setLoading(false))
   }
 
   useEffect(load, [])
+
+  async function changeDefault(category: WorkoutCategory, shoeId: number | null) {
+    const updated = await api.setShoeDefault(category, shoeId)
+    setDefaults(updated)
+  }
 
   async function handleCreate(e: FormEvent) {
     e.preventDefault()
@@ -95,6 +112,37 @@ export function ShoesPage() {
             </md-filled-button>
           </form>
         </Surface>
+
+        {!loading && shoes.length > 0 && (
+          <Surface tone="low">
+            <h2 className="ghl-section-title">{t('shoes.defaultsTitle')}</h2>
+            <p className="ghl-shoe-defaults__hint">{t('shoes.defaultsHint')}</p>
+            <div className="ghl-shoe-defaults">
+              {DEFAULT_CATEGORIES.map(({ value, labelKey }) => {
+                const current = defaults.find((d) => d.category === value)?.shoeId ?? null
+                return (
+                  <div key={value} className="ghl-shoe-defaults__row">
+                    <span className="ghl-shoe-defaults__category">{t(labelKey)}</span>
+                    <select
+                      className="ghl-shoe-defaults__select"
+                      value={current ?? ''}
+                      onChange={(e) => changeDefault(value, e.target.value ? Number(e.target.value) : null)}
+                    >
+                      <option value="">{t('shoes.noDefault')}</option>
+                      {shoes
+                        .filter((s) => !s.isRetired)
+                        .map((s) => (
+                          <option key={s.id} value={s.id}>
+                            {s.name}
+                          </option>
+                        ))}
+                    </select>
+                  </div>
+                )
+              })}
+            </div>
+          </Surface>
+        )}
 
         {!loading && shoes.length === 0 && (
           <Surface tone="low">
