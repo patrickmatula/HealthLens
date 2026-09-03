@@ -1,15 +1,25 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Area, AreaChart, Bar, BarChart, ComposedChart, Legend, Line, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
 import { api } from '../api/client'
-import type { DailyActivityPointDto, DashboardOverviewDto, TimeframePreset, WorkoutLocationDto } from '../api/types'
+import type {
+  ConsistencyDayDto,
+  DailyActivityPointDto,
+  DashboardOverviewDto,
+  FlashbackDto,
+  FunFactsDto,
+  TimeframePreset,
+  WeeklyDigestDto,
+  WorkoutLocationDto,
+} from '../api/types'
+import { ConsistencyHeatmap } from '../components/ConsistencyHeatmap'
 import { KpiTile } from '../components/KpiTile'
 import { SegmentedButton } from '../components/SegmentedButton'
 import { Surface } from '../components/Surface'
 import { TopAppBar } from '../components/TopAppBar'
 import { Icon } from '../components/Icon'
 import { TrainingLocationsMap } from '../components/TrainingLocationsMap'
-import { useLanguage } from '../i18n/LanguageContext'
-import { formatDistanceKm } from '../utils/format'
+import { useLanguage, type TranslationKey } from '../i18n/LanguageContext'
+import { formatDate, formatDistanceKm, formatDuration } from '../utils/format'
 import './DashboardPage.css'
 
 type ChartGranularity = 'daily' | 'week' | 'month'
@@ -64,11 +74,42 @@ function formatBucketLabel(date: string, mode: ChartGranularity): string {
   return date.slice(5)
 }
 
+// Reference distances for the "fun comparisons" gimmick -- all-time totals, not scoped to any timeframe
+// preset, since "you've run to the moon" only means something as a running lifetime total.
+const MARATHON_KM = 42.195
+const MOON_DISTANCE_KM = 384_400
+const VIENNA_RING_KM = 5.3
+const EVEREST_HEIGHT_M = 8_849
+
+function formatHoursMinutes(totalMinutes: number): string {
+  const h = Math.floor(totalMinutes / 60)
+  const m = Math.round(totalMinutes % 60)
+  return h > 0 ? `${h}h ${m}min` : `${m}min`
+}
+
+function buildFunFacts(funFacts: FunFactsDto, t: (key: TranslationKey, params?: Record<string, string | number>) => string): string[] {
+  const km = funFacts.totalDistanceMeters / 1000
+  const facts: string[] = []
+  if (km > 0) {
+    facts.push(t('dashboard.funFactMarathons', { count: (km / MARATHON_KM).toFixed(1) }))
+    facts.push(t('dashboard.funFactMoon', { percent: (km / MOON_DISTANCE_KM) * 100 < 0.01 ? '<0.01' : ((km / MOON_DISTANCE_KM) * 100).toFixed(2) }))
+    facts.push(t('dashboard.funFactViennaRing', { count: (km / VIENNA_RING_KM).toFixed(1) }))
+  }
+  if (funFacts.totalElevationGainMeters > 0) {
+    facts.push(t('dashboard.funFactEverest', { count: (funFacts.totalElevationGainMeters / EVEREST_HEIGHT_M).toFixed(1) }))
+  }
+  return facts
+}
+
 export function DashboardPage() {
   const { language, t } = useLanguage()
   const [preset, setPreset] = useState<TimeframePreset>('30d')
   const [data, setData] = useState<DashboardOverviewDto | null>(null)
   const [locations, setLocations] = useState<WorkoutLocationDto[]>([])
+  const [heatmapDays, setHeatmapDays] = useState<ConsistencyDayDto[]>([])
+  const [funFacts, setFunFacts] = useState<FunFactsDto | null>(null)
+  const [flashback, setFlashback] = useState<FlashbackDto | null>(null)
+  const [weeklyDigest, setWeeklyDigest] = useState<WeeklyDigestDto | null>(null)
   const [loading, setLoading] = useState(true)
 
   const numberFmt = useMemo(() => new Intl.NumberFormat(language === 'de' ? 'de-AT' : 'en-US', { maximumFractionDigits: 0 }), [language])
@@ -91,6 +132,15 @@ export function DashboardPage() {
   useEffect(() => {
     api.dashboardWorkoutLocations({ preset }).then(setLocations)
   }, [preset])
+
+  // Independent of the timeframe preset -- a consistency calendar only makes sense over a fixed,
+  // always-comparable trailing year, so it's fetched once rather than reacting to `preset`.
+  useEffect(() => {
+    api.consistencyHeatmap(365).then(setHeatmapDays)
+    api.funFacts().then(setFunFacts)
+    api.flashback().then(setFlashback)
+    api.weeklyDigest().then(setWeeklyDigest)
+  }, [])
 
   const hasData = data && data.daysWithData > 0
 
@@ -121,7 +171,7 @@ export function DashboardPage() {
 
         {hasData && data && (
           <>
-            {data.insights.length > 0 && (
+            {(data.insights.length > 0 || flashback?.hasFlashback) && (
               <div className="ghl-insights">
                 {data.insights.map((insight, i) => (
                   <Surface key={i} className="ghl-insight-card">
@@ -129,6 +179,24 @@ export function DashboardPage() {
                     <span>{insight}</span>
                   </Surface>
                 ))}
+                {flashback?.hasFlashback && (
+                  <Surface className="ghl-insight-card">
+                    <Icon name="moon" size={18} />
+                    <span>
+                      {t('dashboard.flashback', {
+                        years: flashback.yearsAgo ?? 0,
+                        date: formatDate(flashback.workoutStartUtc ?? ''),
+                        activity: flashback.activityName ?? '',
+                        detail:
+                          flashback.distanceMeters != null
+                            ? formatDistanceKm(flashback.distanceMeters)
+                            : flashback.durationSeconds != null
+                              ? formatDuration(flashback.durationSeconds)
+                              : '',
+                      })}
+                    </span>
+                  </Surface>
+                )}
               </div>
             )}
 
@@ -151,6 +219,34 @@ export function DashboardPage() {
               )}
             </div>
 
+            {weeklyDigest && weeklyDigest.workoutsCount + weeklyDigest.activeDaysCount > 0 && (
+              <Surface tone="low" className="ghl-chart-card">
+                <h2 className="ghl-chart-card__title">{t('dashboard.weeklyDigestTitle')}</h2>
+                <p className="ghl-chart-card__hint">
+                  {formatDate(weeklyDigest.from)} – {formatDate(weeklyDigest.to)}
+                </p>
+                <div className="ghl-kpi-row">
+                  <KpiTile label={t('dashboard.totalDistance')} value={formatDistanceKm(weeklyDigest.totalDistanceMeters)} />
+                  <KpiTile label={t('dashboard.workouts')} value={weeklyDigest.workoutsCount.toString()} />
+                  <KpiTile label={t('dashboard.activeDays')} value={t('dashboard.activeDaysValue', { count: weeklyDigest.activeDaysCount })} />
+                  {weeklyDigest.avgSleepScore != null && (
+                    <KpiTile label={t('dashboard.avgSleepScore')} value={Math.round(weeklyDigest.avgSleepScore).toString()} />
+                  )}
+                  <KpiTile
+                    label={t('dashboard.sleepDebt')}
+                    value={weeklyDigest.sleepDebtMinutes > 0 ? formatHoursMinutes(weeklyDigest.sleepDebtMinutes) : t('dashboard.sleepDebtNone')}
+                  />
+                  {weeklyDigest.avgRestingHeartRate != null && (
+                    <KpiTile
+                      label={t('dashboard.avgRestingHr')}
+                      value={Math.round(weeklyDigest.avgRestingHeartRate).toString()}
+                      unit={weeklyDigest.restingHrDeltaFromPriorWeek != null ? `bpm (${weeklyDigest.restingHrDeltaFromPriorWeek >= 0 ? '+' : ''}${weeklyDigest.restingHrDeltaFromPriorWeek.toFixed(1)})` : 'bpm'}
+                    />
+                  )}
+                </div>
+              </Surface>
+            )}
+
             {data.activityBreakdown.length > 0 && (
               <Surface tone="low" className="ghl-chart-card">
                 <h2 className="ghl-chart-card__title">{t('dashboard.activityBreakdown')}</h2>
@@ -159,6 +255,13 @@ export function DashboardPage() {
                     <KpiTile key={c.category} label={t(CATEGORY_LABEL_KEYS[c.category] ?? 'category.other')} value={c.count.toString()} />
                   ))}
                 </div>
+              </Surface>
+            )}
+
+            {heatmapDays.length > 0 && (
+              <Surface tone="low" className="ghl-chart-card">
+                <h2 className="ghl-chart-card__title">{t('dashboard.consistency')}</h2>
+                <ConsistencyHeatmap days={heatmapDays} language={language} stepsLabel={t('dashboard.stepsUnit')} />
               </Surface>
             )}
 
@@ -219,6 +322,17 @@ export function DashboardPage() {
                     <Line yAxisId="sleep" type="monotone" dataKey="sleepScore" name={t('chart.sleepScore')} stroke="#3949ab" dot={false} strokeWidth={2} connectNulls />
                   </ComposedChart>
                 </ResponsiveContainer>
+              </Surface>
+            )}
+
+            {funFacts && funFacts.totalWorkouts > 0 && (
+              <Surface tone="low" className="ghl-chart-card">
+                <h2 className="ghl-chart-card__title">{t('dashboard.funFactsTitle')}</h2>
+                <ul className="ghl-fun-facts">
+                  {buildFunFacts(funFacts, t).map((fact, i) => (
+                    <li key={i}>{fact}</li>
+                  ))}
+                </ul>
               </Surface>
             )}
           </>

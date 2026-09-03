@@ -6,10 +6,10 @@ this work.
 
 ## Dashboard / insight group
 - [ ] 1. Jahresrückblick ("Year in HealthLens")
-- [ ] 2. Wochenzusammenfassung (7-day digest card)
-- [ ] 3. Kalender-Heatmap (Trainingskonsistenz)
-- [ ] 4. "An diesem Tag vor X Jahren" Flashback
-- [ ] 5. Witzige Distanzvergleiche
+- [x] 2. Wochenzusammenfassung (7-day digest card) — committed, deployed to demo container
+- [x] 3. Kalender-Heatmap (Trainingskonsistenz) — committed, deployed to demo container
+- [x] 4. "An diesem Tag vor X Jahren" Flashback — committed, deployed to demo container
+- [x] 5. Witzige Distanzvergleiche — committed, deployed to demo container
 
 ## Workout-detail group
 - [ ] 6. Pacing-Strategie-Analyse (negative/positive/even split)

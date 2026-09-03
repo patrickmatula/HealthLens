@@ -50,6 +50,16 @@
   color: var(--md-sys-color-primary);
 }
 
+.ghl-fun-facts {
+  margin: 0;
+  padding-left: var(--md-space-5);
+  display: flex;
+  flex-direction: column;
+  gap: var(--md-space-2);
+  color: var(--md-sys-color-on-surface);
+  font: var(--md-sys-typescale-body-large-weight) var(--md-sys-typescale-body-large-size)/var(--md-sys-typescale-body-large-line-height) var(--md-sys-typescale-body-large-font);
+}
+
 .ghl-chart-card__subtitle {
   font: var(--md-sys-typescale-body-medium-weight) var(--md-sys-typescale-body-medium-size)/var(--md-sys-typescale-body-medium-line-height) var(--md-sys-typescale-body-medium-font);
   color: var(--md-sys-color-on-surface-variant);

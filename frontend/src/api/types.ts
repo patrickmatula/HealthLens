@@ -43,6 +43,40 @@ export interface WorkoutLocationDto {
   longitude: number
 }
 
+export interface ConsistencyDayDto {
+  date: string
+  steps: number | null
+  workoutCount: number
+}
+
+export interface FunFactsDto {
+  totalDistanceMeters: number
+  totalElevationGainMeters: number
+  totalWorkouts: number
+}
+
+export interface FlashbackDto {
+  hasFlashback: boolean
+  workoutStartUtc: string | null
+  activityName: string | null
+  distanceMeters: number | null
+  durationSeconds: number | null
+  yearsAgo: number | null
+}
+
+export interface WeeklyDigestDto {
+  from: string
+  to: string
+  totalDistanceMeters: number
+  workoutsCount: number
+  activeDaysCount: number
+  totalSleepMinutes: number
+  sleepDebtMinutes: number
+  avgSleepScore: number | null
+  avgRestingHeartRate: number | null
+  restingHrDeltaFromPriorWeek: number | null
+}
+
 export interface DashboardOverviewDto {
   from: string
   to: string

@@ -155,4 +155,131 @@ public class DashboardController(DataSessionService session) : ControllerBase
 
         return Ok(locations);
     }
+
+    /// <summary>Daily activity for a GitHub-contributions-style consistency calendar — always the trailing
+    /// N days ending on the most recent day with data, independent of the Dashboard's own timeframe
+    /// preset (a consistency view only makes sense over a fixed, comparable window).</summary>
+    [HttpGet("consistency-heatmap")]
+    public async Task<ActionResult<IReadOnlyList<ConsistencyDayDto>>> ConsistencyHeatmap(int? days, CancellationToken ct)
+    {
+        await using var db = session.CreateContext();
+
+        if (!await db.DailyActivitySummaries.AnyAsync(ct))
+        {
+            return Ok(Array.Empty<ConsistencyDayDto>());
+        }
+
+        var latest = await db.DailyActivitySummaries.MaxAsync(d => d.Date, ct);
+        var windowDays = days is > 0 ? days.Value : 365;
+        var range = new TimeRange(latest.AddDays(-(windowDays - 1)), latest);
+
+        var stepsByDate = await db.DailyActivitySummaries
+            .Where(d => d.Date >= range.From && d.Date <= range.To)
+            .ToDictionaryAsync(d => d.Date, d => d.Steps, ct);
+
+        var workoutStarts = await db.Workouts
+            .Where(w => w.StartUtc >= range.StartUtc && w.StartUtc <= range.EndUtc)
+            .Select(w => w.StartUtc)
+            .ToListAsync(ct);
+        var workoutCountByDate = workoutStarts
+            .GroupBy(t => DateOnly.FromDateTime(t))
+            .ToDictionary(g => g.Key, g => g.Count());
+
+        var result = new List<ConsistencyDayDto>();
+        for (var d = range.From; d <= range.To; d = d.AddDays(1))
+        {
+            result.Add(new ConsistencyDayDto(d, stepsByDate.GetValueOrDefault(d), workoutCountByDate.GetValueOrDefault(d)));
+        }
+
+        return Ok(result);
+    }
+
+    /// <summary>All-time totals for the Dashboard's "fun distance comparisons" gimmick (marathons run,
+    /// % of the way to the moon, etc.) -- deliberately lifetime, not scoped to the timeframe preset, since
+    /// "you've run to the moon" only means something as a running lifetime total.</summary>
+    [HttpGet("fun-facts")]
+    public async Task<ActionResult<FunFactsDto>> FunFacts(CancellationToken ct)
+    {
+        await using var db = session.CreateContext();
+
+        if (!await db.Workouts.AnyAsync(ct))
+        {
+            return Ok(new FunFactsDto(0, 0, 0));
+        }
+
+        var totalDistance = await db.Workouts.SumAsync(w => w.DistanceMeters ?? 0, ct);
+        var totalElevation = await db.Workouts.SumAsync(w => w.ElevationGainMeters ?? 0, ct);
+        var totalWorkouts = await db.Workouts.CountAsync(ct);
+
+        return Ok(new FunFactsDto(totalDistance, totalElevation, totalWorkouts));
+    }
+
+    /// <summary>"On this day in a past year" -- the most recent past workout that happened on today's own
+    /// calendar day (month+day, any earlier year). A nice-to-have nostalgia hit, not core data, so it
+    /// simply omits itself (HasFlashback: false) rather than erroring when there's no match.</summary>
+    [HttpGet("flashback")]
+    public async Task<ActionResult<FlashbackDto>> Flashback(CancellationToken ct)
+    {
+        await using var db = session.CreateContext();
+        var today = DateTime.UtcNow;
+
+        var candidates = await db.Workouts
+            .Where(w => w.StartUtc.Month == today.Month && w.StartUtc.Day == today.Day && w.StartUtc.Year < today.Year)
+            .OrderByDescending(w => w.StartUtc)
+            .ToListAsync(ct);
+
+        if (candidates.Count == 0)
+        {
+            return Ok(new FlashbackDto(false, null, null, null, null, null));
+        }
+
+        var best = candidates[0];
+        return Ok(new FlashbackDto(true, best.StartUtc, best.ActivityName, best.DistanceMeters, best.DurationSeconds, today.Year - best.StartUtc.Year));
+    }
+
+    // 8h/night is the standard adult sleep recommendation (matches the threshold most sleep-debt
+    // trackers default to); HealthLens has no per-user settings store yet to make this configurable.
+    private const double TargetSleepMinutesPerNight = 8 * 60;
+
+    /// <summary>A fixed trailing-7-days digest, independent of the Dashboard's own timeframe preset --
+    /// "how was my week" should always mean the same thing regardless of what range is selected above it.</summary>
+    [HttpGet("weekly-digest")]
+    public async Task<ActionResult<WeeklyDigestDto>> WeeklyDigest(CancellationToken ct)
+    {
+        await using var db = session.CreateContext();
+
+        if (!await db.DailyActivitySummaries.AnyAsync(ct))
+        {
+            var today = DateOnly.FromDateTime(DateTime.Now);
+            return Ok(new WeeklyDigestDto(today, today, 0, 0, 0, 0, 0, null, null, null));
+        }
+
+        var latest = await db.DailyActivitySummaries.MaxAsync(d => d.Date, ct);
+        var thisWeek = new TimeRange(latest.AddDays(-6), latest);
+        var priorWeek = new TimeRange(latest.AddDays(-13), latest.AddDays(-7));
+
+        var days = await db.DailyActivitySummaries.Where(d => d.Date >= thisWeek.From && d.Date <= thisWeek.To).ToListAsync(ct);
+        var totalDistance = days.Sum(d => d.DistanceMeters ?? 0);
+        var activeDays = days.Count(d => (d.Steps ?? 0) > 0);
+
+        var workoutsCount = await db.Workouts.CountAsync(w => w.StartUtc >= thisWeek.StartUtc && w.StartUtc <= thisWeek.EndUtc, ct);
+
+        var sleepSessions = await db.SleepSessions
+            .Where(s => s.EndUtc >= thisWeek.StartUtc && s.EndUtc <= thisWeek.EndUtc)
+            .ToListAsync(ct);
+        var totalSleepMinutes = sleepSessions.Sum(s => s.MinutesAsleep);
+        var sleepDebt = Math.Max(0, TargetSleepMinutesPerNight * 7 - totalSleepMinutes);
+
+        var weekScores = sleepSessions.Where(s => s.Score != null).Select(s => s.Score!.OverallScore).ToList();
+        double? avgSleepScore = weekScores.Count > 0 ? weekScores.Average() : null;
+
+        var rhrThisWeek = await db.RestingHeartRateDailies.Where(x => x.Date >= thisWeek.From && x.Date <= thisWeek.To).ToListAsync(ct);
+        double? avgRhr = rhrThisWeek.Count > 0 ? rhrThisWeek.Average(x => x.Bpm) : null;
+
+        var rhrPriorWeek = await db.RestingHeartRateDailies.Where(x => x.Date >= priorWeek.From && x.Date <= priorWeek.To).ToListAsync(ct);
+        double? avgRhrPrior = rhrPriorWeek.Count > 0 ? rhrPriorWeek.Average(x => x.Bpm) : null;
+        double? rhrDelta = avgRhr != null && avgRhrPrior != null ? avgRhr - avgRhrPrior : null;
+
+        return Ok(new WeeklyDigestDto(thisWeek.From, thisWeek.To, totalDistance, workoutsCount, activeDays, totalSleepMinutes, sleepDebt, avgSleepScore, avgRhr, rhrDelta));
+    }
 }

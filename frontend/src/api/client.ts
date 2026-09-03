@@ -4,7 +4,11 @@ import type {
   BodyProfileDto,
   BodySideKey,
   CorrelationPointDto,
+  ConsistencyDayDto,
   DashboardOverviewDto,
+  FlashbackDto,
+  FunFactsDto,
+  WeeklyDigestDto,
   GoogleHealthStatusDto,
   GoogleHealthSyncResultDto,
   ImportCurrentDto,
@@ -89,6 +93,14 @@ export const api = {
     if (params.to) qs.set('to', params.to)
     return get<WorkoutLocationDto[]>(`/api/dashboard/workout-locations?${qs.toString()}`)
   },
+
+  consistencyHeatmap: (days = 365) => get<ConsistencyDayDto[]>(`/api/dashboard/consistency-heatmap?days=${days}`),
+
+  funFacts: () => get<FunFactsDto>('/api/dashboard/fun-facts'),
+
+  flashback: () => get<FlashbackDto>('/api/dashboard/flashback'),
+
+  weeklyDigest: () => get<WeeklyDigestDto>('/api/dashboard/weekly-digest'),
 
   workouts: (params: { preset?: string; from?: string; to?: string; activity?: string; shoeId?: number }) => {
     const qs = new URLSearchParams()
