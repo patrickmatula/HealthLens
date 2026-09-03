@@ -1,0 +1,45 @@
+.ghl-year-picker {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--md-space-2);
+}
+
+.ghl-year-picker__chip {
+  border: 1px solid var(--md-sys-color-outline);
+  border-radius: var(--md-sys-shape-corner-full);
+  padding: var(--md-space-2) var(--md-space-4);
+  background: transparent;
+  color: var(--md-sys-color-on-surface);
+  font: var(--md-sys-typescale-label-large-weight) var(--md-sys-typescale-label-large-size)/var(--md-sys-typescale-label-large-line-height) var(--md-sys-typescale-label-large-font);
+  cursor: pointer;
+}
+
+.ghl-year-picker__chip--active {
+  background: var(--md-sys-color-secondary-container);
+  color: var(--md-sys-color-on-secondary-container);
+  border-color: transparent;
+}
+
+.ghl-year-hero {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: var(--md-space-2);
+  padding: var(--md-space-6);
+}
+
+.ghl-year-hero__year {
+  font: var(--md-sys-typescale-title-large-weight) var(--md-sys-typescale-title-large-size)/var(--md-sys-typescale-title-large-line-height) var(--md-sys-typescale-title-large-font);
+  color: var(--md-sys-color-on-surface-variant);
+}
+
+.ghl-year-hero__distance {
+  font: var(--md-sys-typescale-display-large-weight) var(--md-sys-typescale-display-large-size)/var(--md-sys-typescale-display-large-line-height) var(--md-sys-typescale-display-large-font);
+  color: var(--md-sys-color-primary);
+}
+
+.ghl-year-hero__delta {
+  font: var(--md-sys-typescale-title-medium-weight) var(--md-sys-typescale-title-medium-size)/var(--md-sys-typescale-title-medium-line-height) var(--md-sys-typescale-title-medium-font);
+  color: var(--md-sys-color-on-surface-variant);
+}

@@ -10,6 +10,7 @@ import type {
   FunFactsDto,
   TrainingLoadDto,
   WeeklyDigestDto,
+  YearInReviewDto,
   GoogleHealthStatusDto,
   GoogleHealthSyncResultDto,
   ImportCurrentDto,
@@ -21,6 +22,7 @@ import type {
   RecoveryOverviewDto,
   ShoeDefaultDto,
   ShoeDto,
+  ShoePerformanceDto,
   SleepSessionDetailDto,
   SleepSummaryDto,
   WorkoutDetailDto,
@@ -105,6 +107,8 @@ export const api = {
 
   trainingLoad: () => get<TrainingLoadDto>('/api/dashboard/training-load'),
 
+  yearInReview: (year?: number) => get<YearInReviewDto>(`/api/dashboard/year-in-review${year ? `?year=${year}` : ''}`),
+
   workouts: (params: { preset?: string; from?: string; to?: string; activity?: string; shoeId?: number }) => {
     const qs = new URLSearchParams()
     if (params.preset) qs.set('preset', params.preset)
@@ -164,6 +168,8 @@ export const api = {
 
   setShoeDefault: (category: string, shoeId: number | null) =>
     send<ShoeDefaultDto[]>('PUT', `/api/shoes/defaults/${category}`, { shoeId }),
+
+  shoePerformance: () => get<ShoePerformanceDto[]>('/api/shoes/performance'),
 
   bodyProfile: () => get<BodyProfileDto>('/api/body/profile'),
 

@@ -131,6 +131,46 @@ public class ShoesController(DataSessionService session, ShoeDefaultsStore shoeD
         return GetDefaults();
     }
 
+    /// <summary>Per-shoe running performance: how many runs, how far, and at what average pace -- lets you
+    /// see "which pair do I actually run fastest/farthest in" now that runs are already tagged by shoe.
+    /// Restricted to workouts the categorizer calls "Lauf"; pace is meaningless for a walk or a strength
+    /// session logged against the same shoe.</summary>
+    [HttpGet("performance")]
+    public async Task<ActionResult<IReadOnlyList<ShoePerformanceDto>>> Performance(CancellationToken ct)
+    {
+        await using var db = session.CreateContext();
+
+        var shoes = await db.Shoes.ToListAsync(ct);
+        if (shoes.Count == 0)
+        {
+            return Ok(Array.Empty<ShoePerformanceDto>());
+        }
+
+        var workoutsWithShoe = await db.Workouts
+            .Where(w => w.ShoeId != null)
+            .Select(w => new { w.ShoeId, w.ActivityName, w.AvgPaceSecPerKm, w.CadenceAvgSpm, w.DistanceMeters })
+            .ToListAsync(ct);
+
+        var result = new List<ShoePerformanceDto>();
+        foreach (var shoe in shoes)
+        {
+            var runs = workoutsWithShoe
+                .Where(w => w.ShoeId == shoe.Id && WorkoutCategorizer.Categorize(w.ActivityName, w.AvgPaceSecPerKm, w.CadenceAvgSpm) == "Lauf")
+                .ToList();
+            if (runs.Count == 0)
+            {
+                continue;
+            }
+
+            var paces = runs.Where(r => r.AvgPaceSecPerKm != null).Select(r => r.AvgPaceSecPerKm!.Value).ToList();
+            result.Add(new ShoePerformanceDto(
+                shoe.Id, shoe.Name, runs.Count, runs.Sum(r => r.DistanceMeters ?? 0),
+                paces.Count > 0 ? paces.Average() : null));
+        }
+
+        return Ok(result.OrderByDescending(r => r.TotalRunDistanceMeters).ToList());
+    }
+
     /// <summary>Assigns (or, with ShoeId null, clears) a shoe across any set of workout ids — the frontend's "bulk assign" is just this called with every currently filtered/selected workout.</summary>
     [HttpPost("assign")]
     public async Task<IActionResult> Assign(AssignShoeDto dto, CancellationToken ct)

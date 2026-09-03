@@ -5,7 +5,7 @@ is committed. This file is the resume point across context resets — always rea
 this work.
 
 ## Dashboard / insight group
-- [ ] 1. Jahresrückblick ("Year in HealthLens")
+- [x] 1. Jahresrückblick ("Year in HealthLens") — committed, deployed to demo container (new /year-in-review page, linked from More)
 - [x] 2. Wochenzusammenfassung (7-day digest card) — committed, deployed to demo container
 - [x] 3. Kalender-Heatmap (Trainingskonsistenz) — committed, deployed to demo container
 - [x] 4. "An diesem Tag vor X Jahren" Flashback — committed, deployed to demo container
@@ -22,7 +22,7 @@ this work.
 - [x] 11. Rennzeit-Prognose (Riegel-Rechner) — committed, deployed to demo container (on Workouts page, entirely frontend-computed)
 
 ## Standalone
-- [ ] 12. Schuh-Performance-Vergleich
+- [x] 12. Schuh-Performance-Vergleich — committed, deployed to demo container
 - [ ] 13. Wetter-Kontext pro Workout — **needs explicit user go-ahead first**: requires an external weather-by-GPS-coordinate API call, which is a new external data flow this self-hosted app doesn't currently have. Ask before starting; do not implement silently.
 
 ## Working notes

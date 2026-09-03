@@ -22,6 +22,21 @@ public record FlashbackDto(bool HasFlashback, DateTime? WorkoutStartUtc, string?
 
 public record TrainingLoadDto(double AcuteLoadMinutes, double ChronicLoadMinutesPerWeek, double? Acwr, string Zone);
 
+public record YearInReviewDto(
+    int Year,
+    int EarliestYear,
+    int LatestYear,
+    bool HasData,
+    double TotalDistanceMeters,
+    int TotalWorkouts,
+    int ActiveDays,
+    double TotalElevationGainMeters,
+    double? LongestRunMeters,
+    int? BestMonth,
+    int BestMonthWorkouts,
+    double? PriorYearDistanceMeters,
+    IReadOnlyList<ActivityCategoryCountDto> ActivityBreakdown);
+
 public record WeeklyDigestDto(
     DateOnly From,
     DateOnly To,

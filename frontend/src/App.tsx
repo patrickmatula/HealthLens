@@ -13,6 +13,7 @@ import { SleepPage } from './pages/SleepPage'
 import { UploadPage } from './pages/UploadPage'
 import { WorkoutDetailPage } from './pages/WorkoutDetailPage'
 import { WorkoutsPage } from './pages/WorkoutsPage'
+import { YearInReviewPage } from './pages/YearInReviewPage'
 import { ThemeToggle } from './theme/ThemeToggle'
 import './App.css'
 
@@ -58,6 +59,7 @@ export function App() {
           <Route path="/recovery" element={<RecoveryPage />} />
           <Route path="/more" element={<MorePage />} />
           <Route path="/shoes" element={<ShoesPage />} />
+          <Route path="/year-in-review" element={<YearInReviewPage />} />
           <Route path="/body" element={<BodyPage />} />
         </Routes>
       </main>

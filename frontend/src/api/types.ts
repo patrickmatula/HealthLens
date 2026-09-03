@@ -64,6 +64,22 @@ export interface FlashbackDto {
   yearsAgo: number | null
 }
 
+export interface YearInReviewDto {
+  year: number
+  earliestYear: number
+  latestYear: number
+  hasData: boolean
+  totalDistanceMeters: number
+  totalWorkouts: number
+  activeDays: number
+  totalElevationGainMeters: number
+  longestRunMeters: number | null
+  bestMonth: number | null
+  bestMonthWorkouts: number
+  priorYearDistanceMeters: number | null
+  activityBreakdown: ActivityCategoryCountDto[]
+}
+
 export interface TrainingLoadDto {
   acuteLoadMinutes: number
   chronicLoadMinutesPerWeek: number
@@ -133,6 +149,14 @@ export interface ShoeDto {
 export interface ShoeDefaultDto {
   category: string
   shoeId: number | null
+}
+
+export interface ShoePerformanceDto {
+  shoeId: number
+  name: string
+  runCount: number
+  totalRunDistanceMeters: number
+  avgPaceSecPerKm: number | null
 }
 
 export const BODY_MEASUREMENT_TYPES = [

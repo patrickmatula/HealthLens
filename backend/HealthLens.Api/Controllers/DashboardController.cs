@@ -358,4 +358,66 @@ public class DashboardController(DataSessionService session) : ControllerBase
 
         return Ok(new TrainingLoadDto(acuteMinutes, chronicWeeklyAvg, acwr, zone));
     }
+
+    /// <summary>A Strava-"Year in Sport"-style annual recap, free (Strava's own equivalent moved behind a
+    /// paywall) since every input already lives in this app's own database. `year` defaults to the most
+    /// recent year with any workout data; EarliestYear/LatestYear let the frontend build a year picker
+    /// without a separate round-trip.</summary>
+    [HttpGet("year-in-review")]
+    public async Task<ActionResult<YearInReviewDto>> YearInReview(int? year, CancellationToken ct)
+    {
+        await using var db = session.CreateContext();
+
+        if (!await db.Workouts.AnyAsync(ct))
+        {
+            var thisYear = DateTime.UtcNow.Year;
+            return Ok(new YearInReviewDto(thisYear, thisYear, thisYear, false, 0, 0, 0, 0, null, null, 0, null, []));
+        }
+
+        var allStarts = await db.Workouts.Select(w => w.StartUtc).ToListAsync(ct);
+        var earliestYear = allStarts.Min(d => d.Year);
+        var latestYear = allStarts.Max(d => d.Year);
+        var targetYear = year ?? latestYear;
+
+        var yearStart = DateTime.SpecifyKind(new DateTime(targetYear, 1, 1), DateTimeKind.Utc);
+        var yearEnd = DateTime.SpecifyKind(new DateTime(targetYear, 12, 31, 23, 59, 59), DateTimeKind.Utc);
+
+        var workouts = await db.Workouts
+            .Where(w => w.StartUtc >= yearStart && w.StartUtc <= yearEnd)
+            .Select(w => new { w.StartUtc, w.DistanceMeters, w.ElevationGainMeters, w.ActivityName, w.AvgPaceSecPerKm, w.CadenceAvgSpm })
+            .ToListAsync(ct);
+
+        if (workouts.Count == 0)
+        {
+            return Ok(new YearInReviewDto(targetYear, earliestYear, latestYear, false, 0, 0, 0, 0, null, null, 0, null, []));
+        }
+
+        var totalDistance = workouts.Sum(w => w.DistanceMeters ?? 0);
+        var totalElevation = workouts.Sum(w => w.ElevationGainMeters ?? 0);
+        var activeDays = workouts.Select(w => w.StartUtc.Date).Distinct().Count();
+        var longestRun = workouts.Where(w => w.DistanceMeters != null).Select(w => w.DistanceMeters).DefaultIfEmpty().Max();
+
+        var bestMonthGroup = workouts.GroupBy(w => w.StartUtc.Month).OrderByDescending(g => g.Count()).First();
+
+        var priorYearStart = yearStart.AddYears(-1);
+        var priorYearEnd = yearEnd.AddYears(-1);
+        var priorYearDistance = await db.Workouts
+            .Where(w => w.StartUtc >= priorYearStart && w.StartUtc <= priorYearEnd)
+            .Select(w => w.DistanceMeters ?? 0)
+            .ToListAsync(ct);
+
+        var activityBreakdown = workouts
+            .Select(w => WorkoutCategorizer.Categorize(w.ActivityName, w.AvgPaceSecPerKm, w.CadenceAvgSpm))
+            .GroupBy(c => c)
+            .Select(g => new ActivityCategoryCountDto(g.Key, g.Count()))
+            .OrderByDescending(c => c.Count)
+            .ToList();
+
+        return Ok(new YearInReviewDto(
+            targetYear, earliestYear, latestYear, true,
+            totalDistance, workouts.Count, activeDays, totalElevation, longestRun,
+            bestMonthGroup.Key, bestMonthGroup.Count(),
+            priorYearDistance.Count > 0 ? priorYearDistance.Sum() : null,
+            activityBreakdown));
+    }
 }

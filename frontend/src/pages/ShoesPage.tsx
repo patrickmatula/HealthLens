@@ -1,14 +1,15 @@
 import { useEffect, useState, type FormEvent } from 'react'
 import { Link } from 'react-router-dom'
 import { api } from '../api/client'
-import type { ShoeDefaultDto, ShoeDto } from '../api/types'
+import type { ShoeDefaultDto, ShoeDto, ShoePerformanceDto } from '../api/types'
 import type { WorkoutCategory } from '../utils/format'
 import { Icon } from '../components/Icon'
 import { Surface } from '../components/Surface'
 import { TopAppBar } from '../components/TopAppBar'
 import { useLanguage } from '../i18n/LanguageContext'
-import { formatDistanceKm } from '../utils/format'
+import { formatDistanceKm, formatPace } from '../utils/format'
 import './ShoesPage.css'
+import './WorkoutDetailPage.css'
 
 const DEFAULT_CATEGORIES: { value: WorkoutCategory; labelKey: 'category.run' | 'category.walk' | 'category.bike' | 'category.strength' | 'category.other' }[] = [
   { value: 'Lauf', labelKey: 'category.run' },
@@ -22,6 +23,7 @@ export function ShoesPage() {
   const { t } = useLanguage()
   const [shoes, setShoes] = useState<ShoeDto[]>([])
   const [defaults, setDefaults] = useState<ShoeDefaultDto[]>([])
+  const [performance, setPerformance] = useState<ShoePerformanceDto[]>([])
   const [loading, setLoading] = useState(true)
   const [newName, setNewName] = useState('')
   const [newBrand, setNewBrand] = useState('')
@@ -32,10 +34,11 @@ export function ShoesPage() {
 
   function load() {
     setLoading(true)
-    Promise.all([api.shoes(), api.shoeDefaults()])
-      .then(([s, d]) => {
+    Promise.all([api.shoes(), api.shoeDefaults(), api.shoePerformance()])
+      .then(([s, d, p]) => {
         setShoes(s)
         setDefaults(d)
+        setPerformance(p)
       })
       .finally(() => setLoading(false))
   }
@@ -140,6 +143,35 @@ export function ShoesPage() {
                   </div>
                 )
               })}
+            </div>
+          </Surface>
+        )}
+
+        {performance.length > 0 && (
+          <Surface tone="low">
+            <h2 className="ghl-section-title">{t('shoes.performanceTitle')}</h2>
+            <p className="ghl-shoe-defaults__hint">{t('shoes.performanceHint')}</p>
+            <div className="ghl-table-scroll">
+              <table className="ghl-splits-table">
+                <thead>
+                  <tr>
+                    <th>{t('shoes.performanceShoe')}</th>
+                    <th>{t('shoes.performanceRuns')}</th>
+                    <th>{t('shoes.performanceDistance')}</th>
+                    <th>{t('shoes.performanceAvgPace')}</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {performance.map((p) => (
+                    <tr key={p.shoeId}>
+                      <td>{p.name}</td>
+                      <td>{p.runCount}</td>
+                      <td>{formatDistanceKm(p.totalRunDistanceMeters)}</td>
+                      <td>{p.avgPaceSecPerKm != null ? formatPace(p.avgPaceSecPerKm) : '–'}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
             </div>
           </Surface>
         )}

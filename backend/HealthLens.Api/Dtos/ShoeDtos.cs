@@ -20,3 +20,5 @@ public record AssignShoeDto(int? ShoeId, IReadOnlyList<string> WorkoutIds);
 public record ShoeDefaultDto(string Category, int? ShoeId);
 
 public record SetShoeDefaultDto(int? ShoeId);
+
+public record ShoePerformanceDto(int ShoeId, string Name, int RunCount, double TotalRunDistanceMeters, double? AvgPaceSecPerKm);

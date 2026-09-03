@@ -159,6 +159,12 @@ export function MorePage() {
         </Surface>
 
         <Surface tone="low" className="ghl-more-card">
+          <Link className="ghl-more-nav-link" to="/year-in-review">
+            <Icon name="trophy" size={18} /> {t('yearReview.navLink')}
+          </Link>
+        </Surface>
+
+        <Surface tone="low" className="ghl-more-card">
           <h2 className="ghl-section-title">{t('more.optionalFeaturesTitle')}</h2>
 
           <div className="ghl-feature-row">
