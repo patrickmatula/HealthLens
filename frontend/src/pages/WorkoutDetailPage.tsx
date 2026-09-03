@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
+import { Bar, BarChart, Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
 import { Link, useParams } from 'react-router-dom'
 import { api } from '../api/client'
 import type { ShoeDto, WorkoutDetailDto } from '../api/types'
@@ -80,13 +80,16 @@ export function WorkoutDetailPage() {
   const chartData = workout.samples.map((s) => ({
     elapsedMin: (new Date(s.timestamp + 'Z').getTime() - startMs) / 60000,
     heartRateBpm: s.heartRateBpm,
-    paceSecPerKm: s.paceSecPerKm,
     cadenceSpm: s.cadenceSpm,
   }))
 
   const hasHr = chartData.some((d) => d.heartRateBpm != null)
-  const hasPace = chartData.some((d) => d.paceSecPerKm != null)
   const hasCadence = chartData.some((d) => d.cadenceSpm != null)
+  // Instantaneous per-second pace is dominated by noise (a red light, a sip of water, a GPS jitter all
+  // spike momentary pace to absurd values), which blows out the chart's scale and makes the real trend
+  // unreadable. Per-km splits are already averaged over a full kilometer, so they're stable enough to
+  // chart directly -- the same "bar per km" convention Strava/Garmin use for exactly this reason.
+  const hasPaceTrend = workout.kmSplits.length > 1
 
   return (
     <div>
@@ -186,16 +189,27 @@ export function WorkoutDetailPage() {
           </Surface>
         )}
 
-        {hasPace && (
+        {hasPaceTrend && (
           <Surface tone="low" className="ghl-chart-card">
             <h2 className="ghl-chart-card__title">{t('detail.paceOverTime')}</h2>
             <ResponsiveContainer width="100%" height={220}>
-              <LineChart data={chartData}>
-                <XAxis dataKey="elapsedMin" tickFormatter={(v: number) => `${Math.round(v)}'`} tick={{ fontSize: 11 }} stroke="var(--md-sys-color-outline)" />
-                <YAxis tick={{ fontSize: 11 }} stroke="var(--md-sys-color-outline)" width={48} reversed tickFormatter={(v: number) => formatPace(v)} />
-                <Tooltip contentStyle={{ background: 'var(--md-sys-color-surface-container-high)', border: 'none', borderRadius: 8 }} formatter={(v) => formatPace(Number(v))} labelFormatter={(v) => `${Number(v).toFixed(1)} min`} />
-                <Line type="monotone" dataKey="paceSecPerKm" stroke="#1e88e5" dot={false} strokeWidth={2} connectNulls />
-              </LineChart>
+              <BarChart data={workout.kmSplits}>
+                <XAxis dataKey="km" tickFormatter={(v: number) => `${v} km`} tick={{ fontSize: 11 }} stroke="var(--md-sys-color-outline)" />
+                <YAxis
+                  tick={{ fontSize: 11 }}
+                  stroke="var(--md-sys-color-outline)"
+                  width={48}
+                  reversed
+                  domain={['dataMin - 15', 'dataMax + 15']}
+                  tickFormatter={(v: number) => formatPace(v)}
+                />
+                <Tooltip
+                  contentStyle={{ background: 'var(--md-sys-color-surface-container-high)', border: 'none', borderRadius: 8 }}
+                  formatter={(v) => formatPace(Number(v))}
+                  labelFormatter={(v) => `km ${v}`}
+                />
+                <Bar dataKey="durationSeconds" fill="#1e88e5" radius={[4, 4, 0, 0]} />
+              </BarChart>
             </ResponsiveContainer>
           </Surface>
         )}
