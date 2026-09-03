@@ -17,9 +17,9 @@ this work.
 - [x] 8. Höhenkorrigierte Pace (Grade Adjusted Pace) — committed, deployed to demo container (Minetti model, aggregated into ~30m segments to tame GPS/altitude noise -- see runningMetrics.ts comment)
 
 ## Training-load / recovery group
-- [ ] 9. Trainingslast-Ampel (ACWR)
-- [ ] 10. Krankheits-/Übertrainings-Frühwarnung (HRV/RHR)
-- [ ] 11. Rennzeit-Prognose (Riegel-Rechner)
+- [x] 9. Trainingslast-Ampel (ACWR) — committed, deployed to demo container
+- [x] 10. Krankheits-/Übertrainings-Frühwarnung (HRV/RHR) — committed, deployed to demo container (extends existing Dashboard insights list, no new endpoint)
+- [x] 11. Rennzeit-Prognose (Riegel-Rechner) — committed, deployed to demo container (on Workouts page, entirely frontend-computed)
 
 ## Standalone
 - [ ] 12. Schuh-Performance-Vergleich

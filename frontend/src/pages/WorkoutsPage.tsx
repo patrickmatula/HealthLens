@@ -9,9 +9,10 @@ import { PersonalRecordCard } from '../components/PersonalRecordCard'
 import { SegmentedButton } from '../components/SegmentedButton'
 import { Surface } from '../components/Surface'
 import { TopAppBar } from '../components/TopAppBar'
-import { useLanguage } from '../i18n/LanguageContext'
+import { useLanguage, type TranslationKey } from '../i18n/LanguageContext'
 import { useShoesFeature } from '../shoes/ShoesFeatureContext'
 import { categorizeWorkout, formatDate, formatDateTime, formatDistanceKm, formatDuration, formatPace, type WorkoutCategory } from '../utils/format'
+import { predictRaceTimes } from '../utils/runningMetrics'
 import './WorkoutsPage.css'
 import './DashboardPage.css'
 
@@ -114,6 +115,7 @@ export function WorkoutsPage() {
   }
 
   const bestRecords = PR_ORDER.map((name) => records.find((r) => r.nameLocalizationId === name)).filter((r): r is PersonalRecordDto => r != null)
+  const racePrediction = useMemo(() => predictRaceTimes(records), [records])
 
   const leaderboards = useMemo(() => {
     const fastest5k: LeaderboardEntry[] = workouts
@@ -171,6 +173,33 @@ export function WorkoutsPage() {
               {bestRecords.map((r) => (
                 <PersonalRecordCard key={r.nameLocalizationId} record={r} />
               ))}
+            </div>
+          </section>
+        )}
+
+        {racePrediction && (
+          <section>
+            <h2 className="ghl-section-title">{t('workouts.racePrediction')}</h2>
+            <p className="ghl-chart-card__hint">
+              {t('workouts.racePredictionHint', { distance: formatDistanceKm(racePrediction.anchorMeters), time: formatDuration(racePrediction.anchorSeconds) })}
+            </p>
+            <div className="ghl-table-scroll">
+              <table className="ghl-splits-table">
+                <thead>
+                  <tr>
+                    <th>{t('workouts.racePredictionDistance')}</th>
+                    <th>{t('workouts.racePredictionTime')}</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {racePrediction.predictions.map((p) => (
+                    <tr key={p.key}>
+                      <td>{t(`workouts.raceDistance.${p.key}` as TranslationKey)}</td>
+                      <td>{formatDuration(p.seconds)}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
             </div>
           </section>
         )}

@@ -50,6 +50,43 @@
   color: var(--md-sys-color-primary);
 }
 
+.ghl-acwr-badge {
+  display: inline-flex;
+  align-items: baseline;
+  gap: var(--md-space-3);
+  padding: var(--md-space-3) var(--md-space-5);
+  border-radius: var(--md-sys-shape-corner-large);
+  width: fit-content;
+}
+
+.ghl-acwr-badge__value {
+  font: var(--md-sys-typescale-display-small-weight) var(--md-sys-typescale-display-small-size)/var(--md-sys-typescale-display-small-line-height) var(--md-sys-typescale-display-small-font);
+}
+
+.ghl-acwr-badge__zone {
+  font: var(--md-sys-typescale-title-medium-weight) var(--md-sys-typescale-title-medium-size)/var(--md-sys-typescale-title-medium-line-height) var(--md-sys-typescale-title-medium-font);
+}
+
+.ghl-acwr-badge--low {
+  background: var(--md-sys-color-surface-container-highest);
+  color: var(--md-sys-color-on-surface-variant);
+}
+
+.ghl-acwr-badge--sweet-spot {
+  background: var(--md-sys-color-primary-container);
+  color: var(--md-sys-color-on-primary-container);
+}
+
+.ghl-acwr-badge--elevated {
+  background: var(--md-sys-color-tertiary-container);
+  color: var(--md-sys-color-on-tertiary-container);
+}
+
+.ghl-acwr-badge--high-risk {
+  background: var(--md-sys-color-error-container);
+  color: var(--md-sys-color-on-error-container);
+}
+
 .ghl-fun-facts {
   margin: 0;
   padding-left: var(--md-space-5);

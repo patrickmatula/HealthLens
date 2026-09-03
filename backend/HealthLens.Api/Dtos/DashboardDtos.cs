@@ -20,6 +20,8 @@ public record FunFactsDto(double TotalDistanceMeters, double TotalElevationGainM
 
 public record FlashbackDto(bool HasFlashback, DateTime? WorkoutStartUtc, string? ActivityName, double? DistanceMeters, double? DurationSeconds, int? YearsAgo);
 
+public record TrainingLoadDto(double AcuteLoadMinutes, double ChronicLoadMinutesPerWeek, double? Acwr, string Zone);
+
 public record WeeklyDigestDto(
     DateOnly From,
     DateOnly To,

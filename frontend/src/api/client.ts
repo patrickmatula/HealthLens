@@ -8,6 +8,7 @@ import type {
   DashboardOverviewDto,
   FlashbackDto,
   FunFactsDto,
+  TrainingLoadDto,
   WeeklyDigestDto,
   GoogleHealthStatusDto,
   GoogleHealthSyncResultDto,
@@ -101,6 +102,8 @@ export const api = {
   flashback: () => get<FlashbackDto>('/api/dashboard/flashback'),
 
   weeklyDigest: () => get<WeeklyDigestDto>('/api/dashboard/weekly-digest'),
+
+  trainingLoad: () => get<TrainingLoadDto>('/api/dashboard/training-load'),
 
   workouts: (params: { preset?: string; from?: string; to?: string; activity?: string; shoeId?: number }) => {
     const qs = new URLSearchParams()

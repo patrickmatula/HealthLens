@@ -1,4 +1,4 @@
-import type { KmSplitDto, WorkoutSampleDto } from '../api/types'
+import type { KmSplitDto, PersonalRecordDto, WorkoutSampleDto } from '../api/types'
 
 export type PacingStrategy = 'negative' | 'positive' | 'even'
 
@@ -135,4 +135,45 @@ export function computeGradeAdjustedPace(samples: WorkoutSampleDto[]): number | 
 
   if (totalFlatEquivalentMeters < 100 || totalSeconds <= 0) return null
   return (totalSeconds / totalFlatEquivalentMeters) * 1000
+}
+
+export const RACE_PREDICTION_DISTANCES = [
+  { meters: 1000, key: '1k' },
+  { meters: 1609.344, key: 'mile' },
+  { meters: 5000, key: '5k' },
+  { meters: 10000, key: '10k' },
+  { meters: 21097.5, key: 'half' },
+  { meters: 42195, key: 'marathon' },
+] as const
+
+export interface RacePredictionResult {
+  anchorMeters: number
+  anchorSeconds: number
+  predictions: { meters: number; key: string; seconds: number }[]
+}
+
+/**
+ * Riegel formula (Riegel, 1977): T2 = T1 * (D2/D1)^1.06 -- about 80% accurate overall, and most reliable
+ * extrapolating between similar distances (within ~2x); it degrades noticeably over a wide distance ratio
+ * like 5K -> marathon, which the UI discloses rather than hides. Anchors on the longest available
+ * distance-based PR (5K+) rather than the shortest, since a middle/long-distance time predicts other
+ * distances more reliably than extrapolating far out from something like a 1K best.
+ */
+export function predictRaceTimes(bestRecords: PersonalRecordDto[]): RacePredictionResult | null {
+  const distanceRecords = bestRecords.filter(
+    (r) => r.recordType === 'PERSONAL_RECORD_TYPE_SHORTEST_TIME_FOR_DISTANCE' && r.extentValueMeters != null && r.extentValueMeters >= 3000,
+  )
+  if (distanceRecords.length === 0) return null
+
+  const anchor = distanceRecords.reduce((best, r) => (r.extentValueMeters! > best.extentValueMeters! ? r : best))
+  const anchorMeters = anchor.extentValueMeters!
+  const anchorSeconds = anchor.recordValue / 1000
+
+  const predictions = RACE_PREDICTION_DISTANCES.filter((d) => Math.abs(d.meters - anchorMeters) > 50).map((d) => ({
+    meters: d.meters,
+    key: d.key,
+    seconds: anchorSeconds * (d.meters / anchorMeters) ** 1.06,
+  }))
+
+  return { anchorMeters, anchorSeconds, predictions }
 }

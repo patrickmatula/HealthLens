@@ -64,6 +64,38 @@ public class DashboardController(DataSessionService session) : ControllerBase
 
         var insights = new List<string>();
 
+        // Illness/overtraining early warning: a resting-HR rise combined with an HRV drop over the last
+        // few days is a well-documented early signal (often 1-2 days before symptoms), so this is checked
+        // against a fixed trailing window independent of the selected preset -- it should surface
+        // regardless of whether the user happens to be looking at "7 days" or "all time" right now.
+        if (await db.RestingHeartRateDailies.AnyAsync(ct))
+        {
+            var refDate = await db.RestingHeartRateDailies.MaxAsync(x => x.Date, ct);
+            var checkWindow = new TimeRange(refDate.AddDays(-16), refDate);
+            var rhrCheck = await db.RestingHeartRateDailies.Where(x => x.Date >= checkWindow.From && x.Date <= checkWindow.To).ToListAsync(ct);
+            var hrvCheck = await db.HrvDailySummaries.Where(x => x.Date >= checkWindow.From && x.Date <= checkWindow.To).ToListAsync(ct);
+
+            var recentCutoff = refDate.AddDays(-3);
+            var recentRhr = rhrCheck.Where(x => x.Date > recentCutoff).ToList();
+            var baselineRhr = rhrCheck.Where(x => x.Date <= recentCutoff).ToList();
+            var recentHrv = hrvCheck.Where(x => x.Date > recentCutoff).ToList();
+            var baselineHrv = hrvCheck.Where(x => x.Date <= recentCutoff).ToList();
+
+            if (recentRhr.Count >= 2 && baselineRhr.Count >= 5 && recentHrv.Count >= 2 && baselineHrv.Count >= 5)
+            {
+                var rhrDelta = recentRhr.Average(x => x.Bpm) - baselineRhr.Average(x => x.Bpm);
+                var baselineHrvAvg = baselineHrv.Average(x => x.RmssdMs);
+                var hrvDeltaPercent = baselineHrvAvg > 0 ? (recentHrv.Average(x => x.RmssdMs) - baselineHrvAvg) / baselineHrvAvg * 100 : 0;
+
+                if (rhrDelta >= 2 && hrvDeltaPercent <= -15)
+                {
+                    insights.Add(isEnglish
+                        ? $"Resting HR is up {rhrDelta:F1} bpm and HRV is down {Math.Abs(hrvDeltaPercent):F0}% over the last few days — a common early sign of illness or overtraining. Consider an easy day."
+                        : $"Ruhepuls ist in den letzten Tagen um {rhrDelta:F1} bpm gestiegen, die HRV um {Math.Abs(hrvDeltaPercent):F0}% gefallen — ein typisches Frühzeichen für Krankheit oder Übertraining. Ein ruhiger Tag könnte guttun.");
+                }
+            }
+        }
+
         var newRecords = await db.PersonalRecords
             .Where(r => r.AchieveTimeUtc >= range.StartUtc && r.AchieveTimeUtc <= range.EndUtc && r.State == "PERSONAL_RECORD_STATE_STANDING")
             .CountAsync(ct);
@@ -281,5 +313,49 @@ public class DashboardController(DataSessionService session) : ControllerBase
         double? rhrDelta = avgRhr != null && avgRhrPrior != null ? avgRhr - avgRhrPrior : null;
 
         return Ok(new WeeklyDigestDto(thisWeek.From, thisWeek.To, totalDistance, workoutsCount, activeDays, totalSleepMinutes, sleepDebt, avgSleepScore, avgRhr, rhrDelta));
+    }
+
+    /// <summary>Acute:chronic workload ratio -- last 7 days' training minutes vs. the average weekly total
+    /// over the last 28 days. 0.8-1.3 is the commonly cited "sweet spot" (fitness building without a load
+    /// spike); >=1.5 is associated with meaningfully higher injury risk in the sports-science literature.
+    /// Minutes rather than distance as the load unit, since it's the one measure that's meaningful across
+    /// every activity type this app tracks (running distance doesn't mean anything for a strength session).</summary>
+    [HttpGet("training-load")]
+    public async Task<ActionResult<TrainingLoadDto>> TrainingLoad(CancellationToken ct)
+    {
+        await using var db = session.CreateContext();
+
+        if (!await db.Workouts.AnyAsync(ct))
+        {
+            return Ok(new TrainingLoadDto(0, 0, null, "insufficient-data"));
+        }
+
+        var latest = DateOnly.FromDateTime(await db.Workouts.MaxAsync(w => w.StartUtc, ct));
+        var acuteRange = new TimeRange(latest.AddDays(-6), latest);
+        var chronicRange = new TimeRange(latest.AddDays(-27), latest);
+
+        var acuteWorkouts = await db.Workouts
+            .Where(w => w.StartUtc >= acuteRange.StartUtc && w.StartUtc <= acuteRange.EndUtc)
+            .Select(w => new { w.StartUtc, w.EndUtc })
+            .ToListAsync(ct);
+        var acuteMinutes = acuteWorkouts.Sum(w => (w.EndUtc - w.StartUtc).TotalMinutes);
+
+        var chronicWorkouts = await db.Workouts
+            .Where(w => w.StartUtc >= chronicRange.StartUtc && w.StartUtc <= chronicRange.EndUtc)
+            .Select(w => new { w.StartUtc, w.EndUtc })
+            .ToListAsync(ct);
+        var chronicWeeklyAvg = chronicWorkouts.Sum(w => (w.EndUtc - w.StartUtc).TotalMinutes) / 4.0;
+
+        double? acwr = chronicWeeklyAvg > 0 ? acuteMinutes / chronicWeeklyAvg : null;
+        var zone = acwr switch
+        {
+            null => "insufficient-data",
+            < 0.8 => "low",
+            <= 1.3 => "sweet-spot",
+            < 1.5 => "elevated",
+            _ => "high-risk",
+        };
+
+        return Ok(new TrainingLoadDto(acuteMinutes, chronicWeeklyAvg, acwr, zone));
     }
 }

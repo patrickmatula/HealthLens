@@ -8,6 +8,7 @@ import type {
   FlashbackDto,
   FunFactsDto,
   TimeframePreset,
+  TrainingLoadDto,
   WeeklyDigestDto,
   WorkoutLocationDto,
 } from '../api/types'
@@ -110,6 +111,7 @@ export function DashboardPage() {
   const [funFacts, setFunFacts] = useState<FunFactsDto | null>(null)
   const [flashback, setFlashback] = useState<FlashbackDto | null>(null)
   const [weeklyDigest, setWeeklyDigest] = useState<WeeklyDigestDto | null>(null)
+  const [trainingLoad, setTrainingLoad] = useState<TrainingLoadDto | null>(null)
   const [loading, setLoading] = useState(true)
 
   const numberFmt = useMemo(() => new Intl.NumberFormat(language === 'de' ? 'de-AT' : 'en-US', { maximumFractionDigits: 0 }), [language])
@@ -140,6 +142,7 @@ export function DashboardPage() {
     api.funFacts().then(setFunFacts)
     api.flashback().then(setFlashback)
     api.weeklyDigest().then(setWeeklyDigest)
+    api.trainingLoad().then(setTrainingLoad)
   }, [])
 
   const hasData = data && data.daysWithData > 0
@@ -244,6 +247,17 @@ export function DashboardPage() {
                     />
                   )}
                 </div>
+              </Surface>
+            )}
+
+            {trainingLoad && trainingLoad.acwr != null && (
+              <Surface tone="low" className="ghl-chart-card">
+                <h2 className="ghl-chart-card__title">{t('dashboard.trainingLoadTitle')}</h2>
+                <div className={`ghl-acwr-badge ghl-acwr-badge--${trainingLoad.zone}`}>
+                  <span className="ghl-acwr-badge__value">{trainingLoad.acwr.toFixed(2)}</span>
+                  <span className="ghl-acwr-badge__zone">{t(`dashboard.acwrZone.${trainingLoad.zone}` as TranslationKey)}</span>
+                </div>
+                <p className="ghl-chart-card__hint">{t('dashboard.trainingLoadHint')}</p>
               </Surface>
             )}
 

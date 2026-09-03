@@ -64,6 +64,13 @@ export interface FlashbackDto {
   yearsAgo: number | null
 }
 
+export interface TrainingLoadDto {
+  acuteLoadMinutes: number
+  chronicLoadMinutesPerWeek: number
+  acwr: number | null
+  zone: 'insufficient-data' | 'low' | 'sweet-spot' | 'elevated' | 'high-risk'
+}
+
 export interface WeeklyDigestDto {
   from: string
   to: string
