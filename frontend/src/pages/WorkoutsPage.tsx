@@ -183,23 +183,16 @@ export function WorkoutsPage() {
             <p className="ghl-chart-card__hint">
               {t('workouts.racePredictionHint', { distance: formatDistanceKm(racePrediction.anchorMeters), time: formatDuration(racePrediction.anchorSeconds) })}
             </p>
-            <div className="ghl-table-scroll">
-              <table className="ghl-splits-table">
-                <thead>
-                  <tr>
-                    <th>{t('workouts.racePredictionDistance')}</th>
-                    <th>{t('workouts.racePredictionTime')}</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {racePrediction.predictions.map((p) => (
-                    <tr key={p.key}>
-                      <td>{t(`workouts.raceDistance.${p.key}` as TranslationKey)}</td>
-                      <td>{formatDuration(p.seconds)}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+            <div className="ghl-pr-grid">
+              {racePrediction.predictions.map((p) => (
+                <Surface key={p.key} tone="low" padded className="ghl-pr-card ghl-pr-card__surface">
+                  <div className="ghl-pr-card__header">
+                    <Icon name="route" size={18} />
+                    <span className="ghl-pr-card__label">{t(`workouts.raceDistance.${p.key}` as TranslationKey)}</span>
+                  </div>
+                  <div className="ghl-pr-card__value">{formatDuration(p.seconds)}</div>
+                </Surface>
+              ))}
             </div>
           </section>
         )}

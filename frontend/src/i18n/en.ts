@@ -140,8 +140,6 @@ const en: Record<TranslationKey, string> = {
   'workouts.bestRecords': 'Personal bests',
   'workouts.racePrediction': 'Race time prediction',
   'workouts.racePredictionHint': "Based on your best time over {distance} ({time}), using the Riegel formula. Most accurate for similar distances, less so across a big distance jump (e.g. 5K → marathon).",
-  'workouts.racePredictionDistance': 'Distance',
-  'workouts.racePredictionTime': 'Predicted',
   'workouts.raceDistance.1k': '1K',
   'workouts.raceDistance.mile': 'Mile',
   'workouts.raceDistance.5k': '5K',

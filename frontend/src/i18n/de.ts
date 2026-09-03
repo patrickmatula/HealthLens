@@ -142,8 +142,6 @@ const de = {
   'workouts.bestRecords': 'Bestleistungen',
   'workouts.racePrediction': 'Rennzeit-Prognose',
   'workouts.racePredictionHint': 'Basierend auf deiner Bestzeit über {distance} ({time}), nach der Riegel-Formel. Am genauesten für ähnliche Distanzen, ungenauer über große Distanzsprünge (z.B. 5K → Marathon).',
-  'workouts.racePredictionDistance': 'Distanz',
-  'workouts.racePredictionTime': 'Prognose',
   'workouts.raceDistance.1k': '1 km',
   'workouts.raceDistance.mile': 'Meile',
   'workouts.raceDistance.5k': '5 km',

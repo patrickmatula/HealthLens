@@ -250,25 +250,29 @@ export function DashboardPage() {
               </Surface>
             )}
 
-            {trainingLoad && trainingLoad.acwr != null && (
+            {(trainingLoad?.acwr != null || data.activityBreakdown.length > 0) && (
               <Surface tone="low" className="ghl-chart-card">
-                <h2 className="ghl-chart-card__title">{t('dashboard.trainingLoadTitle')}</h2>
-                <div className={`ghl-acwr-badge ghl-acwr-badge--${trainingLoad.zone}`}>
-                  <span className="ghl-acwr-badge__value">{trainingLoad.acwr.toFixed(2)}</span>
-                  <span className="ghl-acwr-badge__zone">{t(`dashboard.acwrZone.${trainingLoad.zone}` as TranslationKey)}</span>
-                </div>
-                <p className="ghl-chart-card__hint">{t('dashboard.trainingLoadHint')}</p>
-              </Surface>
-            )}
+                {trainingLoad && trainingLoad.acwr != null && (
+                  <div className="ghl-dashboard-subsection">
+                    <h2 className="ghl-chart-card__title">{t('dashboard.trainingLoadTitle')}</h2>
+                    <div className={`ghl-acwr-badge ghl-acwr-badge--${trainingLoad.zone}`}>
+                      <span className="ghl-acwr-badge__value">{trainingLoad.acwr.toFixed(2)}</span>
+                      <span className="ghl-acwr-badge__zone">{t(`dashboard.acwrZone.${trainingLoad.zone}` as TranslationKey)}</span>
+                    </div>
+                    <p className="ghl-chart-card__hint">{t('dashboard.trainingLoadHint')}</p>
+                  </div>
+                )}
 
-            {data.activityBreakdown.length > 0 && (
-              <Surface tone="low" className="ghl-chart-card">
-                <h2 className="ghl-chart-card__title">{t('dashboard.activityBreakdown')}</h2>
-                <div className="ghl-kpi-row">
-                  {data.activityBreakdown.map((c) => (
-                    <KpiTile key={c.category} label={t(CATEGORY_LABEL_KEYS[c.category] ?? 'category.other')} value={c.count.toString()} />
-                  ))}
-                </div>
+                {data.activityBreakdown.length > 0 && (
+                  <div className="ghl-dashboard-subsection">
+                    <h2 className="ghl-chart-card__title">{t('dashboard.activityBreakdown')}</h2>
+                    <div className="ghl-kpi-row">
+                      {data.activityBreakdown.map((c) => (
+                        <KpiTile key={c.category} label={t(CATEGORY_LABEL_KEYS[c.category] ?? 'category.other')} value={c.count.toString()} />
+                      ))}
+                    </div>
+                  </div>
+                )}
               </Surface>
             )}
 
