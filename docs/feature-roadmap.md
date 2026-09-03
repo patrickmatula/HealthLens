@@ -12,9 +12,9 @@ this work.
 - [x] 5. Witzige Distanzvergleiche — committed, deployed to demo container
 
 ## Workout-detail group
-- [ ] 6. Pacing-Strategie-Analyse (negative/positive/even split)
-- [ ] 7. Aerobe Decoupling pro Lauf
-- [ ] 8. Höhenkorrigierte Pace (Grade Adjusted Pace)
+- [x] 6. Pacing-Strategie-Analyse (negative/positive/even split) — committed, deployed to demo container
+- [x] 7. Aerobe Decoupling pro Lauf — committed, deployed to demo container
+- [x] 8. Höhenkorrigierte Pace (Grade Adjusted Pace) — committed, deployed to demo container (Minetti model, aggregated into ~30m segments to tame GPS/altitude noise -- see runningMetrics.ts comment)
 
 ## Training-load / recovery group
 - [ ] 9. Trainingslast-Ampel (ACWR)

@@ -12,6 +12,7 @@ import { WorkoutRouteMap } from '../components/WorkoutRouteMap'
 import { useLanguage } from '../i18n/LanguageContext'
 import { useShoesFeature } from '../shoes/ShoesFeatureContext'
 import { formatDateTime, formatDistanceKm, formatDuration, formatPace, formatRecordValue, recordLabel } from '../utils/format'
+import { analyzeDecoupling, analyzePacingStrategy, computeGradeAdjustedPace } from '../utils/runningMetrics'
 import {
   CADENCE_DOMAIN,
   GCT_DOMAIN,
@@ -127,6 +128,10 @@ export function WorkoutDetailPage() {
     cadenceSpm: s.cadenceSpm,
   }))
 
+  const pacing = analyzePacingStrategy(workout.kmSplits)
+  const decoupling = analyzeDecoupling(workout.samples)
+  const gradeAdjustedPace = workout.hasGps ? computeGradeAdjustedPace(workout.samples) : null
+
   const hasHr = chartData.some((d) => d.heartRateBpm != null)
   const hasCadence = chartData.some((d) => d.cadenceSpm != null)
 
@@ -144,6 +149,7 @@ export function WorkoutDetailPage() {
             <KpiTile label={t('detail.duration')} value={formatDuration(workout.durationSeconds)} />
             {workout.distanceMeters != null && <KpiTile label={t('detail.distance')} value={formatDistanceKm(workout.distanceMeters)} />}
             {workout.avgPaceSecPerKm != null && <KpiTile label={t('detail.avgPace')} value={formatPace(workout.avgPaceSecPerKm)} />}
+            {gradeAdjustedPace != null && <KpiTile label={t('detail.gradeAdjustedPace')} value={formatPace(gradeAdjustedPace)} />}
             {workout.avgHeartRate != null && <KpiTile label={t('detail.avgHr')} value={Math.round(workout.avgHeartRate).toString()} unit="bpm" />}
             {workout.peakHeartRate != null && <KpiTile label={t('detail.maxHr')} value={Math.round(workout.peakHeartRate).toString()} unit="bpm" />}
             {workout.calories != null && <KpiTile label={t('detail.calories')} value={Math.round(workout.calories).toString()} unit="kcal" />}
@@ -170,6 +176,29 @@ export function WorkoutDetailPage() {
             </div>
           )}
         </Surface>
+
+        {(pacing || decoupling) && (
+          <Surface tone="low" className="ghl-chart-card">
+            <h2 className="ghl-chart-card__title">{t('detail.trainingAnalysis')}</h2>
+            <div className="ghl-kpi-row">
+              {pacing && (
+                <KpiTile
+                  label={t('detail.pacingStrategy')}
+                  value={t(pacing.strategy === 'negative' ? 'detail.pacingNegative' : pacing.strategy === 'positive' ? 'detail.pacingPositive' : 'detail.pacingEven')}
+                  unit={`${pacing.deltaPercent >= 0 ? '+' : ''}${pacing.deltaPercent.toFixed(1)}%`}
+                />
+              )}
+              {decoupling && (
+                <KpiTile
+                  label={t('detail.decoupling')}
+                  value={`${decoupling.decouplingPercent.toFixed(1)}%`}
+                  unit={t(decoupling.decouplingPercent < 5 ? 'detail.decouplingExcellent' : decoupling.decouplingPercent < 10 ? 'detail.decouplingModerate' : 'detail.decouplingHigh')}
+                />
+              )}
+            </div>
+            <p className="ghl-chart-card__hint">{t('detail.trainingAnalysisHint')}</p>
+          </Surface>
+        )}
 
         {workout.personalRecords.length > 0 && (
           <Surface tone="low">
