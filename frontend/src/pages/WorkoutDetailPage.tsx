@@ -1,8 +1,8 @@
 import { useEffect, useState } from 'react'
-import { Bar, BarChart, Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
+import { Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
 import { Link, useParams } from 'react-router-dom'
 import { api } from '../api/client'
-import type { ShoeDto, WorkoutDetailDto } from '../api/types'
+import type { ShoeDto, WorkoutDetailDto, WorkoutSampleDto } from '../api/types'
 import { Icon } from '../components/Icon'
 import { KpiTile } from '../components/KpiTile'
 import { Surface } from '../components/Surface'
@@ -23,6 +23,50 @@ import {
   getVerticalOscZones,
 } from '../utils/references'
 import './WorkoutDetailPage.css'
+
+// Smoothing window for the pace-over-time chart, in samples either side of each point (samples are
+// ~1/second, so 15 is roughly a 30-second centered window).
+const PACE_SMOOTHING_WINDOW = 15
+
+/**
+ * Instantaneous per-second pace is dominated by two kinds of noise: real stops (a red light, tying a
+ * shoelace, a sip of water) where speed drops near zero and pace mathematically shoots toward infinity,
+ * and GPS/cadence jitter that makes pace flicker second to second even while running steadily. Plotting
+ * either raw blows out the chart's scale or turns the line into an unreadable scribble.
+ *
+ * This fixes both in two passes: first, any sample more than 2x the workout's own median pace is treated
+ * as a stop and dropped (rather than plotted as a spike) -- a relative threshold rather than a fixed
+ * minutes/km cutoff, so it scales correctly whether the workout is a fast run or a walk. Second, a
+ * centered rolling average over the surviving samples smooths remaining jitter while still tracking real
+ * pacing changes (a surge, a fade) that play out over tens of seconds, not one sample.
+ */
+function buildSmoothedPaceSeries(samples: WorkoutSampleDto[], startMs: number) {
+  const elapsedMin = samples.map((s) => (new Date(s.timestamp + 'Z').getTime() - startMs) / 60000)
+
+  const validPaces = samples.map((s) => s.paceSecPerKm).filter((p): p is number => p != null).sort((a, b) => a - b)
+  if (validPaces.length === 0) {
+    return elapsedMin.map((m) => ({ elapsedMin: m, paceSecPerKm: null as number | null }))
+  }
+  const median = validPaces[Math.floor(validPaces.length / 2)]
+  const stopCeiling = median * 2
+
+  const cleaned = samples.map((s) => (s.paceSecPerKm != null && s.paceSecPerKm <= stopCeiling ? s.paceSecPerKm : null))
+
+  return cleaned.map((_, i) => {
+    const windowStart = Math.max(0, i - PACE_SMOOTHING_WINDOW)
+    const windowEnd = Math.min(cleaned.length - 1, i + PACE_SMOOTHING_WINDOW)
+    let sum = 0
+    let count = 0
+    for (let j = windowStart; j <= windowEnd; j++) {
+      const v = cleaned[j]
+      if (v != null) {
+        sum += v
+        count += 1
+      }
+    }
+    return { elapsedMin: elapsedMin[i], paceSecPerKm: count > 0 ? sum / count : null }
+  })
+}
 
 export function WorkoutDetailPage() {
   const { language, t } = useLanguage()
@@ -85,11 +129,9 @@ export function WorkoutDetailPage() {
 
   const hasHr = chartData.some((d) => d.heartRateBpm != null)
   const hasCadence = chartData.some((d) => d.cadenceSpm != null)
-  // Instantaneous per-second pace is dominated by noise (a red light, a sip of water, a GPS jitter all
-  // spike momentary pace to absurd values), which blows out the chart's scale and makes the real trend
-  // unreadable. Per-km splits are already averaged over a full kilometer, so they're stable enough to
-  // chart directly -- the same "bar per km" convention Strava/Garmin use for exactly this reason.
-  const hasPaceTrend = workout.kmSplits.length > 1
+
+  const paceChartData = buildSmoothedPaceSeries(workout.samples, startMs)
+  const hasPace = paceChartData.some((d) => d.paceSecPerKm != null)
 
   return (
     <div>
@@ -189,27 +231,28 @@ export function WorkoutDetailPage() {
           </Surface>
         )}
 
-        {hasPaceTrend && (
+        {hasPace && (
           <Surface tone="low" className="ghl-chart-card">
             <h2 className="ghl-chart-card__title">{t('detail.paceOverTime')}</h2>
+            <p className="ghl-chart-card__hint">{t('detail.paceOverTimeHint')}</p>
             <ResponsiveContainer width="100%" height={220}>
-              <BarChart data={workout.kmSplits}>
-                <XAxis dataKey="km" tickFormatter={(v: number) => `${v} km`} tick={{ fontSize: 11 }} stroke="var(--md-sys-color-outline)" />
+              <LineChart data={paceChartData}>
+                <XAxis dataKey="elapsedMin" tickFormatter={(v: number) => `${Math.round(v)}'`} tick={{ fontSize: 11 }} stroke="var(--md-sys-color-outline)" />
                 <YAxis
                   tick={{ fontSize: 11 }}
                   stroke="var(--md-sys-color-outline)"
                   width={48}
                   reversed
-                  domain={['dataMin - 15', 'dataMax + 15']}
+                  domain={['dataMin - 10', 'dataMax + 10']}
                   tickFormatter={(v: number) => formatPace(v)}
                 />
                 <Tooltip
                   contentStyle={{ background: 'var(--md-sys-color-surface-container-high)', border: 'none', borderRadius: 8 }}
                   formatter={(v) => formatPace(Number(v))}
-                  labelFormatter={(v) => `km ${v}`}
+                  labelFormatter={(v) => `${Number(v).toFixed(1)} min`}
                 />
-                <Bar dataKey="durationSeconds" fill="#1e88e5" radius={[4, 4, 0, 0]} />
-              </BarChart>
+                <Line type="monotone" dataKey="paceSecPerKm" stroke="#1e88e5" dot={false} strokeWidth={2} connectNulls />
+              </LineChart>
             </ResponsiveContainer>
           </Surface>
         )}

@@ -145,6 +145,7 @@ const en: Record<TranslationKey, string> = {
     '. Values from other brands/sensor placements may differ slightly — meant as a rough guide, not an exact comparison.',
   'detail.hrOverTime': 'Heart rate over time',
   'detail.paceOverTime': 'Pace over time',
+  'detail.paceOverTimeHint': 'Smoothed over ~30 seconds, with stops (traffic lights, breaks) filtered out.',
   'detail.cadenceOverTime': 'Cadence over time',
   'detail.kmSplits': 'Kilometer splits',
   'detail.splits': 'Splits',

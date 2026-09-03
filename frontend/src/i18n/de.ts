@@ -147,6 +147,7 @@ const de = {
     '. Werte anderer Hersteller/Sensorpositionen können leicht abweichen — als Orientierung, nicht als exakter Vergleichsmaßstab gedacht.',
   'detail.hrOverTime': 'Herzfrequenz im Verlauf',
   'detail.paceOverTime': 'Pace im Verlauf',
+  'detail.paceOverTimeHint': 'Geglättet über ~30 Sekunden, Stopps (Ampeln, Pausen) sind herausgerechnet.',
   'detail.cadenceOverTime': 'Kadenz im Verlauf',
   'detail.kmSplits': 'Kilometer-Splits',
   'detail.splits': 'Splits',
