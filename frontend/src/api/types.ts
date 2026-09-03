@@ -368,6 +368,11 @@ export interface CorrelationPointDto {
   readinessScore: number | null
 }
 
+export interface WorkoutWeatherDto {
+  temperatureCelsius: number
+  humidityPercent: number | null
+}
+
 export interface KmSplitDto {
   km: number
   durationSeconds: number

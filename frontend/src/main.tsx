@@ -11,6 +11,7 @@ import { LanguageProvider } from './i18n/LanguageContext'
 import { ShoesFeatureProvider } from './shoes/ShoesFeatureContext'
 import { ThemeProvider } from './theme/ThemeContext'
 import { UnitsProvider } from './units/UnitsContext'
+import { WeatherFeatureProvider } from './weather/WeatherFeatureContext'
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
@@ -19,9 +20,11 @@ createRoot(document.getElementById('root')!).render(
         <UnitsProvider>
           <ShoesFeatureProvider>
             <BodyFeatureProvider>
-              <BrowserRouter>
-                <App />
-              </BrowserRouter>
+              <WeatherFeatureProvider>
+                <BrowserRouter>
+                  <App />
+                </BrowserRouter>
+              </WeatherFeatureProvider>
             </BodyFeatureProvider>
           </ShoesFeatureProvider>
         </UnitsProvider>

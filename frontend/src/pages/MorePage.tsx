@@ -9,6 +9,7 @@ import { TopAppBar } from '../components/TopAppBar'
 import { useBodyFeature } from '../body/BodyFeatureContext'
 import { useLanguage, type Language } from '../i18n/LanguageContext'
 import { useShoesFeature } from '../shoes/ShoesFeatureContext'
+import { useWeatherFeature } from '../weather/WeatherFeatureContext'
 import { useTheme } from '../theme/ThemeContext'
 import { COLOR_THEMES } from '../theme/themes.generated'
 import { useUnits } from '../units/UnitsContext'
@@ -25,6 +26,7 @@ export function MorePage() {
   const { language, setLanguage, t } = useLanguage()
   const { enabled: shoesEnabled, setEnabled: setShoesEnabled } = useShoesFeature()
   const { enabled: bodyEnabled, setEnabled: setBodyEnabled } = useBodyFeature()
+  const { enabled: weatherEnabled, setEnabled: setWeatherEnabled } = useWeatherFeature()
 
   const [googleHealth, setGoogleHealth] = useState<GoogleHealthStatusDto | null>(null)
   const [clientId, setClientId] = useState('')
@@ -195,6 +197,18 @@ export function MorePage() {
             <Link className="ghl-more-nav-link" to="/body">
               <Icon name="body" size={18} /> {t('body.manageLink')}
             </Link>
+          </div>
+
+          <div className="ghl-feature-row">
+            <div className="ghl-feature-row__header">
+              <Icon name="sun" size={20} />
+              <div className="ghl-feature-row__title">{t('weather.settingsTitle')}</div>
+              <md-switch
+                selected={weatherEnabled || undefined}
+                onChange={(e) => setWeatherEnabled((e.target as HTMLInputElement & { selected: boolean }).selected)}
+              />
+            </div>
+            <div className="ghl-feature-row__hint">{t('weather.enableHint')}</div>
           </div>
         </Surface>
 

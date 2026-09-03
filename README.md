@@ -14,6 +14,7 @@ A self-hosted dashboard for your Google Takeout health export (Fitbit/Google Hea
 - **Shoe tracking** (optional) — assign runs to a shoe, track mileage per pair.
 - **Body measurements** (optional) — weight, body fat, and circumference tracking with BMI/WHtR/body-fat assessments.
 - **Google Health sync** (optional) — pulls recent activity and weight data from the Google Health API between Takeout exports. Setup steps are in the app under "More."
+- **Weather context** (optional, off by default) — shows temperature/humidity for a GPS workout, looked up from Open-Meteo. The one feature that sends anything to a third party; see [Privacy](#privacy).
 
 Every feature beyond the core dashboard is off by default and lives under "More" in the app.
 
@@ -133,6 +134,8 @@ npm --prefix frontend run dev                  # Vite dev server, proxies /api t
 ## Privacy
 
 HealthLens sends nothing anywhere except what you explicitly connect: your own server stores your imported data, and the optional Google Health sync talks directly to Google's API using OAuth credentials you register yourself.
+
+The one exception is the optional "weather context" feature (off by default, toggled under "More"): when enabled, opening a GPS-tracked workout sends that workout's start coordinate and date to [Open-Meteo](https://open-meteo.com)'s free historical-weather API to look up the temperature/humidity at the time. Only the workout you're actually viewing is looked up — never a bulk export of your location history — and nothing is sent unless you've turned the toggle on.
 
 ## Security
 

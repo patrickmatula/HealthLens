@@ -28,6 +28,7 @@ import type {
   WorkoutDetailDto,
   WorkoutListItemDto,
   WorkoutLocationDto,
+  WorkoutWeatherDto,
 } from './types'
 
 // HealthLens has no login by design (self-hosted, meant for your own trusted network only — see
@@ -120,6 +121,8 @@ export const api = {
   },
 
   workoutDetail: (id: string) => get<WorkoutDetailDto>(`/api/workouts/${id}`),
+
+  workoutWeather: (id: string) => get<WorkoutWeatherDto>(`/api/workouts/${id}/weather`),
 
   personalRecords: () => get<PersonalRecordDto[]>('/api/workouts/personal-records'),
 

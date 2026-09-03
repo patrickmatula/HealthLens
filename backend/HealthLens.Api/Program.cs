@@ -26,6 +26,7 @@ builder.Services.AddSingleton<GoogleHealthOAuthService>();
 builder.Services.AddScoped<GoogleHealthSyncService>();
 builder.Services.AddHttpClient<GoogleHealthApiClient>(c => c.BaseAddress = new Uri("https://health.googleapis.com/"));
 builder.Services.AddHostedService<GoogleHealthAutoSyncService>();
+builder.Services.AddHttpClient<OpenMeteoWeatherService>(c => c.BaseAddress = new Uri("https://archive-api.open-meteo.com/"));
 
 // Takeout exports with years of intraday data can be large; raise the default multipart limits.
 builder.Services.Configure<FormOptions>(o => o.MultipartBodyLengthLimit = 4L * 1024 * 1024 * 1024);

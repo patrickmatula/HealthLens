@@ -23,7 +23,9 @@ this work.
 
 ## Standalone
 - [x] 12. Schuh-Performance-Vergleich — committed, deployed to demo container
-- [ ] 13. Wetter-Kontext pro Workout — **needs explicit user go-ahead first**: requires an external weather-by-GPS-coordinate API call, which is a new external data flow this self-hosted app doesn't currently have. Ask before starting; do not implement silently.
+- [x] 13. Wetter-Kontext pro Workout — user explicitly approved the external API call; committed, deployed to demo container (Open-Meteo, opt-in toggle off by default, README Privacy section updated)
+
+## Status: all 13 features done, committed, deployed to demo container. Not yet pushed.
 
 ## Working notes
 - Demo container only (9080/9443) gets rebuilt/redeployed per feature-group checkpoint, per the

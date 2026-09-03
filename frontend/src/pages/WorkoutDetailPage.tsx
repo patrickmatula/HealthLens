@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
 import { Link, useParams } from 'react-router-dom'
 import { api } from '../api/client'
-import type { ShoeDto, WorkoutDetailDto, WorkoutSampleDto } from '../api/types'
+import type { ShoeDto, WorkoutDetailDto, WorkoutSampleDto, WorkoutWeatherDto } from '../api/types'
 import { Icon } from '../components/Icon'
 import { KpiTile } from '../components/KpiTile'
 import { Surface } from '../components/Surface'
@@ -11,6 +11,7 @@ import { ReferenceRangeGauge } from '../components/ReferenceRangeGauge'
 import { WorkoutRouteMap } from '../components/WorkoutRouteMap'
 import { useLanguage } from '../i18n/LanguageContext'
 import { useShoesFeature } from '../shoes/ShoesFeatureContext'
+import { useWeatherFeature } from '../weather/WeatherFeatureContext'
 import { formatDateTime, formatDistanceKm, formatDuration, formatPace, formatRecordValue, recordLabel } from '../utils/format'
 import { analyzeDecoupling, analyzePacingStrategy, computeGradeAdjustedPace } from '../utils/runningMetrics'
 import {
@@ -73,13 +74,16 @@ export function WorkoutDetailPage() {
   const { language, t } = useLanguage()
   const { enabled: shoesEnabled } = useShoesFeature()
   const { id } = useParams<{ id: string }>()
+  const { enabled: weatherEnabled } = useWeatherFeature()
   const [workout, setWorkout] = useState<WorkoutDetailDto | null>(null)
   const [loading, setLoading] = useState(true)
   const [shoes, setShoes] = useState<ShoeDto[]>([])
+  const [weather, setWeather] = useState<WorkoutWeatherDto | null>(null)
 
   useEffect(() => {
     if (!id) return
     setLoading(true)
+    setWeather(null)
     api
       .workoutDetail(id)
       .then(setWorkout)
@@ -91,6 +95,15 @@ export function WorkoutDetailPage() {
       api.shoes().then(setShoes)
     }
   }, [shoesEnabled])
+
+  useEffect(() => {
+    if (weatherEnabled && workout?.hasGps) {
+      api
+        .workoutWeather(workout.id)
+        .then(setWeather)
+        .catch(() => setWeather(null))
+    }
+  }, [weatherEnabled, workout?.id, workout?.hasGps])
 
   async function handleShoeChange(value: string) {
     if (!workout) return
@@ -155,6 +168,13 @@ export function WorkoutDetailPage() {
             {workout.calories != null && <KpiTile label={t('detail.calories')} value={Math.round(workout.calories).toString()} unit="kcal" />}
             {workout.cadenceAvgSpm != null && <KpiTile label={t('detail.avgCadence')} value={Math.round(workout.cadenceAvgSpm).toString()} unit="spm" />}
             {workout.elevationGainMeters != null && <KpiTile label={t('detail.elevation')} value={Math.round(workout.elevationGainMeters).toString()} unit="m" />}
+            {weather != null && (
+              <KpiTile
+                label={t('detail.weather')}
+                value={`${Math.round(weather.temperatureCelsius)}°C`}
+                unit={weather.humidityPercent != null ? `${Math.round(weather.humidityPercent)}% rH` : undefined}
+              />
+            )}
           </div>
 
           {shoesEnabled && (

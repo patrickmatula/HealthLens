@@ -46,6 +46,8 @@ public record WorkoutSampleDto(
 
 public record KmSplitDto(int Km, double DurationSeconds, double? AvgHeartRate);
 
+public record WorkoutWeatherDto(double TemperatureCelsius, double? HumidityPercent);
+
 public record WorkoutDetailDto(
     string Id,
     DateTime StartUtc,

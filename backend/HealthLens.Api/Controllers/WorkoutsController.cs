@@ -9,7 +9,7 @@ namespace HealthLens.Api.Controllers;
 
 [ApiController]
 [Route("api/workouts")]
-public class WorkoutsController(DataSessionService session) : ControllerBase
+public class WorkoutsController(DataSessionService session, OpenMeteoWeatherService weather) : ControllerBase
 {
     [HttpGet]
     public async Task<ActionResult<IReadOnlyList<WorkoutListItemDto>>> List(string? preset, DateOnly? from, DateOnly? to, string? activity, int? shoeId, CancellationToken ct)
@@ -189,6 +189,38 @@ public class WorkoutsController(DataSessionService session) : ControllerBase
             records.Select(r => new PersonalRecordDto(r.Id, r.WorkoutId?.ToString(), r.NameLocalizationId, r.State, r.AchieveTimeUtc, r.RecordValue, r.RecordType, r.ExtentValueMeters, workout.ActivityName))
                 .Concat(reconciledForThisWorkout)
                 .ToList()));
+    }
+
+    /// <summary>Optional, on-demand historical weather for this workout's GPS start location and time —
+    /// see OpenMeteoWeatherService for the privacy tradeoff this makes (the only place HealthLens sends
+    /// anything to a third party beyond the user's own Google Health connection). The frontend only calls
+    /// this when its weather toggle is on, so a workout is never looked up without the user opting in.</summary>
+    [HttpGet("{id:long}/weather")]
+    public async Task<ActionResult<WorkoutWeatherDto>> Weather(long id, CancellationToken ct)
+    {
+        await using var db = session.CreateContext();
+        var workout = await db.Workouts.FindAsync([id], ct);
+        if (workout is null)
+        {
+            return NotFound();
+        }
+
+        var firstFix = await db.WorkoutSamples
+            .Where(s => s.WorkoutId == id && s.Latitude != null && s.Longitude != null)
+            .OrderBy(s => s.Timestamp)
+            .FirstOrDefaultAsync(ct);
+        if (firstFix is null)
+        {
+            return NotFound("Kein GPS-Fix für dieses Workout vorhanden.");
+        }
+
+        var result = await weather.GetWeatherAsync(id, firstFix.Latitude!.Value, firstFix.Longitude!.Value, workout.StartUtc, ct);
+        if (result is null)
+        {
+            return NotFound("Wetterdaten nicht verfügbar.");
+        }
+
+        return Ok(new WorkoutWeatherDto(result.TemperatureCelsius, result.HumidityPercent));
     }
 
     // WorkoutSplits (from UserExercises' embedded events) is often empty, so this derives km-by-km
