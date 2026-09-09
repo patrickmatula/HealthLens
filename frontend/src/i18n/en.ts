@@ -138,6 +138,12 @@ const en: Record<TranslationKey, string> = {
   'category.other': 'Other',
 
   'workouts.bestRecords': 'Personal bests',
+  'workouts.currentBadge': 'Current',
+  'theme.teal': 'Teal',
+  'theme.blue': 'Blue',
+  'theme.violet': 'Violet',
+  'theme.orange': 'Orange',
+  'theme.white': 'White',
   'workouts.racePrediction': 'Race time prediction',
   'workouts.racePredictionHint': "Based on your best time over {distance} ({time}), using the Riegel formula. Most accurate for similar distances, less so across a big distance jump (e.g. 5K → marathon).",
   'workouts.raceDistance.1k': '1K',

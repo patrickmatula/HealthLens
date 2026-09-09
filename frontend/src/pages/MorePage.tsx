@@ -7,16 +7,24 @@ import { SegmentedButton } from '../components/SegmentedButton'
 import { Surface } from '../components/Surface'
 import { TopAppBar } from '../components/TopAppBar'
 import { useBodyFeature } from '../body/BodyFeatureContext'
-import { useLanguage, type Language } from '../i18n/LanguageContext'
+import { useLanguage, type Language, type TranslationKey } from '../i18n/LanguageContext'
 import { useShoesFeature } from '../shoes/ShoesFeatureContext'
 import { useWeatherFeature } from '../weather/WeatherFeatureContext'
 import { useTheme } from '../theme/ThemeContext'
-import { COLOR_THEMES } from '../theme/themes.generated'
+import { COLOR_THEMES, type ColorThemeKey } from '../theme/themes.generated'
 import { useUnits } from '../units/UnitsContext'
 import { UploadPage } from './UploadPage'
 import { formatDateTime } from '../utils/format'
 import './DashboardPage.css'
 import './MorePage.css'
+
+const THEME_LABEL_KEYS: Record<ColorThemeKey, TranslationKey> = {
+  teal: 'theme.teal',
+  blue: 'theme.blue',
+  violet: 'theme.violet',
+  orange: 'theme.orange',
+  white: 'theme.white',
+}
 
 export function MorePage() {
   const [status, setStatus] = useState<ImportCurrentDto | null>(null)
@@ -144,7 +152,7 @@ export function MorePage() {
                   type="button"
                   className="ghl-theme-swatch-item"
                   onClick={() => setColorTheme(ct.key)}
-                  aria-label={ct.label}
+                  aria-label={t(THEME_LABEL_KEYS[ct.key])}
                   aria-pressed={colorTheme === ct.key}
                 >
                   <span
@@ -153,7 +161,7 @@ export function MorePage() {
                   >
                     {colorTheme === ct.key && <Icon name="check" size={16} />}
                   </span>
-                  <span className="ghl-theme-swatch-label">{ct.label}</span>
+                  <span className="ghl-theme-swatch-label">{t(THEME_LABEL_KEYS[ct.key])}</span>
                 </button>
               ))}
             </div>

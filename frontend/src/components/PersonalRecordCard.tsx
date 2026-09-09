@@ -1,11 +1,13 @@
 import { Link } from 'react-router-dom'
 import type { PersonalRecordDto } from '../api/types'
+import { useLanguage } from '../i18n/LanguageContext'
 import { formatDate, formatRecordValue, recordLabel } from '../utils/format'
 import { Icon } from './Icon'
 import { Surface } from './Surface'
 import './PersonalRecordCard.css'
 
 export function PersonalRecordCard({ record }: { record: PersonalRecordDto }) {
+  const { t } = useLanguage()
   const content = (
     <>
       <div className="ghl-pr-card__header">
@@ -14,7 +16,7 @@ export function PersonalRecordCard({ record }: { record: PersonalRecordDto }) {
       </div>
       <div className="ghl-pr-card__value">{formatRecordValue(record)}</div>
       <div className="ghl-pr-card__date">{formatDate(record.achieveTimeUtc)}</div>
-      {record.state === 'PERSONAL_RECORD_STATE_STANDING' && <span className="ghl-pr-card__state">Aktuell</span>}
+      {record.state === 'PERSONAL_RECORD_STATE_STANDING' && <span className="ghl-pr-card__state">{t('workouts.currentBadge')}</span>}
     </>
   )
 

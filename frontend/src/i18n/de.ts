@@ -140,6 +140,12 @@ const de = {
   'category.other': 'Sonstiges',
 
   'workouts.bestRecords': 'Bestleistungen',
+  'workouts.currentBadge': 'Aktuell',
+  'theme.teal': 'Teal',
+  'theme.blue': 'Blau',
+  'theme.violet': 'Violett',
+  'theme.orange': 'Orange',
+  'theme.white': 'Weiß',
   'workouts.racePrediction': 'Rennzeit-Prognose',
   'workouts.racePredictionHint': 'Basierend auf deiner Bestzeit über {distance} ({time}), nach der Riegel-Formel. Am genauesten für ähnliche Distanzen, ungenauer über große Distanzsprünge (z.B. 5K → Marathon).',
   'workouts.raceDistance.1k': '1 km',

@@ -22,20 +22,20 @@ Every feature beyond the core dashboard is off by default and lives under "More"
 
 All screenshots below are from the synthetic [`demo-data`](demo-data/HealthLens-demo-data.zip) dataset (see [First import](#first-import)) — no real personal data, GPS routes included.
 
-**Dashboard** — cross-metric overview, in light and dark mode:
+**Dashboard** — cross-metric overview with a weekly digest, training-load (ACWR) gauge, a GitHub-style consistency calendar, and a map of where you've trained, in light and dark mode:
 
 <p>
   <img src="docs/screenshots/01-dashboard-light.png" alt="Dashboard, light mode" width="49%" />
   <img src="docs/screenshots/02-dashboard-dark.png" alt="Dashboard, dark mode" width="49%" />
 </p>
 
-**Workouts** — personal-record board and searchable/filterable workout list:
+**Workouts** — personal-record board, Riegel-formula race-time predictions, and a searchable/filterable workout list:
 
-![Workouts list with personal records](docs/screenshots/03-workouts-list.png)
+![Workouts list with personal records and race predictions](docs/screenshots/03-workouts-list.png)
 
-**Workout detail** — KPIs, running-dynamics reference gauges, and a GPS route map (this run is the synthetic New York/Central Park route from the demo data):
+**Workout detail** — KPIs (including grade-adjusted pace), pacing/aerobic-decoupling analysis, running-dynamics reference gauges, and a GPS route map (this run is the synthetic New York/Central Park route from the demo data):
 
-![Workout detail with GPS route map](docs/screenshots/04-workout-detail-map.png)
+![Workout detail with training analysis and GPS route map](docs/screenshots/04-workout-detail-map.png)
 
 **Sleep** — nightly duration trend and a scrollable history of every night:
 
@@ -53,13 +53,13 @@ All screenshots below are from the synthetic [`demo-data`](demo-data/HealthLens-
 
 ![Body measurements page](docs/screenshots/08-body.png)
 
-**Shoe tracking** (optional) — mileage per pair, assignable from any workout:
+**Shoe tracking** (optional) — mileage and pace per pair, a default shoe per workout type, and a performance comparison across shoes:
 
-![Shoe tracking page](docs/screenshots/09-shoes.png)
+![Shoe tracking page with per-shoe performance comparison](docs/screenshots/09-shoes.png)
 
-**Settings** — units, language, and 5 Material-3-derived color themes (4 accent colors plus a dedicated near-white/near-black neutral theme):
+**Settings** — units, language, 5 Material-3-derived color themes (4 accent colors plus a dedicated near-white/near-black neutral theme), and the optional features toggles:
 
-![Settings page showing the color theme picker](docs/screenshots/10-more-settings.png)
+![Settings page showing the color theme picker and optional features](docs/screenshots/10-more-settings.png)
 
 A couple of the color themes applied to the dashboard, for a sense of the range:
 
@@ -67,6 +67,10 @@ A couple of the color themes applied to the dashboard, for a sense of the range:
   <img src="docs/screenshots/11-dashboard-orange-theme.png" alt="Dashboard in the Orange theme" width="49%" />
   <img src="docs/screenshots/12-dashboard-white-theme.png" alt="Dashboard in the neutral White theme" width="49%" />
 </p>
+
+**Year in Review** — a free, Strava-"Year in Sport"-style annual recap: total distance vs. the prior year, longest run, most active month, and the activity-type breakdown:
+
+![Year in Review page](docs/screenshots/13-year-in-review.png)
 
 ## Run it with Docker
 
